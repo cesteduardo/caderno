@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Caderno de estudo: rotina, leitura com destaques, aulas transcritas e revisão espaçada.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Caderno">
+<title>Caderno</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="estudo.css">
+</head>
+<body>
+
+<nav class="nav" aria-label="Seções">
+  <span class="nav-ind" aria-hidden="true"></span>
+  <span class="nav-brand">Caderno</span>
+  <button data-view="hoje">Hoje</button>
+  <button data-view="ler" data-group="ler">Ler</button>
+  <button data-view="aulas" data-group="aulas aula">Aulas</button>
+  <button data-view="revisar" data-group="revisar">Revisar</button>
+  <button data-view="notas" data-group="notas">Notas</button>
+  <button data-view="semana" data-group="semana planos recursos progresso">Rotina</button>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ HOJE ============ -->
+  <section class="view" id="v-hoje">
+    <header class="hero">
+      <div class="hero-top">
+        <span class="status"><i></i><span id="dayIndicator"></span></span>
+        <div class="daynav">
+          <button class="round" id="prevDay" aria-label="Dia anterior">←</button>
+          <span id="dateLabel"></span>
+          <button class="round" id="nextDay" aria-label="Próximo dia">→</button>
+        </div>
+      </div>
+
+      <div class="hero-main">
+        <h1 id="t-hoje">Hoje.</h1>
+        <div class="ring" aria-hidden="true">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" class="ring-track"/>
+            <circle cx="60" cy="60" r="52" class="ring-fill" id="ringFill"/>
+          </svg>
+          <span id="ringPct">0%</span>
+        </div>
+      </div>
+
+      <div class="facts">
+        <div><b id="minDone">0</b>min concluídos</div>
+        <div><b id="minPlanned">0</b>min planejados</div>
+        <div><b id="minLeft">0</b>min restantes</div>
+        <div><b id="taskCount">0/0</b>tarefas</div>
+      </div>
+      <button class="btn-text" id="backToday" hidden>Voltar para hoje</button>
+    </header>
+
+    <div class="today-study" id="studyToday"></div>
+
+    <section class="track" id="track" hidden></section>
+
+    <div class="panel" id="todayList"></div>
+
+    <section class="card diary">
+      <div class="card-head">
+        <h2>Diário</h2>
+        <span class="pill-muted" id="wordCount">0 palavras</span>
+      </div>
+      <textarea id="diary" placeholder="O que estudou, o que observou, uma frase que ficou."></textarea>
+    </section>
+  </section>
+
+  <!-- ============ LER ============ -->
+  <section class="view" id="v-ler">
+    <header class="page-head">
+      <span class="eyebrow">Biblioteca</span>
+      <h1>Ler<span class="sup" id="bookCount"></span></h1>
+      <p class="lead">EPUB, PDF e TXT. O EPUB vira página que se ajusta à tela; o PDF abre como foi diagramado, página por página. Selecione um trecho para destacar, anotar ou virar cartão de revisão.</p>
+    </header>
+    <div class="toolbar">
+      <label class="btn">+ Adicionar livros<input id="bookFile" type="file" multiple hidden></label>
+      <button class="btn ghost" id="fromInk" hidden>Trazer livros do INK</button>
+    </div>
+    <div id="library"></div>
+  </section>
+
+  <!-- ============ AULAS ============ -->
+  <section class="view" id="v-aulas">
+    <header class="page-head">
+      <span class="eyebrow">Aulas</span>
+      <h1>Aulas<span class="sup" id="lessonCount"></span></h1>
+      <p class="lead">Grave a aula pelo microfone ou pelo áudio de uma aba e transcreva aqui mesmo. No fim sai a ficha: resumo, autores, obras, conceitos, destaques e perguntas de revisão.</p>
+    </header>
+    <div class="toolbar">
+      <button class="btn" id="newLesson">+ Nova aula</button>
+      <label class="btn ghost">Transcrever arquivo de áudio<input id="audioFile" type="file" accept="audio/*,video/*" hidden></label>
+    </div>
+    <div id="lessons"></div>
+  </section>
+
+  <section class="view" id="v-aula"></section>
+
+  <!-- ============ REVISAR ============ -->
+  <section class="view" id="v-revisar">
+    <header class="page-head">
+      <span class="eyebrow">Memorização</span>
+      <h1>Revisar<span class="sup" id="dueCount"></span></h1>
+      <p class="lead">Repetição espaçada: cada cartão volta pouco antes de você esquecer. Responda de memória antes de virar; é o esforço de lembrar que fixa.</p>
+    </header>
+    <div id="reviewHome"></div>
+  </section>
+
+  <!-- ============ NOTAS ============ -->
+  <section class="view" id="v-notas">
+    <header class="page-head">
+      <span class="eyebrow">Anotações</span>
+      <h1>Notas</h1>
+      <p class="lead">Tudo o que você marcou e escreveu, nos livros e nas aulas, num lugar só. A busca procura também dentro das transcrições.</p>
+    </header>
+    <div id="notesHome"></div>
+  </section>
+
+  <!-- ============ ROTINA: SEMANA ============ -->
+  <section class="view" id="v-semana">
+    <div class="subnav" data-sub></div>
+    <header class="page-head">
+      <span class="eyebrow">Rotina</span>
+      <h1>Semana<span class="sup" id="weekTotal"></span></h1>
+      <p class="lead">Trabalho das 8h às 18h: terço, café e um bloco de foco entre 5h e 6h40; um bloco curto à noite; o trajeto é só música. Sexta à noite livre para a sua mulher, sábado com a sessão longa. Constância por anos vale mais que intensidade por semanas.</p>
+    </header>
+
+    <section class="card alloc">
+      <div class="card-head">
+        <h2>Distribuição semanal</h2>
+        <span class="pill-muted" id="allocTotal"></span>
+      </div>
+      <div class="alloc-bar" id="allocBar"></div>
+      <ul class="alloc-legend" id="allocLegend"></ul>
+    </section>
+
+    <div class="week" id="week"></div>
+
+    <section class="card editor">
+      <div class="card-head">
+        <h2>Editar rotina</h2>
+        <button class="btn" id="addTask">+ Nova tarefa</button>
+      </div>
+      <div id="editorRows"></div>
+    </section>
+  </section>
+
+  <!-- ============ ROTINA: PLANOS ============ -->
+  <section class="view" id="v-planos">
+    <div class="subnav" data-sub></div>
+    <header class="page-head">
+      <span class="eyebrow">Longo prazo</span>
+      <h1>Planos<span class="sup">9</span></h1>
+      <p class="lead">Duas prioridades de cada vez; o resto em manutenção ou pausado. Cada fase tem horas estimadas, e a previsão usa o tempo que a rotina dá para cada área: se mudar a rotina, as datas mudam junto.</p>
+    </header>
+    <div class="filters" id="planFilters" role="group" aria-label="Filtrar planos"></div>
+    <div id="plans"></div>
+  </section>
+
+  <!-- ============ ROTINA: RECURSOS ============ -->
+  <section class="view" id="v-recursos">
+    <div class="subnav" data-sub></div>
+    <header class="page-head">
+      <span class="eyebrow">Biblioteca</span>
+      <h1>Recursos</h1>
+      <p class="lead">Poucos recursos, bem escolhidos. Os canais são em inglês, então também contam como prática de escuta.</p>
+    </header>
+    <section class="card advice">
+      <span class="eyebrow">Idiomas</span>
+      <h2>Busuu como curso, Duolingo como hábito.</h2>
+      <div class="advice-grid">
+        <p><b>Busuu</b> organiza o curso por níveis, do A1 ao B2. Trabalha gramática e permite que falantes nativos corrijam seus exercícios escritos e falados.</p>
+        <p><b>Duolingo</b> é útil para criar hábito e manter contato diário. Fica como complemento gratuito, não como curso principal.</p>
+      </div>
+    </section>
+    <section class="card cycle">
+      <div class="card-head">
+        <h2>Música no trajeto</h2>
+        <span class="pill-muted">um álbum por dia útil · ciclo de 4 semanas</span>
+      </div>
+      <p class="cycle-lead">Seg Bach · ter piano · qua sinfonia · qui concerto · sex música sacra. Ouça na ida e repita na volta: a segunda escuta é quando a obra começa a abrir.</p>
+      <div class="cycle-grid" id="trackCycle"></div>
+    </section>
+    <div class="panel index" id="resourceList"></div>
+  </section>
+
+  <!-- ============ ROTINA: PROGRESSO ============ -->
+  <section class="view" id="v-progresso">
+    <div class="subnav" data-sub></div>
+    <header class="page-head">
+      <span class="eyebrow">Continuidade</span>
+      <h1>Progresso</h1>
+    </header>
+
+    <div class="stats" id="stats"></div>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Sequência</h2>
+        <span class="pill-muted">dia conta com ≥ 50% dos minutos</span>
+      </div>
+      <div class="squares" id="streakSquares"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>26 semanas</h2>
+        <span class="legend"><i class="lg-f"></i>futura <i class="lg-d"></i>feita <i class="lg-c"></i>atual</span>
+      </div>
+      <div class="weeks" id="weeksMap"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Horas por área</h2>
+        <span class="pill-muted">esta semana · feito / planejado</span>
+      </div>
+      <div id="hours"></div>
+    </section>
+    <section class="card sync">
+      <div class="card-head">
+        <h2>Sincronização</h2>
+        <span class="pill-muted">PC e celular</span>
+      </div>
+      <div id="syncCard"></div>
+    </section>
+  </section>
+
+  <footer class="foot">
+    <span>Constância por anos vale mais que intensidade por semanas.</span>
+    <span class="foot-actions">
+      <span class="sync-foot" id="syncFoot" data-state="off">Só neste aparelho</span>
+      <button id="btnExport">Exportar dados</button>
+      <button id="btnImport">Importar</button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </span>
+  </footer>
+</main>
+
+<!-- Leitor (tela cheia) -->
+<div id="reader" class="reader" hidden></div>
+<!-- Sessão de revisão (tela cheia) -->
+<div id="review" class="review" hidden></div>
+<!-- Janela genérica -->
+<div id="modal" class="modal" hidden><div class="modal-box" role="dialog" aria-modal="true"></div></div>
+<!-- Barra de seleção: destacar, anotar, cartão -->
+<div id="selbar" class="selbar" hidden></div>
+<!-- Foco (pomodoro) -->
+<div id="focus" class="focus" hidden></div>
+
+<script src="vendor/jszip.min.js" defer></script>
+<script src="vendor/pdf.min.js" defer></script>
+<script src="js/rotina.js" defer></script>
+<script src="js/base.js" defer></script>
+<script src="js/formatos.js" defer></script>
+<script src="js/leitor.js" defer></script>
+<script src="js/pdf.js" defer></script>
+<script src="js/analise.js" defer></script>
+<script src="js/aulas.js" defer></script>
+<script src="js/revisar.js" defer></script>
+<script src="js/notas.js" defer></script>
+<script src="js/app.js" defer></script>
+</body>
+</html>
