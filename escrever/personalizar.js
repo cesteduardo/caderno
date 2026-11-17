@@ -285,7 +285,9 @@ function montar(){
   /* atalhos */
   $('#ajAtalhos').replaceChildren(...ATALHOS.flatMap(([o, t]) => {
     const dd = el('dd');
-    dd.append(...t.split('+').flatMap((p, i) => i ? ['+', el('kbd', null, p)] : [el('kbd', null, p)]));
+    // no Mac o atalho é uma tecla só, com os símbolos: ⇧⌘O
+    if (MAC) dd.append(el('kbd', null, paraSO(t)));
+    else dd.append(...t.split('+').flatMap((p, i) => i ? ['+', el('kbd', null, p)] : [el('kbd', null, p)]));
     return [el('dt', null, o), dd];
   }));
 
@@ -344,6 +346,7 @@ function sincronizar(){
   const cpl = letrasPorLinha();
   $('#outColunaDica').textContent = cpl ? `Cerca de ${cpl} letras por linha. Entre 60 e 75 é o confortável.` : 'Entre 60 e 75 letras por linha é o confortável.';
   pintarFaixas();
+  if (typeof medirPilulas === 'function') medirPilulas();
   $('#selContagem').value = String(prefs.contagem);
   if (document.activeElement !== $('#numMeta')) $('#numMeta').value = prefs.meta || '';
 
@@ -497,8 +500,12 @@ function guardarPosicao(){ posicao = rolagem.scrollTop; }
 function abrirAjustes(secao){
   if (painel.open){ if (secao) irSecao(secao); else fecharDialogo(painel); return; }
   if ($('#sumario').open) $('#sumario').close();
-  sincronizar();
+  // ao abrir, nada anima: chaves e pílulas já aparecem no lugar
+  painel.setAttribute('data-sem-anim', '');
   abrirDialogo(painel);
+  sincronizar();
+  medirPilulas(true);
+  requestAnimationFrame(() => requestAnimationFrame(() => painel.removeAttribute('data-sem-anim')));
   $('#btnAa').setAttribute('aria-pressed', 'true');
   rolagem.scrollTop = posicao;
   if (secao) irSecao(secao, false);
@@ -524,6 +531,7 @@ function irSecao(id, suave = true){
 let travarMarca = 0;
 function marcar(id){
   navBotoes.forEach(b => b.setAttribute('aria-current', String(b.dataset.ir === id)));
+  if (typeof medirPilulas === 'function') medirPilulas();
   const ativo = navBotoes.find(b => b.dataset.ir === id);
   if (ativo && painel.open) ativo.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
@@ -828,7 +836,7 @@ function substituirTodos(){
   if (!n){ avisar('nada para substituir'); return; }
   inserirComoEdicao(0, v.length, novo);
   recalcular(); pintarConta(); desenhar();
-  avisar(`${n.toLocaleString('pt-BR')} ${n === 1 ? 'troca' : 'trocas'} · Ctrl+Z desfaz`);
+  avisar(`${n.toLocaleString('pt-BR')} ${n === 1 ? 'troca' : 'trocas'} · ${paraSO('Ctrl+Z')} desfaz`);
 }
 $('#btnBusca').onclick = () => abrirBusca(false);
 $('#buscaFechar').onclick = fecharBusca;
@@ -909,4 +917,74 @@ desenhar();
   };
   new MutationObserver(marcar).observe(salvo, { childList: true, characterData: true, subtree: true });
   marcar();
+}
+
+/* ── a pílula que desliza ───────────────────────────────────────
+   O mesmo controle do GR Vagas: uma pílula atrás das opções vai até a
+   escolhida, medindo posição e tamanho. Na primeira medida (e sempre
+   que o painel abre) ela aparece já no lugar; depois disso desliza.
+   Vale para os segmentados, as fichas, a barra lateral do Personalizar
+   e o destaque dos menus da barra. */
+const PILULAS = [];
+function criarPilula(trilha, achar){
+  const p = document.createElement('span');
+  p.className = 'pilula';
+  p.setAttribute('aria-hidden', 'true');
+  trilha.prepend(p);
+  trilha.classList.add('com-pilula');
+  const medir = (semAnim, alvo) => {
+    const a = alvo !== undefined ? alvo : achar(trilha);
+    if (semAnim) trilha.removeAttribute('data-pronta');
+    const visivel = !!a && a.offsetParent === trilha;
+    trilha.toggleAttribute('data-sem-pilula', !visivel);
+    if (visivel){
+      trilha.style.setProperty('--px', a.offsetLeft + 'px');
+      trilha.style.setProperty('--py', a.offsetTop + 'px');
+      trilha.style.setProperty('--pw', a.offsetWidth + 'px');
+      trilha.style.setProperty('--ph', a.offsetHeight + 'px');
+    }
+    if (semAnim || !trilha.hasAttribute('data-pronta'))
+      requestAnimationFrame(() => requestAnimationFrame(() => trilha.setAttribute('data-pronta', '')));
+  };
+  const item = { trilha, medir };
+  PILULAS.push(item);
+  if (window.ResizeObserver) new ResizeObserver(() => { if (trilha.offsetParent) medir(true); }).observe(trilha);
+  return item;
+}
+const marcado = (sel) => (t) => t.querySelector(sel);
+painel.querySelectorAll('.aj-seg, .aj-fichas, .aj-mini').forEach(t => criarPilula(t, marcado('[role=radio][aria-checked="true"]')));
+criarPilula($('#ajNav'), marcado('[aria-current="true"]'));
+function medirPilulas(semAnim){ for (const p of PILULAS) if (p.trilha.offsetParent && !p.trilha.closest('.menu-pop')) p.medir(semAnim); }
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => medirPilulas(true)).catch(() => {});
+
+/* Nos menus a pílula segue o foco, e o foco segue o ponteiro (app.js):
+   mouse e setas acendem a mesma linha, e a luz escorrega entre elas. */
+$$('.menu-pop .mp-lista').forEach((lista) => {
+  const pil = criarPilula(lista, (t) => t.querySelector('button:focus'));
+  const pop = lista.closest('.menu-pop');
+  lista.addEventListener('focusin', (e) => {
+    const b = e.target.closest('button');
+    if (b) pil.medir(!lista._viva, b);
+    lista._viva = true;
+  });
+  lista.addEventListener('focusout', (e) => {
+    if (!lista.contains(e.relatedTarget)) lista.setAttribute('data-sem-pilula', '');
+  });
+  pop.addEventListener('close', () => { lista._viva = false; });
+});
+
+/* ── celular: a amostra rola junto com os ajustes ─────────────
+   Na tela estreita ela sai da coluna lateral e vira o começo da
+   rolagem, grande; ao alargar a janela, volta para o lado. */
+{
+  const amostra = painel.querySelector('.aj-amostra');
+  const meio = painel.querySelector('.aj-meio');
+  const conteudo = $('#ajConteudo');
+  const estreita = matchMedia('(max-width: 720px)');
+  const posicionar = () => {
+    if (estreita.matches){ if (amostra.parentElement !== conteudo) conteudo.prepend(amostra); }
+    else if (amostra.parentElement !== meio) meio.append(amostra);
+  };
+  if (estreita.addEventListener) estreita.addEventListener('change', posicionar); else estreita.addListener(posicionar);
+  posicionar();
 }

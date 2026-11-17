@@ -27,9 +27,9 @@ if (PONTE) (() => {
   grupoArq.prepend(voltar);
 
   const novo = $('#btnNovo');
-  novo.title = 'Nova nota (Ctrl+Alt+N)';
+  novo.title = paraSO('Nova nota (Ctrl+Alt+N)');
   novo.setAttribute('aria-label', 'Nova nota');
-  novo.innerHTML = 'Nova nota<kbd>Ctrl+Alt+N</kbd>';
+  novo.innerHTML = 'Nova nota<kbd>' + paraSO('Ctrl+Alt+N') + '</kbd>';
   novo.onclick = () => { ponteFlush(); PONTE.nova(); };
 
   const abrir = $('#btnAbrir');

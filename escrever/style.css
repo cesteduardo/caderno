@@ -57,6 +57,8 @@
   --raio: 8px;
   --transicao: 180ms cubic-bezier(.32,.72,.31,1);
   --mola: cubic-bezier(.32,.72,0,1);
+  /* a pílula que desliza: passa um tico do ponto e assenta (a do GR Vagas) */
+  --desliza: cubic-bezier(.34,1.16,.5,1);
 }
 [data-fonte="duo"]     { --doc:"iA Duo","Liberation Mono",ui-monospace,monospace; }
 [data-fonte="mono"]    { --doc:"iA Mono","Liberation Mono",ui-monospace,monospace; }
@@ -310,16 +312,19 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
 .mp-lista button:has(.mp-txt){ min-height:50px; padding-block:7px; }
 .mp-txt{ display:grid; gap:2px; min-width:0; }
 .mp-txt small{ font-size:12px; line-height:1.3; color:var(--r2); letter-spacing:-.003em; }
-.mp-lista button:hover,.mp-lista button:focus-visible{
-  background:var(--caret); color:var(--sobre-acento); outline:0;
-}
-.mp-lista button:is(:hover,:focus-visible) .mp-txt small{ color:inherit; opacity:.82; }
+.mp-lista{ position:relative; }
+.mp-lista button{ z-index:1; transition:color 160ms ease; }
+.mp-lista button:focus{ outline:0; }
+/* a linha acesa é a que tem o foco; a luz atrás dela é a pílula */
+.mp-lista button:focus{ color:var(--sobre-acento); }
+.mp-lista button:focus .mp-txt small{ color:inherit; opacity:.82; }
+.mp-lista .pilula{ border-radius:9px; background:var(--caret); }
 .mp-lista button > i:not(.mp-bola),.mp-lista button > kbd{
   margin-left:auto; font:400 12px/1 var(--ui); font-style:normal;
   letter-spacing:.01em; color:var(--r3); white-space:nowrap;
 }
 .mp-lista button > kbd{ padding:3px 6px; border-radius:5px; background:var(--preench); }
-.mp-lista button:is(:hover,:focus-visible) > :is(i:not(.mp-bola),kbd){ color:inherit; opacity:.85; background:transparent; }
+.mp-lista button:focus > :is(i:not(.mp-bola),kbd){ color:inherit; opacity:.85; background:transparent; }
 /* a marca de ligado é um desenho, não um caractere: fica igual em toda fonte */
 .mp-lista button:is([aria-checked="true"],[aria-pressed="true"])::before{
   content:""; position:absolute; left:12px; top:50%; width:14px; height:14px; margin-top:-7px;
@@ -327,11 +332,31 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.4 4.8 9 10 3' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
           mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.4 4.8 9 10 3' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
 }
-.mp-lista button:is([aria-checked="true"],[aria-pressed="true"]):is(:hover,:focus-visible)::before{ background:var(--sobre-acento); }
+.mp-lista button:is([aria-checked="true"],[aria-pressed="true"]):focus::before{ background:var(--sobre-acento); }
 .mp-lista hr{ height:1px; margin:6px 12px; border:0; background:var(--fio); flex:none; }
 .menu-titulo{
   margin:10px 12px 4px; font-size:12px; font-weight:600; letter-spacing:-.003em; color:var(--r3);
 }
+
+/* ── a pílula que desliza (menus, segmentados, barra lateral) ──
+   Fica atrás das opções; o JS mede a escolhida e grava a posição e o
+   tamanho em --px, --py, --pw e --ph. Só move transform, largura e
+   altura, com a curva --desliza. */
+.com-pilula{ position:relative; isolation:isolate; }
+.pilula{
+  position:absolute; top:0; left:0; z-index:0;
+  width:var(--pw, 0); height:var(--ph, 0);
+  transform:translate3d(var(--px, 0), var(--py, 0), 0);
+  pointer-events:none; opacity:1;
+  transition:opacity 140ms ease;
+}
+.com-pilula[data-pronta] > .pilula{
+  transition:transform .42s var(--desliza), width .42s var(--desliza), height .42s var(--desliza), opacity 140ms ease;
+}
+.mp-lista[data-pronta] > .pilula{
+  transition:transform .26s cubic-bezier(.3,1.08,.5,1), width .26s cubic-bezier(.3,1.08,.5,1), height .26s cubic-bezier(.3,1.08,.5,1), opacity 120ms ease;
+}
+.com-pilula[data-sem-pilula] > .pilula{ opacity:0; }
 
 /* classes gramaticais: uma bolinha na cor que a classe ganha no texto */
 .mp-bola{ flex:none; width:10px; height:10px; border-radius:50%; margin-right:-2px; box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15); }
@@ -339,8 +364,8 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
 .mp-bola--g-subst{ background:var(--g-subst); } .mp-bola--g-verbo{ background:var(--g-verbo); }
 .mp-bola--g-adj{ background:var(--g-adj); } .mp-bola--g-adv{ background:var(--g-adv); } .mp-bola--g-conj{ background:var(--g-conj); }
 .mp-bola--todas{ background:conic-gradient(var(--g-subst) 0 20%, var(--g-verbo) 0 40%, var(--g-adj) 0 60%, var(--g-adv) 0 80%, var(--g-conj) 0); }
-.mp-lista button:is(:hover,:focus-visible) .mp-bola{ box-shadow:0 0 0 1.5px var(--sobre-acento); }
-.mp-lista button:is(:hover,:focus-visible) .mp-bola--nenhuma{ box-shadow:inset 0 0 0 1.2px var(--sobre-acento); }
+.mp-lista button:focus .mp-bola{ box-shadow:0 0 0 1.5px var(--sobre-acento); }
+.mp-lista button:focus .mp-bola--nenhuma{ box-shadow:inset 0 0 0 1.2px var(--sobre-acento); }
 
 /* Documento: cada item com o seu ícone, no lugar da coluna da marca.
    Os dois que ligam e desligam (Poeta, Tela cheia) levam a marca à
@@ -351,10 +376,10 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
   background:var(--r2);
   -webkit-mask:var(--ico) center/contain no-repeat; mask:var(--ico) center/contain no-repeat;
 }
-.mp-lista--duas button:is(:hover,:focus-visible)::after{ background:var(--sobre-acento); }
+.mp-lista--duas button:focus::after{ background:var(--sobre-acento); }
 .mp-lista--duas button:is([aria-checked="true"],[aria-pressed="true"])::before{ left:auto; right:14px; }
 .mp-lista--duas button[aria-pressed="true"]::after{ background:var(--caret); }
-.mp-lista--duas button[aria-pressed="true"]:is(:hover,:focus-visible)::after{ background:var(--sobre-acento); }
+.mp-lista--duas button[aria-pressed="true"]:focus::after{ background:var(--sobre-acento); }
 .mp-lista--duas #btnNovo{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 2.8h6l3.5 3.5v10a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1v-12.5a1 1 0 0 1 1-1Z'/%3E%3Cpath d='M10 9v5M7.5 11.5h5'/%3E%3C/svg%3E"); }
 .mp-lista--duas #btnAbrir{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.8 6a1.5 1.5 0 0 1 1.5-1.5h3.2l1.8 1.8h6.4a1.5 1.5 0 0 1 1.5 1.5v6.9a1.5 1.5 0 0 1-1.5 1.5H4.3a1.5 1.5 0 0 1-1.5-1.5Z'/%3E%3C/svg%3E"); }
 .mp-lista--duas #btnBusca{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8.8' cy='8.8' r='5'/%3E%3Cpath d='m12.5 12.5 4 4'/%3E%3C/svg%3E"); }
@@ -388,70 +413,83 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
    continua existindo no Markdown, no Word e nas demais exportações. */
 .regua{
   position:relative; z-index:30;
-  flex:0 0 38px;
-  border-bottom:1px solid var(--linha);
-  background:color-mix(in srgb, var(--papel) 94%, transparent);
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
+  flex:0 0 46px;
+  background:var(--material);
+  -webkit-backdrop-filter:blur(30px) saturate(180%); backdrop-filter:blur(30px) saturate(180%);
+  box-shadow:inset 0 -1px 0 var(--fio);
 }
 .regua[hidden]{ display:none; }
 .regua-inner{
-  max-width:var(--coluna); height:38px; margin:0 auto;
+  max-width:var(--coluna); height:46px; margin:0 auto;
   padding:0 var(--pad-lado);
-  display:flex; align-items:center; gap:.5rem;
+  display:flex; align-items:center; gap:12px;
 }
+/* a quem o recuo vale: uma etiqueta em pílula, como no Pages */
 .regua-alvo{
-  width:5.4rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  color:var(--r3); font:500 .68rem/1 var(--ui);
+  flex:none; min-width:5.8rem; height:24px; padding:0 10px; border-radius:999px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
+  background:var(--preench-2); color:var(--r2); font:500 11.5px/24px var(--ui);
 }
 .regua-trilho{
   --passo-regua:10px;
-  position:relative; flex:1; height:22px; cursor:crosshair;
-  border-bottom:1px solid var(--linha);
+  position:relative; flex:1; height:30px; cursor:crosshair;
+  box-shadow:inset 0 -1px 0 color-mix(in srgb, var(--tinta) 22%, var(--papel));
 }
 .regua-trilho::before{
-  content:""; position:absolute; inset:auto 0 0; height:8px;
+  content:""; position:absolute; inset:auto 0 0; height:6px;
   background:repeating-linear-gradient(to right,
-    transparent 0 calc(var(--passo-regua) - 1px),
-    var(--linha) calc(var(--passo-regua) - 1px) var(--passo-regua));
+    color-mix(in srgb, var(--tinta) 24%, var(--papel)) 0 1px,
+    transparent 1px var(--passo-regua));
 }
 .regua-marcas{ position:absolute; inset:0; pointer-events:none; }
 .regua-numero{
-  position:absolute; bottom:8px; transform:translateX(-50%);
-  color:var(--r3); font:500 .62rem/1 var(--ui);
+  position:absolute; bottom:10px; transform:translateX(-50%);
+  color:var(--r3); font:500 10.5px/1 var(--ui);
   font-variant-numeric:tabular-nums;
 }
+.regua-numero::after{
+  content:""; position:absolute; left:50%; top:calc(100% + 3px); width:1px; height:7px;
+  background:color-mix(in srgb, var(--tinta) 40%, var(--papel));
+}
+/* o marcador: um alfinete azul que escorrega de coluna em coluna */
 .regua-cursor{
   appearance:none; position:absolute; z-index:2;
-  left:0; bottom:-6px; width:14px; height:14px; padding:0;
+  left:0; bottom:-5px; width:14px; height:17px; padding:0;
   border:0; background:var(--caret); cursor:ew-resize;
   transform:translateX(-50%);
-  clip-path:polygon(50% 0,100% 42%,100% 100%,0 100%,0 42%);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 17'%3E%3Cpath d='M7 17 1.4 10.6A3 3 0 0 1 0 8.2V3a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v5.2a3 3 0 0 1-1.4 2.4Z'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 17'%3E%3Cpath d='M7 17 1.4 10.6A3 3 0 0 1 0 8.2V3a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v5.2a3 3 0 0 1-1.4 2.4Z'/%3E%3C/svg%3E") center/contain no-repeat;
+  transition:left .32s var(--desliza), transform .18s var(--mola);
 }
-.regua-cursor:focus-visible{ outline:2px solid var(--caret); outline-offset:3px; }
+.regua-cursor:hover{ transform:translateX(-50%) scale(1.12); }
+.regua-cursor:focus-visible{ outline:0; filter:drop-shadow(0 0 3px color-mix(in srgb, var(--caret) 70%, transparent)); }
+.regua.arrastando .regua-cursor{ transition:transform .18s var(--mola); transform:translateX(-50%) scale(1.18); }
+.regua.arrastando .regua-trilho{ cursor:ew-resize; }
+/* o número de espaços e os passos formam um só controle */
 .regua-campo{
-  height:26px; display:flex; align-items:center; gap:.2rem;
-  padding:0 .35rem; border:1px solid var(--linha); border-radius:6px;
-  color:var(--r3); font:500 .68rem/1 var(--ui);
+  flex:none; height:26px; display:flex; align-items:center; gap:3px;
+  padding:0 8px; border:0; border-radius:7px; background:var(--preench-2);
+  color:var(--r3); font:500 11.5px/1 var(--ui);
+  transition:box-shadow var(--transicao), background var(--transicao);
 }
-.regua-campo:focus-within{ border-color:var(--caret); }
+.regua-campo:focus-within{ background:var(--elev); box-shadow:0 0 0 3px color-mix(in srgb, var(--caret) 35%, transparent); }
 .regua-campo input{
-  appearance:textfield; width:2rem; padding:0; border:0; outline:0;
+  appearance:textfield; width:1.7rem; padding:0; border:0; outline:0;
   background:transparent; color:var(--tinta); text-align:right;
-  font:600 .72rem/1 var(--ui); font-variant-numeric:tabular-nums;
+  font:600 12px/1 var(--ui); font-variant-numeric:tabular-nums;
 }
 .regua-campo input::-webkit-inner-spin-button{ appearance:none; }
-.regua-acoes{ display:flex; align-items:center; gap:2px; }
+.regua-acoes{ flex:none; display:flex; align-items:center; gap:4px; }
 .regua-acoes button{
-  height:26px; min-width:26px; padding:0 .38rem;
-  border:0; border-radius:5px; background:transparent;
-  color:var(--r3); cursor:pointer; font:600 .72rem/1 var(--ui);
+  height:26px; min-width:26px; padding:0 8px;
+  border:0; border-radius:7px; background:var(--preench-2);
+  color:var(--tinta); cursor:pointer; font:500 13px/1 var(--ui);
+  transition:background 150ms, transform 120ms var(--mola);
 }
-.regua-acoes button:hover{
-  color:var(--tinta); background:color-mix(in srgb,var(--tinta) 7%,transparent);
-}
-.regua.arrastando .regua-cursor{ transform:translateX(-50%) scale(1.18); }
-.regua.arrastando .regua-trilho{ cursor:ew-resize; }
+.regua-acoes button:hover{ background:color-mix(in srgb, var(--tinta) 15%, transparent); }
+.regua-acoes button:active{ transform:scale(.92); }
+#reguaZerar{ background:transparent; color:var(--r2); font-size:12px; }
+#reguaZerar:hover{ background:var(--preench); color:var(--tinta); }
 @media (max-width:680px){
   .regua-alvo,.regua-acoes{ display:none; }
 }
@@ -484,17 +522,19 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
 .numeros-linha{
   display:none;
   position:absolute; z-index:2; inset:0 auto 0 0;
-  width:calc(var(--pad-lado) - .38rem);
-  color:var(--apagado); pointer-events:none; user-select:none;
-  font-family:var(--ui); font-size:.58rem; line-height:1;
+  width:calc(var(--pad-lado) - .45rem);
+  color:var(--r3); pointer-events:none; user-select:none;
+  font:500 11px/1 var(--ui);
   font-variant-numeric:tabular-nums;
 }
 body[data-poeta="1"] .numeros-linha{ display:block; }
+/* cada número fica no meio da primeira linha do seu verso */
 .numero-linha{
-  position:absolute; right:0; transform:translateY(.42em);
-  min-width:1.6rem; text-align:right; opacity:.7;
+  position:absolute; right:0;
+  height:calc(var(--tam) * var(--altura)); display:flex; align-items:center;
+  min-width:1.6rem; justify-content:flex-end;
 }
-.numero-linha.atual{ color:var(--caret); opacity:1; font-weight:700; }
+.numero-linha.atual{ color:var(--caret); font-weight:600; }
 .linha-fonte:empty::after{ content:"\200b"; }
 
 /* O overlay define o tamanho; a textarea se estica sobre ele.
@@ -611,9 +651,9 @@ body[data-foco="1"] .t-cit{ color:var(--tinta-foco); }
 }
 .numero-preview{
   align-self:baseline;
-  padding-right:.38rem;
-  color:var(--apagado);
-  font-family:var(--ui); font-size:.58rem; line-height:1;
+  padding-right:.45rem;
+  color:var(--r3);
+  font-family:var(--ui); font-size:11px; font-weight:500; line-height:1;
   font-variant-numeric:tabular-nums;
   text-align:right; user-select:none;
 }
@@ -712,6 +752,9 @@ body[data-chrome="oculto"] .stats{ opacity:0; pointer-events:none; }
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='6' r='4.9' fill='none' stroke='%23000' stroke-width='1.2'/%3E%3Cpath d='M6 3.4V6l1.8 1.1' fill='none' stroke='%23000' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
           mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='6' r='4.9' fill='none' stroke='%23000' stroke-width='1.2'/%3E%3Cpath d='M6 3.4V6l1.8 1.1' fill='none' stroke='%23000' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
 }
+/* com o Poeta ligado, o rodapé diz onde o cursor está no poema */
+#stPoeta b{ color:var(--r2); }
+#stPoeta:not([hidden]) + #stLeitura::before{ content:"·"; margin:0 .46rem 0 0; opacity:.45; }
 #stSalvo::before{
   content:""; display:inline-block; width:6px; height:6px; margin-right:6px; border-radius:50%;
   vertical-align:1px; background:#34c759;
@@ -804,6 +847,7 @@ body.soltando::after{
     font-size:max(var(--tam), 16px);
     padding-left:var(--pad-lado); padding-right:var(--pad-lado);
   }
+  .numero-linha{ height:calc(max(var(--tam), 16px) * var(--altura)); }
   /* No Modo Poeta a margem esquerda abre um pouco: é ali que ficam os
      números dos versos, que de outro modo sairiam cortados. */
   body[data-poeta="1"]{ --pad-lado:1.9rem; }
@@ -866,6 +910,7 @@ body.soltando::after{
   /* 16px é o limiar abaixo do qual o iOS amplia a página ao focar
      o editor — e a ampliação desalinharia o cursor. */
   .overlay,#editor,.preview{ font-size:max(var(--tam), 16px); }
+  .numero-linha{ height:calc(max(var(--tam), 16px) * var(--altura)); }
 
   /* A régua vira alvo de dedo: pega maior, trilho mais alto e sem
      rolagem da página enquanto se arrasta o marcador. */
@@ -1312,13 +1357,15 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 }
 .aj-nav::-webkit-scrollbar{ display:none; }
 .aj-nav button{
+  position:relative; z-index:1;
   display:flex; align-items:center; gap:.6rem; width:100%;
   height:32px; padding:0 8px; border:0; border-radius:7px; background:transparent;
   color:var(--tinta); font-size:13px; font-weight:400; text-align:left; white-space:nowrap;
-  transition:background 120ms, color 120ms, opacity var(--transicao);
+  transition:background 120ms, color 200ms ease, opacity var(--transicao);
 }
-.aj-nav button:hover{ background:var(--preench); }
-.aj-nav button[aria-current="true"]{ background:var(--caret); color:var(--sobre-acento); }
+.aj-nav button:hover:not([aria-current="true"]){ background:var(--preench); }
+.aj-nav button[aria-current="true"]{ color:var(--sobre-acento); }
+.aj-nav > .pilula{ border-radius:7px; background:var(--caret); box-shadow:0 1px 2px rgba(0,0,0,.12); }
 .aj-nav button[aria-current="true"] svg{ box-shadow:0 0 0 1px rgba(255,255,255,.35); }
 .aj-nav button.apagado{ opacity:.35; pointer-events:none; }
 /* o ícone é o próprio <svg>: um quadradinho colorido com o traço branco */
@@ -1388,15 +1435,18 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   background:var(--aj-trilho); max-width:100%; overflow-x:auto; scrollbar-width:none;
 }
 .aj-seg [role=radio]{
+  position:relative; z-index:1;
   flex:1 0 auto; display:inline-flex; align-items:baseline; justify-content:center; gap:.3rem;
   height:24px; padding:0 12px; border:0; border-radius:6px; background:transparent;
-  font-size:12px; font-weight:500; line-height:24px; color:var(--tinta); white-space:nowrap;
-  transition:background 150ms, box-shadow 150ms;
+  font-size:12px; font-weight:500; line-height:24px; color:var(--r2); white-space:nowrap;
+  transition:color 200ms ease, transform 160ms var(--mola);
 }
-.aj-seg [role=radio]:hover:not([aria-checked="true"]){ background:color-mix(in srgb, var(--tinta) 5%, transparent); }
-.aj-seg [role=radio][aria-checked="true"]{
-  background:var(--aj-seg-on);
-  box-shadow:0 0 0 .5px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.14);
+.aj-seg [role=radio]:hover{ color:var(--tinta); }
+.aj-seg [role=radio]:active{ transform:scale(.96); }
+.aj-seg [role=radio][aria-checked="true"]{ color:var(--tinta); }
+.aj-seg > .pilula{
+  border-radius:6px; background:var(--aj-seg-on);
+  box-shadow:0 0 0 .5px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.14), 0 2px 6px -2px rgba(0,0,0,.1);
 }
 .aj-seg small{ font-size:11px; opacity:.6; font-variant-numeric:tabular-nums; }
 
@@ -1496,7 +1546,8 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 10px 0 5px;
   border:0; border-radius:999px; background:var(--aj-trilho); font-size:12px;
 }
-.aj-mini [role=radio][aria-checked="true"]{ background:var(--caret); color:var(--sobre-acento); }
+.aj-mini [role=radio]{ position:relative; z-index:1; transition:color 200ms ease; }
+.aj-mini [role=radio][aria-checked="true"]{ background:transparent; color:var(--sobre-acento); }
 .aj-ponto{ width:16px; height:16px; border-radius:50%; box-shadow:inset 0 0 0 .5px rgba(128,128,128,.5); }
 
 /* ── cores: bolinhas, e a escolhida leva um ponto branco no meio ── */
@@ -1580,19 +1631,31 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 }
 .aj-chave[hidden]{ display:none; }
 .aj-chave .aj-rot{ flex:1; }
+/* A chave do iOS: o trilho troca de cor por baixo (uma camada de
+   destaque que acende por opacidade, sem repintar o fundo) e o botão
+   branco desliza por left. Ao pressionar ele se alonga para o lado em
+   que vai, e tudo anima com a mesma curva: nada pula no meio. */
 .aj-interruptor{
-  flex:none; position:relative; width:38px; height:22px; border-radius:999px;
-  background:color-mix(in srgb, var(--tinta) 18%, var(--papel)); transition:background .22s ease;
+  flex:none; position:relative; width:40px; height:24px; border-radius:999px;
+  background:color-mix(in srgb, var(--tinta) 18%, var(--papel));
+  isolation:isolate;
+}
+.aj-interruptor::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; background:var(--caret);
+  opacity:0; transform:scale(.6); transition:opacity .25s ease, transform .32s var(--mola);
 }
 .aj-interruptor::after{
-  content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
-  background:#fff; box-shadow:0 0 0 .5px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.25);
-  transition:transform .26s var(--mola);
+  content:""; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:999px;
+  background:#fff; box-shadow:0 0 0 .5px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.2);
+  transition:left .34s var(--desliza), width .22s var(--mola);
+  will-change:left;
 }
-.aj-chave[aria-checked="true"] .aj-interruptor{ background:var(--caret); }
-.aj-chave[aria-checked="true"] .aj-interruptor::after{ transform:translateX(16px); }
-.aj-chave:active .aj-interruptor::after{ width:22px; }
-.aj-chave[aria-checked="true"]:active .aj-interruptor::after{ transform:translateX(12px); }
+.aj-chave[aria-checked="true"] .aj-interruptor::before{ opacity:1; transform:none; }
+.aj-chave[aria-checked="true"] .aj-interruptor::after{ left:18px; }
+.aj-chave:active .aj-interruptor::after{ width:25px; }
+.aj-chave[aria-checked="true"]:active .aj-interruptor::after{ left:13px; }
+/* abrir o painel não deve animar nada que já estava assim */
+.aj[data-sem-anim] :is(.aj-interruptor,.aj-interruptor::before,.aj-interruptor::after,.pilula){ transition:none !important; }
 /* a chave do Obsidian fica fora de um grupo: vira um cartão sozinha */
 .aj-secao > .aj-chave{
   margin:12px 0 0; padding:11px 14px; border:0; border-radius:10px;
@@ -1626,8 +1689,10 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; color:var(--tinta);
   transition:background 150ms, color 150ms;
 }
-.aj-fichas [role=radio]:hover{ background:color-mix(in srgb, var(--tinta) 15%, var(--papel)); }
-.aj-fichas [role=radio][aria-checked="true"]{ background:var(--caret); color:var(--sobre-acento); }
+.aj-fichas [role=radio]{ position:relative; z-index:1; transition:background 150ms, color 200ms ease; }
+.aj-fichas [role=radio]:hover:not([aria-checked="true"]){ background:color-mix(in srgb, var(--tinta) 15%, var(--papel)); }
+.aj-fichas [role=radio][aria-checked="true"]{ background:transparent; color:var(--sobre-acento); }
+.aj-fichas > .pilula,.aj-mini > .pilula{ border-radius:999px; background:var(--caret); }
 
 /* ── Obsidian ── */
 .aj-estado{ margin:0 0 10px; padding:10px 14px; border-radius:10px; background:var(--aj-cartao); box-shadow:0 0 0 .5px var(--aj-fio); font-size:12.5px; color:var(--aj-suave); }
@@ -1740,38 +1805,106 @@ body[data-tempo="0"] #stLeitura,body[data-tempo="0"] .stats-inner > .sep{ displa
   .aj-folha{ height:8.4rem; flex:1; }
   .aj-amostra-pe{ display:none; }
 }
-/* ══ celular: tela quase inteira, seções em abas que rolam ══ */
+/* ══ celular: a tela inteira para o Personalizar ══
+   Só as abas ficam presas no alto. A amostra entra no começo da
+   rolagem (o JS a muda de lugar), grande, e cada ajuste empilha o
+   rótulo em cima e o controle embaixo, na largura toda. */
 @media (max-width:720px){
-  .aj{ padding:.5rem; font-size:15px; }
-  .aj-painel{ height:100%; border-radius:16px; }
+  .aj{ padding:0; font-size:16px; }
+  .aj-painel{
+    width:100%; height:100%; border-radius:0;
+    padding-top:env(safe-area-inset-top);
+  }
   .aj[open] .aj-painel{ animation-name:aj-entra-cel; }
-  @keyframes aj-entra-cel{ from{ opacity:0; transform:translateY(18px); } }
-  .aj-topo{ height:56px; padding:0 10px 0 16px; gap:.5rem; }
-  .aj-titulo{ font-size:17px; }
-  .aj-busca{ height:36px; border-radius:10px; }
+  @keyframes aj-entra-cel{ from{ opacity:0; transform:translateY(24px); } }
+  .aj-topo{ height:60px; padding:0 12px 0 20px; gap:.6rem; }
+  .aj-titulo{ font-size:20px; letter-spacing:-.02em; }
+  .aj-busca{ height:38px; border-radius:11px; max-width:none; }
   .aj-busca input{ font-size:16px; }
   .aj-busca kbd{ display:none; }
-  .aj-x{ width:32px; height:32px; }
-  .aj-meio{ grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr); grid-template-areas:"nav" "amostra" "rolagem"; }
-  .aj-nav{ flex-direction:row; gap:4px; padding:8px 10px; box-shadow:inset 0 -1px 0 var(--aj-fio); overflow-x:auto; }
-  .aj-nav button{ width:auto; height:34px; padding:0 10px 0 6px; gap:.45rem; font-size:14px; border-radius:999px; }
-  .aj-nav svg{ width:22px; height:22px; border-radius:999px; }
-  .aj-amostra{ padding:10px 12px; }
-  .aj-folha{ height:6.6rem; padding:.7rem .8rem; font-size:calc(var(--tam) * .72); }
-  .aj-conteudo{ padding:0 12px 28px; }
-  .aj-secao h3{ font-size:15px; }
-  .aj-rot b{ font-size:15px; }
-  .aj-rot small{ font-size:13px; }
-  .aj-seg [role=radio]{ height:30px; line-height:30px; font-size:13px; }
-  .aj-faixa{ min-width:0; }
-  .aj-pe{ padding:8px 10px; gap:2px; }
-  .aj-pe .aj-bt--leve{ padding:0 8px; font-size:13px; }
-  .aj-bt{ height:34px; }
+  .aj-x{ width:34px; height:34px; }
+
+  .aj-meio{ grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); grid-template-areas:"nav" "rolagem"; }
+  .aj-nav{ flex-direction:row; gap:4px; padding:10px 14px; box-shadow:inset 0 -1px 0 var(--aj-fio); overflow-x:auto; }
+  .aj-nav button{ width:auto; height:36px; padding:0 12px 0 7px; gap:.5rem; font-size:15px; border-radius:999px; }
+  .aj-nav > .pilula{ border-radius:999px; }
+  .aj-nav svg{ width:24px; height:24px; border-radius:999px; }
+
+  /* a amostra, agora dentro da rolagem */
+  .aj-conteudo > .aj-amostra{
+    display:flex; flex-direction:column; gap:10px;
+    padding:20px 0 4px; box-shadow:none;
+  }
+  .aj-conteudo > .aj-amostra .aj-amostra-rot{ display:block; font-size:17px; }
+  .aj-conteudo > .aj-amostra .aj-amostra-pe{ display:block; font-size:13px; }
+  .aj-conteudo > .aj-amostra .aj-folha{
+    flex:none; height:min(19rem, 46svh); padding:1.2rem 1.15rem;
+    font-size:calc(var(--tam) * .9); border-radius:14px;
+  }
+
+  .aj-conteudo{ max-width:none; padding:0 16px calc(36px + env(safe-area-inset-bottom)); }
+  .aj-secao{ padding-top:30px; }
+  .aj-secao h3{ font-size:20px; letter-spacing:-.02em; margin:0 0 12px 4px; }
+  .aj-intro{ font-size:14px; margin:0 4px 14px; }
+  .aj-grupo{ padding:0 16px; border-radius:14px; }
+  .aj-grupo + .aj-grupo,.aj-estilos + .aj-grupo{ margin-top:16px; }
+
+  /* tudo empilhado: rótulo em cima, controle embaixo, largura toda */
+  .aj-linha{ grid-template-columns:minmax(0,1fr); gap:12px; padding:16px 0 18px; }
+  .aj-chave{ padding:16px 0 17px; gap:14px; }
+  .aj-rot{ gap:3px; }
+  .aj-rot b{ font-size:16px; }
+  .aj-rot small{ font-size:13.5px; }
+  .aj-seg{ display:flex; width:100%; padding:3px; border-radius:10px; }
+  .aj-seg [role=radio]{ flex:1 1 0; height:36px; line-height:36px; font-size:14px; border-radius:8px; padding:0 8px; }
+  .aj-seg > .pilula{ border-radius:8px; }
+  .aj-faixa{ min-width:0; width:100%; gap:12px; }
+  .aj-faixa input[type=range]{ height:32px; }
+  .aj-faixa output{ font-size:14px; min-width:4rem; }
+  .aj-passo{ width:32px; height:32px; font-size:18px; }
+  .aj-interruptor{ width:51px; height:31px; }
+  .aj-interruptor::after{ width:27px; height:27px; }
+  .aj-chave[aria-checked="true"] .aj-interruptor::after{ left:22px; }
+  .aj-chave:active .aj-interruptor::after{ width:33px; }
+  .aj-chave[aria-checked="true"]:active .aj-interruptor::after{ left:16px; }
+
+  .aj-estilos{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:18px 14px; }
+  .aj-meus{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .aj-papeis{ grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px 12px; }
+  .aj-est-nome{ font-size:15px; }
+  .aj-estilos small,.aj-meu small{ font-size:13px; }
+  .aj-papeis span{ font-size:13.5px; }
+  .aj-fontes{ grid-template-columns:minmax(0,1fr); gap:10px; }
+  .aj-fontes [role=radio]{ padding:14px 16px; border-radius:12px; }
+  .aj-fonte-amostra{ font-size:24px; }
+  .aj-fonte-txt b{ font-size:15px; }
+  .aj-fonte-txt small{ font-size:13px; }
+  .aj-cores{ gap:12px; }
+  .aj-cores [role=radio],.aj-propria{ width:38px; height:38px; }
+  .aj-bola{ width:32px; height:32px; }
+  .aj-propria .aj-bola{ width:26px; height:26px; }
+  .aj-classes [role=radio],.aj-fichas [role=radio],.aj-mini [role=radio]{ height:36px; padding:0 14px; font-size:14px; }
+  .aj-auto-pares{ grid-template-columns:minmax(0,1fr); gap:8px; }
+  .aj-salvar{ flex-direction:column; }
+  .aj-salvar input,.aj-meta input,.aj-select{ height:44px; font-size:16px; border-radius:10px; }
+  .aj-meta,.aj-meta input,.aj-select{ width:100%; }
+  .aj-bt{ height:44px; padding:0 18px; font-size:15px; border-radius:10px; justify-content:center; }
+  .aj-obs-acoes{ flex-direction:column; }
+  .aj-atalhos dt,.aj-atalhos dd{ padding:12px 0; font-size:15px; }
+
+  .aj-pe{ padding:10px 12px calc(10px + env(safe-area-inset-bottom)); gap:2px; }
+  .aj-pe .aj-bt--leve{ height:40px; padding:0 10px; font-size:14px; }
+  /* no celular o "Pronto" é o × do alto, como nas folhas do iOS */
+  .aj-pe .aj-bt--principal{ display:none; }
+  .aj-pe{ justify-content:space-between; }
+  .aj-pe .cresce{ display:none; }
+  .aj-rot small kbd{ display:none; }
   .aj-largo{ display:none; }
   .aj-pe--dica{ display:none; }
-  .aj--sumario,.aj--lista{ place-items:center; }
-  .aj--sumario .aj-painel,.aj--lista .aj-painel{ height:auto; max-height:80svh; }
-  .sumario button,.ponto{ min-height:44px; font-size:15px; }
+
+  .aj--sumario,.aj--lista{ place-items:center; padding:12px; }
+  .aj--sumario .aj-painel,.aj--lista .aj-painel{ height:auto; max-height:82svh; border-radius:18px; padding-top:0; }
+  .sumario button,.ponto{ min-height:48px; font-size:16px; }
 }
 @media (hover:none) and (pointer:coarse){
   .mp-lista kbd,.aj-busca kbd{ display:none; }
@@ -1783,7 +1916,8 @@ body[data-tempo="0"] #stLeitura,body[data-tempo="0"] .stats-inner > .sep{ displa
   .aj.saindo .aj-painel{ animation-name:aj-fundo-sai; }
   .menu-pop[open]{ animation-name:aj-fundo; }
   .menu-pop.saindo{ animation-name:aj-fundo-sai; }
-  .aj-interruptor::after,.aj-interruptor{ transition:none; }
+  .aj-interruptor::after,.aj-interruptor::before,.aj-interruptor{ transition:none; }
+  .com-pilula[data-pronta] > .pilula{ transition:opacity 140ms ease; }
 }
 @media (prefers-reduced-transparency:reduce){
   .menu-pop,.busca{ background:var(--elev); -webkit-backdrop-filter:none; backdrop-filter:none; }

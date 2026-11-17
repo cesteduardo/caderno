@@ -18,6 +18,29 @@
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 
+/* ── atalhos do jeito de cada sistema ─────────────────────────
+   No Mac (e no iPad com teclado) o atalho se escreve com os símbolos
+   da Apple, na ordem dela: ⌥ ⇧ ⌘ e a tecla, tudo junto (⇧⌘O). No
+   Windows e no Linux fica Ctrl+Shift+O. O teclado já aceita os dois:
+   Cmd e Ctrl fazem a mesma coisa. */
+const MAC = /Mac|iPhone|iPad|iPod/i.test(
+  (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent);
+function paraSO(txt){
+  if (!MAC || txt == null) return txt;
+  return String(txt).replace(/\b((?:(?:Ctrl|Alt|Shift)\+)+)(\w+|[^\s\w])/g, (_, mods, k) => {
+    const m = mods.split('+');
+    const sim = (m.includes('Alt') ? '⌥' : '') + (m.includes('Shift') ? '⇧' : '') + (m.includes('Ctrl') ? '⌘' : '');
+    return k.length > 1 && k === k.toLowerCase() ? sim + '+' + k : sim + k;   // ⌘+clique
+  });
+}
+function aplicarTeclasSO(raiz = document){
+  if (!MAC) return;
+  raiz.querySelectorAll('kbd').forEach(k => { if (/Ctrl|Alt|Shift/.test(k.textContent)) k.textContent = paraSO(k.textContent); });
+  raiz.querySelectorAll('[title]').forEach(n => { if (/Ctrl|Alt|Shift/.test(n.title)) n.title = paraSO(n.title); });
+}
+document.documentElement.classList.toggle('mac', MAC);
+document.addEventListener('DOMContentLoaded', () => aplicarTeclasSO());
+
 const editor   = $('#editor');
 const overlay  = $('#overlay');
 const scroller = $('#scroller');
@@ -900,29 +923,48 @@ function desenhar(){
   }
 }
 
+/* Um verso é uma linha com texto que não seja título nem separador:
+   o "# Soneto" no alto não entra na contagem do poema. */
+const ehVerso = (linha) => !!linha.trim() && !/^\s{0,3}#{1,6}\s/.test(linha) && !/^\s*([-*_])(\s*\1){2,}\s*$/.test(linha);
+
 function desenharNumerosLinha(texto, cursor){
+  const st = $('#stPoeta');
   if (!prefs.poeta){
     numerosLinha.innerHTML = '';
+    if (st) st.hidden = true;
     return;
   }
   const atual = texto.slice(0, cursor).split('\n').length - 1;
   const textos = texto.split('\n');
-  let verso = 0;
+  let verso = 0, estrofe = 0, anteriorEraVerso = false;
+  let versoAtual = 0, estrofeAtual = 0;
+  const linhas = [...overlay.querySelectorAll('.linha-fonte')];
+  const marcas = [];
 
-  numerosLinha.innerHTML = [...overlay.querySelectorAll('.linha-fonte')]
-    .map((linha, indice) => {
-      // O branco entre estrofes é estrutura, não verso: não recebe
-      // número e tampouco interrompe a contagem contínua do poema.
-      if (!textos[indice].trim()) return '';
-      verso++;
+  textos.forEach((t, indice) => {
+    // O branco entre estrofes é estrutura, não verso: não recebe
+    // número e tampouco interrompe a contagem contínua do poema.
+    if (!ehVerso(t)){ anteriorEraVerso = false; return; }
+    verso++;
+    if (!anteriorEraVerso) estrofe++;
+    anteriorEraVerso = true;
+    const estaAtual = indice === atual;
+    if (estaAtual){ versoAtual = verso; estrofeAtual = estrofe; }
+    // Como numa edição de poesia, a margem permanece silenciosa:
+    // marca-se cada quinto verso e, para orientação, o verso ativo.
+    if ((estaAtual || verso % 5 === 0) && linhas[indice])
+      marcas.push(`<span class="numero-linha${estaAtual ? ' atual' : ''}" style="top:${linhas[indice].offsetTop}px">${verso}</span>`);
+  });
+  numerosLinha.innerHTML = marcas.join('');
 
-      const estaAtual = indice === atual;
-      // Como numa edição de poesia, a margem permanece silenciosa:
-      // marca-se cada quinto verso e, para orientação, o verso ativo.
-      if (!estaAtual && verso % 5 !== 0) return '';
-      return `<span class="numero-linha${estaAtual ? ' atual' : ''}" ` +
-        `style="top:${linha.offsetTop}px">${verso}</span>`;
-    }).join('');
+  // no rodapé: onde o cursor está dentro do poema
+  if (st){
+    st.hidden = !verso;
+    const plural = (n, um, varios) => `${n.toLocaleString('pt-BR')} ${n === 1 ? um : varios}`;
+    st.innerHTML = versoAtual
+      ? `verso <b>${versoAtual}</b> de ${verso} · estrofe <b>${estrofeAtual}</b> de ${estrofe}`
+      : `<b>${plural(verso, 'verso', 'versos')}</b> · ${plural(estrofe, 'estrofe', 'estrofes')}`;
+  }
 }
 
 function centralizarCursor(){
@@ -980,7 +1022,7 @@ function atualizarDica(texto, cursor){
   if (!certa) return;
 
   correcaoAtual = { ini, fim: ini + m[0].length, errada: m[0], certa };
-  dica.innerHTML = `${escapar(m[0])} → <b>${escapar(comOMesmoMolde(m[0], certa))}</b><kbd>Ctrl+;</kbd>`;
+  dica.innerHTML = `${escapar(m[0])} → <b>${escapar(comOMesmoMolde(m[0], certa))}</b><kbd>${paraSO('Ctrl+;')}</kbd>`;
   dica.hidden = false;
 }
 
@@ -1142,6 +1184,8 @@ function paraHTMLPoeta(md){
     if (!linha.trim()){
       return '<div class="verso-preview vazio" aria-hidden="true"><span></span><span>&nbsp;</span></div>';
     }
+    // título e separador não são versos: entram sem número
+    if (!ehVerso(linha)) return `<div class="verso-preview"><span class="numero-preview"></span><span class="conteudo-preview">${paraHTML(linha)}</span></div>`;
     verso++;
     return `<div class="verso-preview"><span class="numero-preview">${verso}</span>` +
       `<span class="conteudo-preview">${paraHTML(linha)}</span></div>`;
@@ -1525,7 +1569,7 @@ function aplicarPrefs(){
   $('#togVer').setAttribute('aria-pressed', prefs.visualizando);
   // lendo, o olho vira caneta: o botão mostra para onde ele leva
   $('#togVer').innerHTML = prefs.visualizando ? rotuloBarra('escrever', 'Escrever') : rotuloBarra('ver', 'Visualizar');
-  $('#togVer').title = prefs.visualizando ? 'Voltar a escrever (Ctrl+E)' : 'Visualizar (Ctrl+E)';
+  $('#togVer').title = paraSO(prefs.visualizando ? 'Voltar a escrever (Ctrl+E)' : 'Visualizar (Ctrl+E)');
   $('#corpoAgora').textContent = prefs.corpo + 'px';
   $('#togPoeta').setAttribute('aria-pressed', String(prefs.poeta));
   regua.hidden = !prefs.poeta;
@@ -1748,7 +1792,7 @@ function marcarTela(){
   const titulo = cheia ? 'Sair da tela cheia' : 'Tela cheia';
   for (const b of $$('#btnTela, #btnTelaBarra')){
     b.setAttribute('aria-pressed', String(cheia));
-    b.title = titulo + (b.id === 'btnTelaBarra' ? ' (Ctrl+Shift+F)' : '');
+    b.title = titulo + (b.id === 'btnTelaBarra' ? paraSO(' (Ctrl+Shift+F)') : '');
     b.setAttribute('aria-label', titulo);
   }
 }
@@ -2445,7 +2489,7 @@ window.addEventListener('beforeunload', () => {
    12. O guia — também é o documento da primeira abertura
    ═══════════════════════════════════════════════════════════ */
 
-const GUIA = `# Guia do Escritor
+const GUIA = paraSO(`# Guia do Escritor
 
 Este é um editor para escrever e revisar textos sem distrações. Você pode apagar todo este conteúdo e começar a escrever: o seu texto é salvo automaticamente neste navegador.
 
@@ -2594,10 +2638,10 @@ O **Corpo**, no menu **Aa**, aumenta as letras do seu texto — e só elas. Para
 
 Também funciona segurar \`Ctrl\` e girar a roda do mouse. No Mac, troque \`Ctrl\` por \`⌘\`.
 
-Ao lado de **Modo Poeta** há ainda o botão de **tela cheia**, com os quatro cantos: ele esconde as abas e a barra de endereço do navegador e deixa só a folha. Clique de novo — ou pressione \`Esc\` — para voltar.
+Na barra, ao lado do **⋯**, fica o botão de **tela cheia**, com os quatro cantos (ou \`Ctrl+Shift+F\`): ele esconde as abas e a barra de endereço do navegador e deixa só a folha. Clique de novo ou pressione \`Esc\` para voltar. No iPhone, onde o navegador não tem tela cheia, a barra e o rodapé saem e fica um botão discreto no canto para voltar.
 
 O navegador guarda o zoom escolhido e o aplica sempre que você voltar ao Escritor, mesmo depois de fechar. Nada disso altera o documento: o arquivo salvo ou exportado sai igual, qualquer que seja o zoom da tela.
-`;
+`);
 
 /* ═══════════════════════════════════════════════════════════
    13. Primeira abertura
