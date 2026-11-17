@@ -1418,7 +1418,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '1.0.0';
+const VERSAO = '1.1.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -2495,10 +2495,10 @@ Este é um editor para escrever e revisar textos sem distrações. Você pode ap
 
 ## Documentos
 
-No canto superior esquerdo ficam dois comandos:
+O botão **⋯**, no canto direito da barra, abre o menu **Documento**. Em **Arquivo** ficam dois comandos:
 
-- **Novo documento** — limpa a folha para começar outro texto. Se já houver conteúdo, o aplicativo pede confirmação antes de descartá-lo.
-- **Abrir** — abre um arquivo Markdown (\`.md\`) ou texto simples (\`.txt\`) que esteja no seu computador. Você também pode arrastar um desses arquivos para a folha.
+- **Novo documento**: limpa a folha para começar outro texto. Se já houver conteúdo, o aplicativo pede confirmação antes de descartá-lo.
+- **Abrir arquivo**: abre um arquivo Markdown (\`.md\`) ou texto simples (\`.txt\`) que esteja no seu computador. Você também pode arrastar um desses arquivos para a folha.
 
 O salvamento automático protege o rascunho ao fechar ou atualizar a página, mas fica somente neste navegador. Para guardar uma cópia permanente ou enviar o texto a alguém, use **Exportar**.
 
