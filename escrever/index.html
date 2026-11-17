@@ -14,41 +14,50 @@
 <header class="bar" id="bar">
   <div class="bar-inner">
 
-    <!-- no Caderno, a ponte põe aqui o “← Notas” -->
-    <div class="grupo grupo--arquivo"></div>
+    <!-- Notas (no Caderno, a ponte troca por “← Notas”) -->
+    <div class="grupo grupo--arquivo">
+      <button class="tog com-ico" id="btnNotas" aria-haspopup="dialog" aria-controls="notas" title="Notas (Ctrl+O)"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="3.5" width="10.5" height="13" rx="2"/><path d="M7 7.5h4.5M7 10.5h4.5M7 13.5h2.5"/><path d="M16.5 6v8.5a3.5 3.5 0 0 1-3.5 3.5H7.5"/></svg><span class="rot">Notas</span></button>
+    </div>
 
     <div class="grupo grupo--escrita">
       <div class="menu" id="menuFoco">
         <button class="menu-btn com-ico" id="btnFoco" aria-haspopup="dialog" title="Modo Foco (Ctrl+D)">Foco</button>
-        <dialog class="menu-pop" aria-labelledby="menuFocoT">
-          <header class="mp-topo"><span class="mp-sq" style="--c:#34c759" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3.5 7.2V5.5a2 2 0 0 1 2-2h1.7M12.8 3.5h1.7a2 2 0 0 1 2 2v1.7M16.5 12.8v1.7a2 2 0 0 1-2 2h-1.7M7.2 16.5H5.5a2 2 0 0 1-2-2v-1.7"/><circle cx="10" cy="10" r="2.3"/></svg></span><div><h2 id="menuFocoT">Foco</h2><p>Só o trecho atual fica nítido; o resto recua</p></div></header>
-          <div class="mp-lista" role="menu" aria-labelledby="menuFocoT">
-            <button role="menuitemradio" data-escopo="nenhum"><span class="mp-txt"><span>Desligado</span><small>Todo o texto com a mesma força</small></span><kbd>Ctrl+D</kbd></button>
-            <button role="menuitemradio" data-escopo="frase"><span class="mp-txt"><span>Frase</span><small>Só a frase do cursor fica nítida</small></span></button>
-            <button role="menuitemradio" data-escopo="paragrafo"><span class="mp-txt"><span>Parágrafo</span><small>O parágrafo inteiro em destaque</small></span></button>
-            <button role="menuitemradio" data-escopo="linha"><span class="mp-txt"><span>Linha</span><small>Apenas a linha em que você está</small></span></button>
-            <hr>
-            <button role="menuitemcheckbox" data-alterna="maquina"><span class="mp-txt"><span>Máquina de escrever</span><small>A linha do cursor fica no meio da tela</small></span><kbd>Ctrl+T</kbd></button>
+        <dialog class="menu-pop mp--foco" aria-labelledby="menuFocoT">
+          <header class="mp-topo"><span class="mp-sq" style="--c:#34c759" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3.5 7.2V5.5a2 2 0 0 1 2-2h1.7M12.8 3.5h1.7a2 2 0 0 1 2 2v1.7M16.5 12.8v1.7a2 2 0 0 1-2 2h-1.7M7.2 16.5H5.5a2 2 0 0 1-2-2v-1.7"/><circle cx="10" cy="10" r="2.3"/></svg></span><div><h2 id="menuFocoT">Foco</h2><p>Só o trecho atual fica nítido; o resto do texto recua.</p></div></header>
+          <div class="mp-corpo" role="menu" aria-labelledby="menuFocoT">
+            <div class="mp-cartoes">
+              <button class="mp-cartao" role="menuitemradio" data-escopo="nenhum"><i class="mp-ilus ilus-nenhum" aria-hidden="true"><b></b><b></b><b></b><b></b></i><span class="mp-txt"><span>Desligado<kbd>Ctrl+D</kbd></span><small>Todo o texto com a mesma força</small></span></button>
+              <button class="mp-cartao" role="menuitemradio" data-escopo="frase"><i class="mp-ilus ilus-frase" aria-hidden="true"><b></b><b></b><b></b><b></b></i><span class="mp-txt"><span>Frase</span><small>Só a frase do cursor fica nítida</small></span></button>
+              <button class="mp-cartao" role="menuitemradio" data-escopo="paragrafo"><i class="mp-ilus ilus-paragrafo" aria-hidden="true"><b></b><b></b><b></b><b></b></i><span class="mp-txt"><span>Parágrafo</span><small>O parágrafo inteiro em destaque</small></span></button>
+              <button class="mp-cartao" role="menuitemradio" data-escopo="linha"><i class="mp-ilus ilus-linha" aria-hidden="true"><b></b><b></b><b></b><b></b></i><span class="mp-txt"><span>Linha</span><small>Apenas a linha em que você está</small></span></button>
+            </div>
+            <div class="mp-faixa"><button class="mp-chave" role="menuitemcheckbox" data-alterna="maquina"><span class="mp-txt"><span>Máquina de escrever<kbd>Ctrl+T</kbd></span><small>A linha do cursor fica sempre no meio da tela.</small></span><i class="mp-int" aria-hidden="true"></i></button></div>
           </div>
         </dialog>
       </div>
 
       <div class="menu" id="menuRealce">
         <button class="menu-btn com-ico" id="btnRealce" aria-haspopup="dialog" title="Ortografia, estilo e gramática">Realce</button>
-        <dialog class="menu-pop" aria-labelledby="menuRealceT">
-          <header class="mp-topo"><span class="mp-sq" style="--c:#ff9500" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m12.4 3.6 4 4-6.5 6.5-4-4Z"/><path d="m5.9 10.1-1.6 3.6 2 2 3.6-1.6"/><path d="M11.5 16.5h5"/></svg></span><div><h2 id="menuRealceT">Realce</h2><p>Ortografia, estilo e classes gramaticais</p></div></header>
-          <div class="mp-lista" role="menu" aria-labelledby="menuRealceT">
-            <button role="menuitemcheckbox" data-alterna="ortografia"><span class="mp-txt"><span>Ortografia</span><small>Sublinha as palavras suspeitas</small></span><kbd>Ctrl+P</kbd></button>
-            <button role="menuitemcheckbox" data-alterna="estilo"><span class="mp-txt"><span>Revisão de estilo</span><small>Repetições, frases longas e vícios</small></span><kbd>Ctrl+R</kbd></button>
-            <hr>
-            <p class="menu-titulo">Classes gramaticais</p>
-            <button role="menuitemradio" data-classe="nenhuma"><i class="mp-bola mp-bola--nenhuma" aria-hidden="true"></i>Desligado<kbd>Ctrl+G</kbd></button>
-            <button role="menuitemradio" data-classe="g-subst" title="Nomes de seres, lugares, objetos, sentimentos e ideias"><i class="mp-bola mp-bola--g-subst" aria-hidden="true"></i>Substantivos</button>
-            <button role="menuitemradio" data-classe="g-verbo" title="Ações, estados, mudanças e fenômenos"><i class="mp-bola mp-bola--g-verbo" aria-hidden="true"></i>Verbos</button>
-            <button role="menuitemradio" data-classe="g-adj" title="Características ou qualidades atribuídas aos substantivos"><i class="mp-bola mp-bola--g-adj" aria-hidden="true"></i>Adjetivos</button>
-            <button role="menuitemradio" data-classe="g-adv" title="Circunstâncias de tempo, lugar, modo, intensidade, afirmação, negação ou dúvida"><i class="mp-bola mp-bola--g-adv" aria-hidden="true"></i>Advérbios</button>
-            <button role="menuitemradio" data-classe="g-conj" title="Palavras que ligam termos, orações e ideias"><i class="mp-bola mp-bola--g-conj" aria-hidden="true"></i>Conectivos</button>
-            <button role="menuitemradio" data-classe="todas"><i class="mp-bola mp-bola--todas" aria-hidden="true"></i>Todas as classes</button>
+        <dialog class="menu-pop mp--realce" aria-labelledby="menuRealceT">
+          <header class="mp-topo"><span class="mp-sq" style="--c:#ff9500" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m12.4 3.6 4 4-6.5 6.5-4-4Z"/><path d="m5.9 10.1-1.6 3.6 2 2 3.6-1.6"/><path d="M11.5 16.5h5"/></svg></span><div><h2 id="menuRealceT">Realce</h2><p>Ortografia, estilo e classes gramaticais, cada coisa na sua cor.</p></div></header>
+          <div class="mp-corpo mp-colunas" role="menu" aria-labelledby="menuRealceT">
+            <section class="mp-col">
+              <p class="menu-titulo">Revisão</p>
+              <button class="mp-chave" role="menuitemcheckbox" data-alterna="ortografia"><span class="mp-txt"><span>Ortografia<kbd>Ctrl+P</kbd></span><small>Sublinha em vermelho as palavras suspeitas.</small></span><i class="mp-int" aria-hidden="true"></i></button>
+              <button class="mp-chave" role="menuitemcheckbox" data-alterna="estilo"><span class="mp-txt"><span>Revisão de estilo<kbd>Ctrl+R</kbd></span><small>Repetições, frases longas e vícios em âmbar.</small></span><i class="mp-int" aria-hidden="true"></i></button>
+            </section>
+            <section class="mp-col">
+              <p class="menu-titulo">Classes gramaticais <kbd>Ctrl+G</kbd></p>
+              <div class="mp-fichas">
+                <button class="mp-ficha" role="menuitemradio" data-classe="nenhuma"><i class="mp-bola mp-bola--nenhuma" aria-hidden="true"></i><span>Desligado</span></button>
+                <button class="mp-ficha" role="menuitemradio" data-classe="g-subst" title="Nomes de seres, lugares, objetos, sentimentos e ideias"><i class="mp-bola mp-bola--g-subst" aria-hidden="true"></i><span>Substantivos</span></button>
+                <button class="mp-ficha" role="menuitemradio" data-classe="g-verbo" title="Ações, estados, mudanças e fenômenos"><i class="mp-bola mp-bola--g-verbo" aria-hidden="true"></i><span>Verbos</span></button>
+                <button class="mp-ficha" role="menuitemradio" data-classe="g-adj" title="Características ou qualidades atribuídas aos substantivos"><i class="mp-bola mp-bola--g-adj" aria-hidden="true"></i><span>Adjetivos</span></button>
+                <button class="mp-ficha" role="menuitemradio" data-classe="g-adv" title="Circunstâncias de tempo, lugar, modo, intensidade, afirmação, negação ou dúvida"><i class="mp-bola mp-bola--g-adv" aria-hidden="true"></i><span>Advérbios</span></button>
+                <button class="mp-ficha" role="menuitemradio" data-classe="g-conj" title="Palavras que ligam termos, orações e ideias"><i class="mp-bola mp-bola--g-conj" aria-hidden="true"></i><span>Conectivos</span></button>
+                <button class="mp-ficha" role="menuitemradio" data-classe="todas"><i class="mp-bola mp-bola--todas" aria-hidden="true"></i><span>Todas as classes</span></button>
+              </div>
+            </section>
           </div>
         </dialog>
       </div>
@@ -66,35 +75,40 @@
         <button class="ico menu-btn" id="btnMais" aria-haspopup="dialog" title="Mais" aria-label="Mais opções">
           <svg viewBox="0 0 20 20"><circle cx="4.5" cy="10" r="1.1"/><circle cx="10" cy="10" r="1.1"/><circle cx="15.5" cy="10" r="1.1"/></svg>
         </button>
-        <dialog class="menu-pop" aria-labelledby="menuMaisT">
-          <header class="mp-topo"><span class="mp-sq" style="--c:#5856d6" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M5.5 2.8h6l3.5 3.5v10a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1v-12.5a1 1 0 0 1 1-1Z"/><path d="M11.5 2.8v3.5H15M7.3 10.5h5.4M7.3 13.5h3.6"/></svg></span><div><h2 id="menuMaisT">Documento</h2><p>Arquivo, ferramentas, exportação e ajuda</p></div></header>
-          <div class="mp-lista mp-lista--duas" role="menu" aria-labelledby="menuMaisT">
-            <div class="mp-col">
-              <p class="menu-titulo">Arquivo</p>
-              <button role="menuitem" id="btnNovo">Novo documento<kbd>Ctrl+Alt+N</kbd></button>
-              <button role="menuitem" id="btnAbrir">Abrir arquivo…</button>
-              <hr>
-              <p class="menu-titulo">Ferramentas</p>
-              <button role="menuitem" id="btnBusca">Buscar e substituir<kbd>Ctrl+F</kbd></button>
-              <button role="menuitem" id="btnSumario">Sumário<kbd>Ctrl+Shift+O</kbd></button>
-              <button role="menuitemcheckbox" id="togPoeta" aria-pressed="false" title="Alinhar e recuar versos">Modo Poeta</button>
-              <button role="menuitemcheckbox" id="btnTela" aria-pressed="false">Tela cheia<kbd>Ctrl+Shift+F</kbd></button>
-              <hr>
-              <p class="menu-titulo">Ajuda</p>
-              <button role="menuitem" id="btnGuia">Guia do Escritor</button>
-              <button role="menuitem" id="btnSobre">Sobre o Escritor<i data-versao></i></button>
+        <dialog class="menu-pop mp--doc" aria-labelledby="menuMaisT">
+          <header class="mp-topo"><span class="mp-sq" style="--c:#5856d6" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M5.5 2.8h6l3.5 3.5v10a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1v-12.5a1 1 0 0 1 1-1Z"/><path d="M11.5 2.8v3.5H15M7.3 10.5h5.4M7.3 13.5h3.6"/></svg></span><div><h2 id="menuMaisT">Documento</h2><p>Notas, arquivos, exportação, ferramentas e ajuda.</p></div></header>
+          <div class="mp-abas" role="tablist" aria-label="Seções do menu Documento">
+            <button type="button" role="tab" data-fica data-aba="arquivo" aria-selected="true">Arquivo</button>
+            <button type="button" role="tab" data-fica data-aba="exportar" aria-selected="false">Exportar</button>
+            <button type="button" role="tab" data-fica data-aba="ferramentas" aria-selected="false">Ferramentas</button>
+            <button type="button" role="tab" data-fica data-aba="ajuda" aria-selected="false">Ajuda</button>
+          </div>
+          <div class="mp-corpo" role="menu" aria-labelledby="menuMaisT">
+            <div class="mp-pagina" data-aba="arquivo">
+                <button class="mp-tile" role="menuitem" id="btnNotasMenu"><i class="mp-ti" data-ico="notas"></i><span class="mp-txt"><span>Notas</span><small>Todas as suas notas, para abrir ou apagar</small></span><kbd>Ctrl+O</kbd></button>
+                <button class="mp-tile" role="menuitem" id="btnNovo"><i class="mp-ti" data-ico="nova"></i><span class="mp-txt"><span>Nova nota</span><small>Começa uma folha em branco</small></span><kbd>Ctrl+Alt+N</kbd></button>
+                <button class="mp-tile" role="menuitem" id="btnAbrir"><i class="mp-ti" data-ico="abrir"></i><span class="mp-txt"><span>Abrir arquivo…</span><small>Traz um .md ou .txt como nota nova</small></span></button>
+                <button class="mp-tile" role="menuitem" id="btnImagem"><i class="mp-ti" data-ico="imagem"></i><span class="mp-txt"><span>Inserir imagem…</span><small>Ou cole uma imagem direto no texto</small></span></button>
             </div>
-            <div class="mp-col">
-              <p class="menu-titulo">Exportar</p>
-              <button role="menuitem" data-exp="md">Markdown<i>.md</i></button>
-              <button role="menuitem" data-exp="txt">Texto simples<i>.txt</i></button>
-              <button role="menuitem" data-exp="html">Página HTML<i>.html</i></button>
-              <button role="menuitem" data-exp="doc">Word<i>.doc</i></button>
-              <button role="menuitem" data-exp="pdf">PDF<i>imprimir</i></button>
-              <hr>
-              <p class="menu-titulo">Copiar</p>
-              <button role="menuitem" data-exp="copy">Markdown</button>
-              <button role="menuitem" data-exp="copyhtml">HTML formatado</button>
+            <div class="mp-pagina" data-aba="exportar" hidden>
+                <button class="mp-tile" role="menuitem" data-exp="md"><i class="mp-ti" data-ico="md"></i><span class="mp-txt"><span>Markdown</span><small>O texto como está, em .md</small></span><i>.md</i></button>
+                <button class="mp-tile" role="menuitem" data-exp="txt"><i class="mp-ti" data-ico="txt"></i><span class="mp-txt"><span>Texto simples</span><small>Sem nenhuma marcação</small></span><i>.txt</i></button>
+                <button class="mp-tile" role="menuitem" data-exp="html"><i class="mp-ti" data-ico="html"></i><span class="mp-txt"><span>Página HTML</span><small>Pronta para abrir no navegador</small></span><i>.html</i></button>
+                <button class="mp-tile" role="menuitem" data-exp="doc"><i class="mp-ti" data-ico="doc"></i><span class="mp-txt"><span>Word</span><small>Abre no Word e no LibreOffice</small></span><i>.doc</i></button>
+                <button class="mp-tile" role="menuitem" data-exp="pdf"><i class="mp-ti" data-ico="pdf"></i><span class="mp-txt"><span>PDF</span><small>Pela janela de impressão</small></span><i>imprimir</i></button>
+                <button class="mp-tile" role="menuitem" data-exp="copy"><i class="mp-ti" data-ico="copiar"></i><span class="mp-txt"><span>Copiar Markdown</span><small>Para colar em outro editor</small></span></button>
+                <button class="mp-tile" role="menuitem" data-exp="copyhtml"><i class="mp-ti" data-ico="copiar"></i><span class="mp-txt"><span>Copiar HTML</span><small>Formatado, para e-mail e documentos</small></span></button>
+            </div>
+            <div class="mp-pagina" data-aba="ferramentas" hidden>
+                <button class="mp-tile" role="menuitem" id="btnBusca"><i class="mp-ti" data-ico="buscar"></i><span class="mp-txt"><span>Buscar e substituir</span><small>Acha e troca palavras no texto</small></span><kbd>Ctrl+F</kbd></button>
+                <button class="mp-tile" role="menuitem" id="btnSumario"><i class="mp-ti" data-ico="sumario"></i><span class="mp-txt"><span>Sumário</span><small>Pula de um título para outro</small></span><kbd>Ctrl+Shift+O</kbd></button>
+                <button class="mp-tile" role="menuitemcheckbox" id="togPoeta" aria-pressed="false" title="Alinhar e recuar versos"><i class="mp-ti" data-ico="poeta"></i><span class="mp-txt"><span>Modo Poeta</span><small>Régua de recuo e versos numerados</small></span></button>
+                <button class="mp-tile" role="menuitemcheckbox" id="btnTela" aria-pressed="false"><i class="mp-ti" data-ico="tela-cheia"></i><span class="mp-txt"><span>Tela cheia</span><small>Some tudo, sobra a folha</small></span><kbd>Ctrl+Shift+F</kbd></button>
+            </div>
+            <div class="mp-pagina" data-aba="ajuda" hidden>
+                <button class="mp-tile" role="menuitem" id="btnGuia"><i class="mp-ti" data-ico="guia"></i><span class="mp-txt"><span>Guia do Escritor</span><small>Tudo o que o Escritor faz, num texto</small></span></button>
+                <button class="mp-tile" role="menuitem" id="btnAtalhos"><i class="mp-ti" data-ico="atalhos"></i><span class="mp-txt"><span>Atalhos de teclado</span><small>A lista completa, no Personalizar</small></span></button>
+                <button class="mp-tile" role="menuitem" id="btnSobre"><i class="mp-ti" data-ico="sobre"></i><span class="mp-txt"><span>Sobre o Escritor</span><small>Versão, licenças e código aberto</small></span><i data-versao></i></button>
             </div>
           </div>
         </dialog>
@@ -102,6 +116,7 @@
     </div>
   </div>
   <input type="file" id="fileInput" accept=".md,.markdown,.txt,.text" hidden>
+  <input type="file" id="imgInput" accept="image/*" hidden>
 </header>
 
 <!-- ══ buscar e substituir (Ctrl+F, Ctrl+H) ══ -->
@@ -140,18 +155,18 @@
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 5.5 9 9m0-9-9 9"/></svg>
       </button>
     </header>
+    <nav class="aj-nav" id="ajNav" aria-label="Seções">
+      <button type="button" data-ir="estilos" style="--c:#af52de"><span class="aj-ic"><i data-ico="estilos"></i></span><span class="aj-nome">Estilos</span></button>
+      <button type="button" data-ir="aparencia" style="--c:#007aff"><span class="aj-ic"><i data-ico="aparencia"></i></span><span class="aj-nome">Aparência</span></button>
+      <button type="button" data-ir="texto" style="--c:#ff9500"><span class="aj-ic"><i data-ico="texto"></i></span><span class="aj-nome">Texto</span></button>
+      <button type="button" data-ir="escrita" style="--c:#34c759"><span class="aj-ic"><i data-ico="escrita"></i></span><span class="aj-nome">Escrita</span></button>
+      <button type="button" data-ir="revisao" style="--c:#ff3b30"><span class="aj-ic"><i data-ico="revisao"></i></span><span class="aj-nome">Revisão</span></button>
+      <button type="button" data-ir="tela" style="--c:#30b0c7"><span class="aj-ic"><i data-ico="tela"></i></span><span class="aj-nome">Tela e meta</span></button>
+      <button type="button" data-ir="obsidian" style="--c:#5856d6"><span class="aj-ic"><i data-ico="obsidian"></i></span><span class="aj-nome">Obsidian</span></button>
+      <button type="button" data-ir="atalhos" style="--c:#8e8e93"><span class="aj-ic"><i data-ico="atalhos"></i></span><span class="aj-nome">Atalhos</span></button>
+    </nav>
 
     <div class="aj-meio">
-      <nav class="aj-nav" id="ajNav" aria-label="Seções">
-        <button type="button" data-ir="estilos"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" rx="2"/><path d="M7.5 16.5h7a2 2 0 0 0 2-2v-7"/></svg><span>Estilos</span></button>
-        <button type="button" data-ir="aparencia"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M10 3.5v13a6.5 6.5 0 0 0 0-13Z" class="cheio"/></svg><span>Aparência</span></button>
-        <button type="button" data-ir="texto"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 15.5 7.6 4.5h.8l4.1 11M5 11.6h6M13.5 15.5v-5.2m0 0a2.4 2.4 0 1 1 3 2.6"/></svg><span>Texto</span></button>
-        <button type="button" data-ir="escrita"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.6 4.4 3 3-8.4 8.4-3.7.7.7-3.7Z"/></svg><span>Escrita</span></button>
-        <button type="button" data-ir="revisao"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 9.5 7.8 13 16 5"/><path d="M4 16.5c1.3-1 2.7-1 4 0s2.7 1 4 0 2.7-1 4 0"/></svg><span>Revisão</span></button>
-        <button type="button" data-ir="tela"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M3 12.5h14"/></svg><span>Tela e meta</span></button>
-        <button type="button" data-ir="obsidian"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6.5a2 2 0 0 1 2-2h3l2 2h5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><span>Obsidian</span></button>
-        <button type="button" data-ir="atalhos"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="5.5" width="15" height="9" rx="2"/><path d="M5.5 8.5h1m2.5 0h2m2.5 0h1m-8 3h5"/></svg><span>Atalhos</span></button>
-      </nav>
 
       <div class="aj-rolagem" id="ajRolagem">
         <div class="aj-conteudo" id="ajConteudo">
@@ -280,19 +295,36 @@
             </div>
           </section>
 
-          <section class="aj-secao obs" data-secao="obsidian" aria-labelledby="ajs-obsidian" data-busca="obsidian pasta salvar arquivo markdown cofre vault">
-            <h3 id="ajs-obsidian">Pasta no Obsidian</h3>
-            <p class="aj-intro" id="obsTexto">Escolha uma pasta da sua máquina. O Escritor grava o Markdown direto nela, sem plugin e sem importar: o Obsidian vê o arquivo aparecer.</p>
-            <p class="aj-estado" id="obsEstado" data-estado="vazio">Nenhuma pasta escolhida.</p>
-            <div class="aj-obs-acoes">
-              <button type="button" class="aj-bt" id="obsEscolher">Escolher pasta</button>
-              <button type="button" class="aj-bt" id="obsSalvar" hidden>Salvar no Obsidian<kbd>Ctrl+S</kbd></button>
-              <button type="button" class="aj-bt" id="obsEsquecer" hidden>Esquecer a pasta</button>
+          <section class="aj-secao obs" data-secao="obsidian" aria-labelledby="ajs-obsidian" data-busca="obsidian pasta salvar arquivo markdown cofre vault anexos imagens">
+            <h3 id="ajs-obsidian">Obsidian</h3>
+            <div class="obs-heroi">
+              <span class="obs-selo" aria-hidden="true"><i data-ico="obsidian"></i></span>
+              <div class="obs-heroi-txt">
+                <b>Escreva aqui, leia no seu cofre</b>
+                <p id="obsTexto">Escolha uma pasta do seu cofre do Obsidian. O Escritor grava cada nota como um arquivo .md direto nela, sem plugin e sem importar nada: o Obsidian vê o arquivo aparecer.</p>
+              </div>
             </div>
-            <button type="button" class="aj-chave" id="obsAuto" role="switch" aria-checked="false" hidden>
-              <span class="aj-rot"><b>Salvar sozinho enquanto escrevo</b><small>Grava na pasta a cada pausa.</small></span><i class="aj-interruptor" aria-hidden="true"></i>
-            </button>
-            <p class="aj-intro" id="obsDica" hidden>O arquivo recebe o nome da primeira linha do texto, e por isso o título não é gravado de novo dentro dele: no Obsidian a nota já se chama assim. Trocando o título, o próximo salvamento cria um arquivo novo e o antigo fica onde está.</p>
+
+            <div class="aj-grupo">
+              <div class="aj-linha obs-linha" data-busca="pasta escolher trocar esquecer salvar agora">
+                <div class="aj-rot"><b>Pasta</b><small class="obs-estado" id="obsEstado" data-estado="vazio">Nenhuma pasta escolhida.</small></div>
+                <div class="aj-obs-acoes">
+                  <button type="button" class="aj-bt aj-bt--principal" id="obsEscolher">Escolher pasta</button>
+                  <button type="button" class="aj-bt" id="obsSalvar" hidden>Salvar agora<kbd>Ctrl+S</kbd></button>
+                  <button type="button" class="aj-bt aj-bt--leve" id="obsEsquecer" hidden>Esquecer</button>
+                </div>
+              </div>
+              <button type="button" class="aj-chave" id="obsAuto" role="switch" aria-checked="false" hidden data-busca="salvar sozinho automático">
+                <span class="aj-rot"><b>Salvar sozinho enquanto escrevo</b><small>Grava na pasta a cada pausa, sem você apertar nada.</small></span><i class="aj-interruptor" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <ol class="obs-passos" aria-label="Como funciona">
+              <li><b>1</b><span><strong>Escolha a pasta</strong>Pode ser o cofre inteiro ou uma pasta dentro dele, como “Rascunhos”.</span></li>
+              <li><b>2</b><span><strong>Escreva normalmente</strong>Cada nota vira um arquivo com o nome do título. Trocou o título, nasce um arquivo novo e o antigo fica.</span></li>
+              <li><b>3</b><span><strong>Cole imagens à vontade</strong>Elas vão para a pasta “anexos”, ao lado das notas, e aparecem no Obsidian também.</span></li>
+            </ol>
+            <p class="aj-intro" id="obsDica" hidden>O título vira o nome do arquivo, por isso o “# Título” da primeira linha não é gravado de novo dentro dele: no Obsidian a nota já se chama assim.</p>
           </section>
 
           <section class="aj-secao" data-secao="atalhos" aria-labelledby="ajs-atalhos" data-busca="atalhos teclado tecla ctrl comando">
@@ -405,6 +437,66 @@
   </div>
 </footer>
 
+
+<!-- ══ notas: todas as folhas, num pop-up central (Ctrl+O) ══ -->
+<dialog class="aj aj--notas" id="notas" aria-labelledby="notasTitulo">
+  <div class="aj-painel">
+    <header class="aj-topo">
+      <h2 class="aj-titulo" id="notasTitulo">Notas</h2>
+      <span class="aj-conta" id="notasConta"></span>
+      <label class="aj-busca">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.1"/><path d="m12.4 12.4 4.1 4.1"/></svg>
+        <input id="notasBusca" type="search" placeholder="Procurar nas notas" aria-label="Procurar nas notas" autocomplete="off" spellcheck="false">
+      </label>
+      <button type="button" class="aj-bt aj-bt--principal" id="notasNova"><i data-ico="mais"></i>Nova nota</button>
+      <button type="button" class="aj-x" id="notasFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 5.5 9 9m0-9-9 9"/></svg>
+      </button>
+    </header>
+    <div class="notas-rolagem">
+      <ul class="notas-grade" id="notasLista" aria-label="Suas notas"></ul>
+      <p class="notas-vazio" id="notasVazio" hidden></p>
+    </div>
+    <footer class="aj-pe aj-pe--dica"><span>As notas ficam neste navegador. Com uma pasta do Obsidian ligada, cada uma vira um arquivo .md.</span><span><kbd>Enter</kbd> abrir</span><span><kbd>Esc</kbd> fechar</span></footer>
+  </div>
+</dialog>
+
+<!-- ══ botão direito: formatar, grifar, anotar, copiar e colar ══ -->
+<div class="ctx" id="ctx" role="menu" aria-label="Formatação" hidden>
+  <div class="ctx-barra">
+    <button type="button" role="menuitem" data-ctx="recortar" title="Recortar (Ctrl+X)"><i data-ico="recortar"></i><span>Recortar</span></button>
+    <button type="button" role="menuitem" data-ctx="copiar" title="Copiar (Ctrl+C)"><i data-ico="copiar"></i><span>Copiar</span></button>
+    <button type="button" role="menuitem" data-ctx="colar" title="Colar (Ctrl+V)"><i data-ico="colar"></i><span>Colar</span></button>
+    <button type="button" role="menuitem" data-ctx="tudo" title="Selecionar tudo (Ctrl+A)"><i data-ico="tudo"></i><span>Tudo</span></button>
+  </div>
+  <div class="ctx-colunas">
+    <div class="ctx-col">
+      <p class="ctx-titulo">Formatar</p>
+      <button type="button" role="menuitem" data-ctx="negrito"><i data-ico="negrito"></i>Negrito<kbd>Ctrl+B</kbd></button>
+      <button type="button" role="menuitem" data-ctx="italico"><i data-ico="italico"></i>Itálico<kbd>Ctrl+I</kbd></button>
+      <button type="button" role="menuitem" data-ctx="riscado"><i data-ico="riscado"></i>Riscado</button>
+      <button type="button" role="menuitem" data-ctx="codigo"><i class="ctx-ic-txt">‹›</i>Código</button>
+      <button type="button" role="menuitem" data-ctx="link"><i data-ico="link"></i>Link<kbd>Ctrl+K</kbd></button>
+    </div>
+    <div class="ctx-col">
+      <p class="ctx-titulo">Estudo</p>
+      <button type="button" role="menuitem" data-ctx="grifo"><i class="ctx-grifo"></i>Grifar<kbd>Ctrl+Shift+H</kbd></button>
+      <button type="button" role="menuitem" data-ctx="nota"><i class="ctx-ic-txt">¹</i>Nota de rodapé</button>
+      <button type="button" role="menuitem" data-ctx="comentario"><i class="ctx-ic-txt">%</i>Comentário oculto</button>
+      <button type="button" role="menuitem" data-ctx="tarefa"><i class="ctx-ic-txt">☐</i>Tarefa</button>
+      <button type="button" role="menuitem" data-ctx="imagem"><i data-ico="imagem"></i>Imagem…</button>
+    </div>
+    <div class="ctx-col">
+      <p class="ctx-titulo">Parágrafo</p>
+      <button type="button" role="menuitem" data-ctx="h1"><i class="ctx-ic-txt">H1</i>Título</button>
+      <button type="button" role="menuitem" data-ctx="h2"><i class="ctx-ic-txt">H2</i>Subtítulo</button>
+      <button type="button" role="menuitem" data-ctx="citacao"><i class="ctx-ic-txt">“</i>Citação</button>
+      <button type="button" role="menuitem" data-ctx="lista"><i data-ico="lista"></i>Lista</button>
+      <button type="button" role="menuitem" data-ctx="lista-num"><i data-ico="lista-num"></i>Lista numerada</button>
+    </div>
+  </div>
+</div>
+
 <!-- área usada só na impressão / PDF -->
 <div class="print-only" id="printView"></div>
 
@@ -415,8 +507,10 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="icones.js"></script>
 <script src="app.js"></script>
 <script src="personalizar.js"></script>
+<script src="estudo.js"></script>
 <script src="ponte.js"></script>
 </body>
 </html>

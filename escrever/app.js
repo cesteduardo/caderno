@@ -441,6 +441,12 @@ const REGRAS_INLINE = [
   [/\[\[([^\[\]\n]+)\]\]/g, (m) => [pd('[[','mk'), pd(m[1],'t-link t-wiki'), pd(']]','mk')]],
   // #etiqueta
   [/(^|[\s(])(#[A-Za-zÀ-ÖØ-öø-ÿ0-9_\/-]*[A-Za-zÀ-ÖØ-öø-ÿ_][A-Za-zÀ-ÖØ-öø-ÿ0-9_\/-]*)/g, (m) => [pd(m[1]), pd(m[2],'t-tag')]],
+  // ==grifo== (o mesmo do Obsidian)
+  [/==(?=\S)([^=\n]*?\S)==/g, (m) => [pd('==','mk'), pd(m[1],'t-grifo'), pd('==','mk')]],
+  // %%comentário%%: fica no arquivo, some na leitura e na exportação
+  [/%%([^%\n]*)%%/g, (m) => [pd('%%','mk t-coment'), pd(m[1],'t-coment'), pd('%%','mk t-coment')]],
+  // [^1]: chamada de nota de rodapé
+  [/\[\^([^\]\s]+)\]/g, (m) => [pd('[^','mk t-nota'), pd(m[1],'t-nota'), pd(']','mk t-nota')]],
   // imagem e link
   [/(!?)\[([^\]\n]*)\]\(([^)\n]*)\)/g, (m) => [
       pd(m[1] + '[','mk'), pd(m[2],'t-link'), pd(']','mk'),
@@ -864,6 +870,7 @@ let precisaCentrar = false;
 function desenhar(){
   const texto = editor.value;
   const cursor = editor.selectionStart;
+  if (typeof ultimoDesenho !== 'undefined') ultimoDesenho = cursor + ':' + editor.selectionEnd + ':' + texto.length;
 
   let fa = -1, fb = -1;
   const comFoco = prefs.escopo !== 'nenhum' && !prefs.visualizando;
@@ -1064,8 +1071,18 @@ function acharInicioPalavra(texto, cursor){
    7. Markdown completo — visualização, exportação, impressão
    ═══════════════════════════════════════════════════════════ */
 
-function paraHTML(md){
-  const linhas = md.replace(/\r\n?/g,'\n').split('\n');
+function paraHTML(md, raiz = true){
+  md = md.replace(/\r\n?/g,'\n');
+  /* Notas de rodapé: as definições "[^1]: texto" saem do corpo e vão
+     para o fim, numeradas na ordem em que aparecem no texto. */
+  const defs = new Map(), ordem = [];
+  if (raiz){
+    md = md.replace(/^\[\^([^\]\s]+)\]:[ \t]?(.*)$/gm, (_, id, t) => { defs.set(id, t); return '\u0001'; })
+           .replace(/\n?\u0001/g, '');
+    md.replace(/\[\^([^\]\s]+)\]/g, (_, id) => { if (!ordem.includes(id)) ordem.push(id); return ''; });
+  }
+  const numeroDaNota = (id) => ordem.indexOf(id) + 1;
+  const linhas = md.split('\n');
   const out = [];
   let i = 0;
 
@@ -1074,6 +1091,12 @@ function paraHTML(md){
     const cofre = [];
     const guardar = (h) => `\u0000${cofre.push(h) - 1}\u0000`;
     s = s.replace(/(`+)([^`]+)\1/g, (_, c, x) => guardar(`<code>${x}</code>`));
+    s = s.replace(/%%[^%\n]*%%/g, '');
+    s = s.replace(/\[\^([^\]\s]+)\]/g, (_, id) => {
+      const n = numeroDaNota(id);
+      return n ? guardar(`<sup class="nr" id="nr-ref-${n}"><a href="#nr-${n}">${n}</a></sup>`) : `[^${id}]`;
+    });
+    s = s.replace(/==(?=\S)([^=\n]*?\S)==/g, '<mark>$1</mark>');
     s = s.replace(/\[\[([^\[\]\n|]+)(?:\|([^\[\]\n]+))?\]\]/g,
       (_, alvo, rot) => guardar(`<a href="#" class="wikilink" data-nota="${alvo.replace(/"/g,'&quot;')}">${rot || alvo}</a>`));
     s = s.replace(/(^|[\s(])#([A-Za-zÀ-ÖØ-öø-ÿ0-9_\/-]*[A-Za-zÀ-ÖØ-öø-ÿ_][A-Za-zÀ-ÖØ-öø-ÿ0-9_\/-]*)/g,
@@ -1132,7 +1155,7 @@ function paraHTML(md){
     if (/^\s*>/.test(l)){
       const bloco = [];
       while (i < linhas.length && /^\s*>/.test(linhas[i])) bloco.push(linhas[i++].replace(/^\s*>\s?/,''));
-      out.push(`<blockquote>${paraHTML(bloco.join('\n'))}</blockquote>`);
+      out.push(`<blockquote>${paraHTML(bloco.join('\n'), false)}</blockquote>`);
       continue;
     }
 
@@ -1172,6 +1195,10 @@ function paraHTML(md){
     out.push(`<p>${linhasPar.join('<br>')}</p>`);
   }
 
+  if (raiz && ordem.length){
+    out.push('<section class="notas-rodape"><hr><ol>' + ordem.map((id, k) =>
+      `<li id="nr-${k + 1}">${inline(defs.get(id) || '')} <a href="#nr-ref-${k + 1}" aria-label="voltar ao texto">↩</a></li>`).join('') + '</ol></section>');
+  }
   return out.join('\n');
 }
 
@@ -1302,6 +1329,10 @@ pre code{background:none;padding:0}
 blockquote{margin:0 0 1.25em;padding-left:1.15em;border-left:2px solid #d3d6dc;color:#4a4f57}
 ul,ol{padding-left:1.4em}li{margin:.3em 0}
 hr{border:0;border-top:1px solid #e9ebef;margin:2.4em 0}
+mark{background:#fff1a8;color:inherit;padding:0 .12em;border-radius:3px}
+sup.nr a{text-decoration:none;font-size:.75em}
+.notas-rodape{margin-top:3em;font-size:.88em;color:#4a4f57}
+.notas-rodape hr{width:4rem;margin:0 0 1em}
 img{max-width:100%;border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:.94em}
 th,td{border:1px solid #e9ebef;padding:.45em .7em;text-align:left}
@@ -1326,16 +1357,19 @@ async function exportar(tipo){
 
   if (tipo === 'md')  return baixar(`${nome}.md`,  md, 'text/markdown;charset=utf-8');
   if (tipo === 'txt') return baixar(`${nome}.txt`,
-    md.replace(/^#{1,6}\s+/gm,'').replace(/(\*\*|__|~~|[*_`])/g,'')
+    md.replace(/%%[^%\n]*%%/g,'').replace(/==([^=\n]+)==/g,'$1').replace(/^#{1,6}\s+/gm,'').replace(/(\*\*|__|~~|[*_`])/g,'')
       .replace(/^\s*>\s?/gm,'').replace(/\[([^\]]*)\]\([^)]*\)/g,'$1'),
     'text/plain;charset=utf-8');
 
+  // imagens coladas moram no navegador: na exportação elas vão dentro do arquivo
+  const embutir = async (h) => typeof embutirAnexos === 'function' ? embutirAnexos(h) : h;
+
   if (tipo === 'html'){
-    return baixar(`${nome}.html`,
+    return baixar(`${nome}.html`, await embutir(
       `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">` +
       `<meta name="viewport" content="width=device-width,initial-scale=1">` +
       `<title>${escapar(nome)}</title><style>${CSS_EXPORT}</style></head>` +
-      `<body>\n${paraHTML(md)}\n${assinaturaHTML()}\n</body></html>`,
+      `<body>\n${paraHTML(md)}\n${assinaturaHTML()}\n</body></html>`),
       'text/html;charset=utf-8');
   }
 
@@ -1353,11 +1387,12 @@ async function exportar(tipo){
       `pre{background:#f4f4f4;padding:8pt}` +
       `table{border-collapse:collapse}th,td{border:.5pt solid #999;padding:4pt}` +
       `</style></head><body>${paraHTML(md)}${assinaturaHTML(true)}</body></html>`;
-    return baixar(`${nome}.doc`, '﻿' + doc, 'application/msword;charset=utf-8');
+    return baixar(`${nome}.doc`, '﻿' + await embutir(doc), 'application/msword;charset=utf-8');
   }
 
   if (tipo === 'pdf'){
     prepararImpressao();
+    if (typeof mostrarAnexos === 'function') await mostrarAnexos($('#printView'));
     // O endereço do arquivo no alto da página é do navegador, não daqui:
     // só a caixa "cabeçalhos e rodapés" do diálogo o remove — uma vez, e fica.
     avisar('Na janela de impressão, desmarque “cabeçalhos e rodapés”', 6000);
@@ -1366,7 +1401,7 @@ async function exportar(tipo){
   }
 
   if (tipo === 'copy' || tipo === 'copyhtml'){
-    const conteudo = tipo === 'copy' ? md : paraHTML(md);
+    const conteudo = tipo === 'copy' ? md : await embutir(paraHTML(md));
     try {
       await navigator.clipboard.writeText(conteudo);
       avisar(tipo === 'copy' ? 'Markdown copiado' : 'HTML copiado');
@@ -1418,7 +1453,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '1.1.0';
+const VERSAO = '2.0.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -1500,16 +1535,18 @@ function abrirSobre(){
         '<kbd>esc</kbd>' +
       '</div>' +
       '<div class="folha-corpo">' +
-        '<p>Uma superfície de escrita em Markdown, no espírito do iA Writer: ' +
+        '<p>Um caderno de escrita e estudo em Markdown, no espírito do iA Writer: ' +
           'realce de sintaxe sem tirar o cursor do lugar, modo foco, revisão de ' +
-          'ortografia e estilo, e gravação direta numa pasta do Obsidian.</p>' +
+          'ortografia e estilo, várias notas, grifo e notas de rodapé no botão direito, ' +
+          'imagens coladas e gravação direta numa pasta do Obsidian.</p>' +
         '<p>É um projeto de <b>código aberto e sem fins lucrativos</b>. Não há conta, ' +
-          'anúncio, cobrança nem rastreamento — o que você escreve fica no seu ' +
+          'anúncio, cobrança nem rastreamento: o que você escreve fica no seu ' +
           'navegador e só sai dele quando você exporta ou salva na pasta.</p>' +
         '<a class="folha-link" href="' + REPO + '" target="_blank" rel="noopener noreferrer">' +
           OCTOCAT + '<b>cesteduardo/escritor</b><small>abrir ↗</small></a>' +
         '<p class="fraco" style="margin-top:.9rem">' +
-          'As fontes são as iA Writer (Duo, Mono e Quattro), sob licença Apache 2.0. ' +
+          'As fontes do texto são as iA Writer (Duo, Mono e Quattro), sob licença Apache 2.0; ' +
+          'a da interface é a Inter (OFL) e os ícones são do Adwaita, do GNOME (LGPL ou CC BY-SA). ' +
           'Feito por GR Brands.</p>' +
       '</div>' +
       '<div class="folha-pe">' +
@@ -1604,6 +1641,7 @@ function definirVisualizacao(ativo){
   if (ativo){
     preview.classList.toggle('poeta', prefs.poeta);
     preview.innerHTML = prefs.poeta ? paraHTMLPoeta(editor.value) : paraHTML(editor.value);
+    if (typeof mostrarAnexos === 'function') mostrarAnexos(preview);
     preview.querySelectorAll('a[href^="http"]').forEach(a => {
       a.target = '_blank'; a.rel = 'noopener noreferrer';
     });
@@ -1835,7 +1873,37 @@ $('#stCont').onclick = () => {
    quem quiser fechar os menus (a ponte, o painel Aa) só tira a classe,
    e o observador abaixo fecha o diálogo junto. */
 const reduzMov = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-function itensDoMenu(pop){ return [...pop.querySelectorAll('.mp-lista button')].filter(b => !b.hidden && b.offsetParent !== null); }
+function itensDoMenu(pop){ return [...pop.querySelectorAll('.mp-corpo button, .mp-abas button')].filter(b => !b.hidden && b.offsetParent !== null); }
+
+/* Setas em qualquer direção: vai para o item mais perto daquele lado,
+   olhando a posição real na tela. Serve para os cartões lado a lado do
+   Foco, as duas colunas do Realce e a grade do Documento. */
+function vizinhoNaDirecao(itens, atual, tecla){
+  const a = atual.getBoundingClientRect();
+  const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+  let melhor = null, menor = Infinity;
+  for (const b of itens){
+    if (b === atual) continue;
+    const r = b.getBoundingClientRect();
+    const dx = r.left + r.width / 2 - ax, dy = r.top + r.height / 2 - ay;
+    const ok = tecla === 'ArrowRight' ? dx > 4 : tecla === 'ArrowLeft' ? dx < -4 : tecla === 'ArrowDown' ? dy > 4 : dy < -4;
+    if (!ok) continue;
+    const horizontal = tecla === 'ArrowRight' || tecla === 'ArrowLeft';
+    const d = horizontal ? Math.abs(dx) + Math.abs(dy) * 3 : Math.abs(dy) + Math.abs(dx) * 3;
+    if (d < menor){ menor = d; melhor = b; }
+  }
+  return melhor;
+}
+
+/* Documento: as seções são abas; a pílula delas desliza (personalizar.js) */
+let abaDoc = 'arquivo';
+function mostrarAbaDoc(aba){
+  abaDoc = aba;
+  $$('#menuMais .mp-abas [data-aba]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.aba === aba)));
+  $$('#menuMais .mp-pagina').forEach(pg => { pg.hidden = pg.dataset.aba !== aba; });
+  if (typeof medirPilulas === 'function') medirPilulas();
+}
+$$('#menuMais .mp-abas [data-aba]').forEach(b => b.addEventListener('click', () => mostrarAbaDoc(b.dataset.aba)));
 function fecharMenuPop(pop, animar){
   if (!pop.open) return;
   if (!animar || reduzMov()){ pop.classList.remove('saindo'); pop.close(); return; }
@@ -1850,12 +1918,16 @@ function abrirMenu(menu){
   const pop = menu.querySelector('.menu-pop');
   menu.classList.add('aberto');
   pop.classList.remove('saindo');
+  if (pop.id === 'popDoc' || menu.id === 'menuMais') mostrarAbaDoc(abaDoc);
   if (!pop.open) pop.showModal();
-  // o foco cai no item marcado (ou no primeiro): as setas andam a partir dele
-  const itens = itensDoMenu(pop);
+  /* O foco cai no item marcado (ou no primeiro), para as setas andarem a
+     partir dele; mas ele só ACENDE com o teclado (:focus-visible). Aberto
+     com o mouse, nada fica aceso até o ponteiro passar por cima. */
+  const itens = itensDoMenu(pop).filter(b => !b.closest('.mp-abas'));
   const alvo = itens.find(b => b.getAttribute('aria-checked') === 'true') || itens[0];
   if (alvo) alvo.focus({ preventScroll: true });
   pop.scrollTop = 0;
+  if (typeof medirPilulas === 'function') medirPilulas(true);
 }
 $$('.menu').forEach((menu) => {
   const pop = menu.querySelector('.menu-pop');
@@ -1880,45 +1952,42 @@ $$('.menu').forEach((menu) => {
     if (e.target === pop){ e.stopPropagation(); if (pop._fora) menu.classList.remove('aberto'); return; }
     const b = e.target.closest('button');
     // ligar e desligar deixa o menu aberto; escolher fecha
-    if (!b || b.closest('[data-alterna], .linha-corpo')){ e.stopPropagation(); return; }
+    if (!b || b.closest('[data-alterna], [data-fica], .linha-corpo')){ e.stopPropagation(); return; }
   });
   /* Escolher fecha o diálogo ANTES da ação: com ele aberto o resto da
      página está inerte, e a ação (focar a busca, abrir o sumário, o
      seletor de arquivo) não alcançaria nada. */
   pop.addEventListener('click', (e) => {
     const b = e.target.closest('button');
-    if (!b || b.closest('[data-alterna], .linha-corpo')) return;
+    if (!b || b.closest('[data-alterna], [data-fica], .linha-corpo')) return;
     menu.classList.remove('aberto');
     pop.classList.remove('saindo');
     if (pop.open) pop.close();
   }, true);
   pop.addEventListener('keydown', (e) => {
     const itens = itensDoMenu(pop);
-    const i = itens.indexOf(document.activeElement);
-    const mover = { ArrowDown: 1, ArrowUp: -1, Home: 'ini', End: 'fim' }[e.key];
-    if (mover !== undefined){
+    if (e.key === 'Home' || e.key === 'End'){
       e.preventDefault();
-      const n = mover === 'ini' ? 0 : mover === 'fim' ? itens.length - 1 : (i + mover + itens.length) % itens.length;
-      itens[n]?.focus();
+      itens[e.key === 'Home' ? 0 : itens.length - 1]?.focus();
       return;
     }
-    // nas duas colunas do menu Documento as setas laterais trocam de coluna
-    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && pop.querySelector('.mp-col')){
-      const cols = [...pop.querySelectorAll('.mp-col')];
-      const c = cols.findIndex(x => x.contains(document.activeElement));
-      const outra = cols[(c + (e.key === 'ArrowRight' ? 1 : -1) + cols.length) % cols.length];
-      const alvo = [...outra.querySelectorAll('button')].find(b => !b.hidden);
-      if (alvo){ e.preventDefault(); alvo.focus(); }
+    if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)){
+      e.preventDefault();
+      const atual = itens.includes(document.activeElement) ? document.activeElement : null;
+      if (!atual){ itens[0]?.focus(); return; }
+      // nas abas do Documento, esquerda e direita trocam de aba
+      if (atual.closest('.mp-abas') && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){
+        const abas = [...pop.querySelectorAll('.mp-abas [data-aba]')];
+        const n = (abas.indexOf(atual) + (e.key === 'ArrowRight' ? 1 : -1) + abas.length) % abas.length;
+        abas[n].focus(); abas[n].click();
+        return;
+      }
+      vizinhoNaDirecao(itens, atual, e.key)?.focus();
       return;
     }
     if (e.key === 'Escape') return;           // o próprio <dialog> cuida
     if (e.ctrlKey || e.metaKey){ menu.classList.remove('aberto'); fecharMenuPop(pop, false); return; }
     e.stopPropagation();                      // as outras teclas ficam no menu
-  });
-  // o item sob o ponteiro recebe o foco: mouse e setas acendem a mesma linha
-  pop.addEventListener('pointermove', (e) => {
-    const b = e.target.closest('.mp-lista button');
-    if (b && document.activeElement !== b) b.focus({ preventScroll: true });
   });
 });
 document.addEventListener('click', () => $$('.menu').forEach(m => m.classList.remove('aberto')));
@@ -2080,7 +2149,8 @@ document.addEventListener('keydown', (e) => {
     if (obsPasta) return void obsEscrever(true);
     return exportar('md');
   }
-  if (k === 'o' && !e.shiftKey){ e.preventDefault(); return PONTE ? PONTE.trocar() : $('#fileInput').click(); }
+  if (k === 'o' && !e.shiftKey){ e.preventDefault(); return PONTE ? PONTE.trocar() : (typeof abrirNotas === 'function' ? abrirNotas() : $('#fileInput').click()); }
+  if (k === 'h' && e.shiftKey){ e.preventDefault(); return envolver('=='); }
   if (k === 'e'){ e.preventDefault(); return definirVisualizacao(!prefs.visualizando); }
   if (k === 'd'){
     e.preventDefault();
@@ -2292,6 +2362,7 @@ async function obsEscrever(avisando){
     const fluxo = await arquivo.createWritable();
     await fluxo.write(semTituloRepetido(editor.value));
     await fluxo.close();
+    if (typeof obsAnexos === 'function') await obsAnexos(obsPasta, editor.value);
   } catch {
     if (avisando) avisar('não deu para escrever na pasta');
     return false;
@@ -2380,6 +2451,7 @@ function guardarTexto(){
       // texto igual ao guia (ou em branco) não conta como documento seu
       const seu = editor.value.trim() && editor.value.trim() !== GUIA.trim();
       localStorage.setItem(CHAVE_SEU, seu ? '1' : '0');
+      if (typeof notaGuardar === 'function') notaGuardar(editor.value, !!seu);
       $('#stSalvo').textContent = 'salvo';
     } catch {
       $('#stSalvo').textContent = 'sem espaço para salvar';
@@ -2402,13 +2474,26 @@ function aoDigitar(){
 editor.addEventListener('input', aoDigitar);
 
 /* Mover o cursor com as setas ou com o mouse também recentraliza
-   no modo máquina de escrever, e sempre redesenha o foco. */
-['keyup','click','select','focus'].forEach(ev =>
-  editor.addEventListener(ev, () => {
+   no modo máquina de escrever, e sempre redesenha o foco.
+   Antes isso esperava a tecla SUBIR (keyup): entre apertar e soltar a
+   seta o cursor já estava na linha nova e o destaque ainda na velha, e
+   a linha de trás piscava. Agora quem avisa é o selectionchange, que
+   dispara no mesmo instante em que o cursor anda; o redesenho vai para
+   o próximo quadro e só acontece se o cursor de fato mudou de lugar. */
+let ultimoDesenho = '';
+let rafCursor = 0;
+function redesenharCursor(){
+  cancelAnimationFrame(rafCursor);
+  rafCursor = requestAnimationFrame(() => {
+    const chave = editor.selectionStart + ':' + editor.selectionEnd + ':' + editor.value.length;
+    if (chave === ultimoDesenho) return;
     precisaCentrar = prefs.maquina;
     desenhar();
     atualizarRegua();
-  }));
+  });
+}
+document.addEventListener('selectionchange', () => { if (document.activeElement === editor) redesenharCursor(); });
+['click', 'focus'].forEach(ev => editor.addEventListener(ev, redesenharCursor));
 
 /* Clicar na folha sempre devolve o cursor ao texto — inclusive nas
    margens laterais e no branco abaixo da última linha, que não fazem
@@ -2493,14 +2578,13 @@ const GUIA = paraSO(`# Guia do Escritor
 
 Este é um editor para escrever e revisar textos sem distrações. Você pode apagar todo este conteúdo e começar a escrever: o seu texto é salvo automaticamente neste navegador.
 
-## Documentos
+## Notas
 
-O botão **⋯**, no canto direito da barra, abre o menu **Documento**. Em **Arquivo** ficam dois comandos:
+O Escritor guarda várias notas. O botão **Notas**, no canto esquerdo da barra (ou \`Ctrl+O\`), abre todas elas em cartões no meio da tela: procure, abra com \`Enter\`, crie uma **Nova nota** (\`Ctrl+Alt+N\`) ou apague, com **Desfazer** por alguns segundos. Não há barra lateral: a folha fica inteira para escrever.
 
-- **Novo documento**: limpa a folha para começar outro texto. Se já houver conteúdo, o aplicativo pede confirmação antes de descartá-lo.
-- **Abrir arquivo**: abre um arquivo Markdown (\`.md\`) ou texto simples (\`.txt\`) que esteja no seu computador. Você também pode arrastar um desses arquivos para a folha.
+No menu **⋯ Documento**, a aba **Arquivo** também abre arquivos \`.md\` e \`.txt\` do computador, cada um como uma nota nova. Arrastar um desses arquivos para a folha faz o mesmo.
 
-O salvamento automático protege o rascunho ao fechar ou atualizar a página, mas fica somente neste navegador. Para guardar uma cópia permanente ou enviar o texto a alguém, use **Exportar**.
+As notas ficam neste navegador. Para guardar de verdade, ligue uma pasta do Obsidian (cada nota vira um arquivo) ou use **Exportar**.
 
 ## Escrever e formatar
 
@@ -2514,6 +2598,19 @@ Escreva normalmente na folha. Para formatar, use Markdown ou os atalhos:
 - \`[nome](https://endereco.com)\` cria um [link](https://exemplo.com).
 
 Os sinais ficam visíveis durante a edição para você continuar no controle do texto. Use **Visualizar** quando quiser ver o resultado limpo e formatado.
+
+## Botão direito: o caderno de estudos
+
+Clique com o botão direito no texto para formatar sem decorar atalhos. Além de recortar, copiar e colar, o menu tem:
+
+- **Grifar**: \`==texto==\` pinta o fundo de amarelo, como um marca-texto (\`Ctrl+Shift+H\`).
+- **Nota de rodapé**: a chamada \`[^1]\` fica onde está o cursor e o texto da nota vai para o fim. No **Visualizar**, as notas aparecem numeradas embaixo.
+- **Comentário oculto**: \`%%assim%%\` fica no arquivo, mas some na leitura e na exportação.
+- **Tarefa**, **título**, **subtítulo**, **citação** e **listas**, em uma linha ou em várias de uma vez.
+
+## Imagens
+
+Cole uma imagem (\`Ctrl+V\`) ou arraste um arquivo de imagem para a folha. Ela fica guardada no navegador e o texto recebe \`![](anexos/imagem….png)\`. A imagem aparece no **Visualizar**, vai dentro dos arquivos exportados e, com uma pasta do Obsidian ligada, é gravada em \`anexos\`, ao lado das notas.
 
 ## Foco
 
@@ -2546,11 +2643,11 @@ Escolha uma classe por vez para analisá-la ou selecione **Todas as classes** pa
 
 ## A barra e os menus
 
-Em cima ficam **Foco** (o visor), **Realce** (o marca-texto), **Visualizar** (o olho, que vira caneta enquanto você lê) e **Aa**. Os menus abrem no meio da tela: as setas andam pelas opções, \`Enter\` escolhe e \`Esc\` fecha. Embaixo, o rodapé conta as palavras e o tempo de leitura, avisa os pontos de atenção e mostra se o texto está salvo.
+Em cima ficam **Notas**, **Foco** (o visor), **Realce** (o marca-texto), **Visualizar** (o olho, que vira caneta enquanto você lê), **Aa**, a tela cheia e o **⋯ Documento**. Os menus abrem no meio da tela, largos: as setas andam pelas opções em qualquer direção, \`Enter\` escolhe e \`Esc\` fecha. Nada acende sozinho, só o que está sob o ponteiro. Embaixo, o rodapé conta as palavras e o tempo de leitura, avisa os pontos de atenção e mostra se o texto está salvo.
 
 ## Personalizar — Aa
 
-O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. Ele muda a aparência e o jeito de escrever, nunca o conteúdo, e a amostra ao lado mostra cada mudança na hora:
+O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. No alto, uma fileira de ícones leva a cada seção. Ele muda a aparência e o jeito de escrever, nunca o conteúdo, e a amostra ao lado mostra cada mudança na hora:
 
 - **Estilos prontos** trocam tudo de uma vez: Livro, Noturno, Concentração, Revisão e outros. Você também pode salvar a sua combinação com um nome.
 - **Aparência**: oito papéis e o Automático, que segue o claro ou escuro do sistema; a cor de destaque, inclusive uma escolhida por você; a cor dos títulos e os sinais do Markdown.

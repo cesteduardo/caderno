@@ -75,7 +75,7 @@ const ATALHOS = [
   ['Modo Foco', 'Ctrl+D'], ['Máquina de escrever', 'Ctrl+T'], ['Classes gramaticais', 'Ctrl+G'],
   ['Ortografia', 'Ctrl+P'], ['Revisão de estilo', 'Ctrl+R'], ['Corrigir a palavra', 'Ctrl+;'],
   ['Visualizar', 'Ctrl+E'], ['Tela cheia', 'Ctrl+Shift+F'], ['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'], ['Link', 'Ctrl+K'],
-  ['Salvar ou baixar', 'Ctrl+S'], ['Abrir', 'Ctrl+O'], ['Novo documento', 'Ctrl+Alt+N'],
+  ['Salvar ou baixar', 'Ctrl+S'], ['Notas', 'Ctrl+O'], ['Nova nota', 'Ctrl+Alt+N'], ['Grifar', 'Ctrl+Shift+H'],
 ];
 
 const PADRAO = {
@@ -499,6 +499,7 @@ let posicao = 0;
 function guardarPosicao(){ posicao = rolagem.scrollTop; }
 function abrirAjustes(secao){
   if (painel.open){ if (secao) irSecao(secao); else fecharDialogo(painel); return; }
+  if ($('#ajBusca').value){ $('#ajBusca').value = ''; filtrar(); }
   if ($('#sumario').open) $('#sumario').close();
   // ao abrir, nada anima: chaves e pílulas já aparecem no lugar
   painel.setAttribute('data-sem-anim', '');
@@ -507,9 +508,7 @@ function abrirAjustes(secao){
   medirPilulas(true);
   requestAnimationFrame(() => requestAnimationFrame(() => painel.removeAttribute('data-sem-anim')));
   $('#btnAa').setAttribute('aria-pressed', 'true');
-  rolagem.scrollTop = posicao;
-  if (secao) irSecao(secao, false);
-  marcarSecao();
+  irSecao(secao || secaoAtual);
   // no computador o foco vai para a busca; no celular isso abriria o teclado
   if (matchMedia('(pointer: fine)').matches) $('#ajBusca').focus({ preventScroll: true });
   else (navBotoes.find(b => b.getAttribute('aria-current') === 'true') || navBotoes[0]).focus({ preventScroll: true });
@@ -518,36 +517,30 @@ $('#btnAa').onclick = (e) => { e.stopPropagation(); abrirAjustes(); };
 $('#ajFechar').onclick = () => fecharDialogo(painel);
 $('#ajPronto').onclick = () => fecharDialogo(painel);
 
-/* ── seções: menu à esquerda acompanha a rolagem ─────────── */
-/* topo da seção medido dentro da rolagem (o offsetTop conta a partir do <dialog>) */
-const topoDe = (s) => s.getBoundingClientRect().top - rolagem.getBoundingClientRect().top + rolagem.scrollTop;
-function irSecao(id, suave = true){
-  const s = secoes.find(x => x.dataset.secao === id);
-  if (!s || s.hidden) return;
-  rolagem.scrollTo({ top: Math.max(0, topoDe(s) - 6), behavior: suave && !reduzido() ? 'smooth' : 'auto' });
+/* ── seções: uma por vez, escolhida na fileira de ícones ───
+   Antes era uma rolagem só com um marcador que seguia a seção na tela,
+   e ele se perdia nas seções curtas do fim (Obsidian, Atalhos). Agora
+   cada ícone mostra a sua seção, como nas Preferências do macOS; a
+   busca é que junta as seções, mostrando tudo o que bate. */
+let secaoAtual = 'estilos';
+function irSecao(id){
+  if (!secoes.some(x => x.dataset.secao === id)) return;
+  secaoAtual = id;
+  secoes.forEach(x => x.classList.toggle('atual', x.dataset.secao === id));
   marcar(id);
-  travarMarca = Date.now() + 600;
+  rolagem.scrollTop = 0;
 }
-let travarMarca = 0;
 function marcar(id){
   navBotoes.forEach(b => b.setAttribute('aria-current', String(b.dataset.ir === id)));
   if (typeof medirPilulas === 'function') medirPilulas();
   const ativo = navBotoes.find(b => b.dataset.ir === id);
   if (ativo && painel.open) ativo.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
-function marcarSecao(){
-  if (Date.now() < travarMarca) return;
-  const visiveis = secoes.filter(s => !s.hidden);
-  if (!visiveis.length) return;
-  const topo = rolagem.scrollTop;
-  let atual = visiveis[0];
-  if (topo + rolagem.clientHeight >= rolagem.scrollHeight - 4) atual = visiveis[visiveis.length - 1];
-  else for (const s of visiveis) if (topoDe(s) - 60 <= topo) atual = s;
-  marcar(atual.dataset.secao);
-}
-let rafRolar = 0;
-rolagem.addEventListener('scroll', () => { cancelAnimationFrame(rafRolar); rafRolar = requestAnimationFrame(marcarSecao); }, { passive: true });
-navBotoes.forEach(b => b.onclick = () => irSecao(b.dataset.ir));
+function marcarSecao(){ marcar(secaoAtual); }
+navBotoes.forEach(b => b.onclick = () => {
+  if ($('#ajBusca').value){ $('#ajBusca').value = ''; filtrar(); }
+  irSecao(b.dataset.ir);
+});
 
 /* ── busca de ajustes ────────────────────────────────────── */
 function filtrar(){
@@ -571,9 +564,14 @@ function filtrar(){
   const nada = $('#ajNada');
   nada.hidden = !!achou;
   nada.textContent = achou ? '' : `Nenhum ajuste com “${$('#ajBusca').value.trim()}”.`;
+  painel.toggleAttribute('data-buscando', termos.length > 0);
   rolagem.scrollTop = 0;
-  travarMarca = 0;
-  marcarSecao();
+  if (!termos.length) irSecao(secaoAtual);
+  else {
+    // com busca, a fileira acende a primeira seção que achou algo
+    const primeira = secoes.find(x => !x.hidden);
+    if (primeira) marcar(primeira.dataset.secao);
+  }
 }
 $('#ajBusca').addEventListener('input', filtrar);
 
@@ -899,7 +897,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (cmd && !e.altKey && !e.shiftKey && k === 'f'){ e.preventDefault(); abrirBusca(false); return; }
-  if (cmd && !e.altKey && k === 'h'){ e.preventDefault(); abrirBusca(true); return; }
+  if (cmd && !e.altKey && !e.shiftKey && k === 'h'){ e.preventDefault(); abrirBusca(true); return; }
   if (cmd && e.shiftKey && k === 'o'){ e.preventDefault(); e.stopImmediatePropagation(); abrirSumario(); return; }
   if (cmd && !e.shiftKey && !e.altKey && e.key === ','){ e.preventDefault(); abrirAjustes(); return; }
 }, true);
@@ -957,21 +955,11 @@ criarPilula($('#ajNav'), marcado('[aria-current="true"]'));
 function medirPilulas(semAnim){ for (const p of PILULAS) if (p.trilha.offsetParent && !p.trilha.closest('.menu-pop')) p.medir(semAnim); }
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => medirPilulas(true)).catch(() => {});
 
-/* Nos menus a pílula segue o foco, e o foco segue o ponteiro (app.js):
-   mouse e setas acendem a mesma linha, e a luz escorrega entre elas. */
-$$('.menu-pop .mp-lista').forEach((lista) => {
-  const pil = criarPilula(lista, (t) => t.querySelector('button:focus'));
-  const pop = lista.closest('.menu-pop');
-  lista.addEventListener('focusin', (e) => {
-    const b = e.target.closest('button');
-    if (b) pil.medir(!lista._viva, b);
-    lista._viva = true;
-  });
-  lista.addEventListener('focusout', (e) => {
-    if (!lista.contains(e.relatedTarget)) lista.setAttribute('data-sem-pilula', '');
-  });
-  pop.addEventListener('close', () => { lista._viva = false; });
-});
+/* Nos menus da barra a pílula só existe onde as opções correm da
+   esquerda para a direita: as abas do Documento. O resto acende apenas
+   sob o ponteiro (ou sob as setas do teclado). */
+criarPilula($('#menuMais .mp-abas'), marcado('[aria-selected="true"]'));
+$('#btnAtalhos').onclick = () => abrirAjustes('atalhos');
 
 /* ── celular: a amostra rola junto com os ajustes ─────────────
    Na tela estreita ela sai da coluna lateral e vira o começo da
@@ -988,3 +976,6 @@ $$('.menu-pop .mp-lista').forEach((lista) => {
   if (estreita.addEventListener) estreita.addEventListener('change', posicionar); else estreita.addListener(posicionar);
   posicionar();
 }
+
+// a primeira seção (no fim do arquivo: as pílulas já existem)
+irSecao('estilos');
