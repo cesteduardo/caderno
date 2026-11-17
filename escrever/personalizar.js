@@ -38,7 +38,7 @@ const FONTES = [
   ['mono', 'Mono', 'Monoespaçada, de máquina'],
   ['quattro', 'Quattro', 'Proporcional; itálico pela cor'],
   ['serifa', 'Serifa', 'De livro; ênfase pela cor'],
-  ['sans', 'Sem serifa', 'Inter; ênfase pela cor'],
+  ['sans', 'Inter', 'A da interface; ênfase pela cor'],
 ];
 const SINAIS   = [['visiveis', 'Visíveis'], ['discretos', 'Discretos'], ['ocultos', 'Ocultos']];
 const TITULOS  = [['tinta', 'Tinta'], ['destaque', 'Destaque']];
@@ -297,6 +297,16 @@ function montar(){
   $('#numMeta').onchange = (e) => mudar('meta', Math.max(0, Math.round(+e.target.value || 0)));
 }
 
+/* As faixas pintam a parte já percorrida na cor de destaque, como no
+   macOS. O CSS lê a fração em --p. */
+function pintarFaixas(){
+  painel.querySelectorAll('input[type=range]').forEach(r => {
+    const min = +r.min || 0, max = +r.max || 100;
+    r.style.setProperty('--p', ((+r.value - min) / (max - min) * 100).toFixed(2) + '%');
+  });
+}
+painel.addEventListener('input', (e) => { if (e.target.type === 'range') pintarFaixas(); });
+
 /* estado → tela: só atributos, nada é recriado, e o foco do teclado não se perde */
 function sincronizar(){
   painel.querySelectorAll('[role=radiogroup][data-chave]').forEach(g => {
@@ -333,6 +343,7 @@ function sincronizar(){
   $('#outColuna').textContent = prefs.coluna + ' rem';
   const cpl = letrasPorLinha();
   $('#outColunaDica').textContent = cpl ? `Cerca de ${cpl} letras por linha. Entre 60 e 75 é o confortável.` : 'Entre 60 e 75 letras por linha é o confortável.';
+  pintarFaixas();
   $('#selContagem').value = String(prefs.contagem);
   if (document.activeElement !== $('#numMeta')) $('#numMeta').value = prefs.meta || '';
 
@@ -458,13 +469,19 @@ function fecharDialogo(d){
   painelInterno.addEventListener('animationend', fim, { once: true });
   setTimeout(fim, 260);
 }
-for (const d of [painel, $('#sumario')]){
+const DIALOGOS = [painel, $('#sumario'), $('#revisao')];
+for (const d of DIALOGOS){
   d.addEventListener('close', () => {
     document.body.append(toast);
-    if (!painel.open && !$('#sumario').open) document.documentElement.classList.remove('folha-aberta');
+    if (!DIALOGOS.some(x => x.open)) document.documentElement.classList.remove('folha-aberta');
     $('#btnAa').setAttribute('aria-pressed', String(painel.open));
     if (d === painel) guardarPosicao();
-    if (!prefs.visualizando && (!focoAntes || focoAntes === document.body || focoAntes === editor || focoAntes.closest('.menu'))) editor.focus({ preventScroll: true });
+    if (d.id === 'revisao'){
+      $('#stRevisao').setAttribute('aria-expanded', 'false');
+      if (!prefs.visualizando) editor.focus({ preventScroll: true });
+      return;
+    }
+    if (!prefs.visualizando && (!focoAntes || focoAntes === document.body || focoAntes === editor || focoAntes.closest('.menu, .bar, .stats'))) editor.focus({ preventScroll: true });
     else if (focoAntes && focoAntes.focus) focoAntes.focus({ preventScroll: true });
   });
   d.addEventListener('cancel', (e) => { e.preventDefault(); fecharDialogo(d); });
@@ -882,3 +899,14 @@ document.addEventListener('keydown', (e) => {
 montar();
 aplicarPrefs();
 desenhar();
+
+/* ── rodapé: o ponto do "salvo" segue o texto que o app escreve ── */
+{
+  const salvo = $('#stSalvo');
+  const marcar = () => {
+    const t = salvo.textContent.trim();
+    salvo.dataset.estado = t.startsWith('salvando') ? 'salvando' : t === 'salvo' || t.startsWith('salvo') ? 'salvo' : 'erro';
+  };
+  new MutationObserver(marcar).observe(salvo, { childList: true, characterData: true, subtree: true });
+  marcar();
+}

@@ -83,7 +83,9 @@ function writerEl(){
   if (WR.el) return WR.el;
   WR.el = h('div', { id: 'writer', class: 'writer', hidden: true },
     h('div', { class: 'wr-load', id: 'wrLoad', text: 'Abrindo o Escritor…' }),
-    h('aside', { class: 'wr-panel', id: 'wrPanel', hidden: true }));
+    h('div', { class: 'wr-veu', id: 'wrVeu', hidden: true, onclick: () => CadernoPonte.painel() }),
+    h('aside', { class: 'wr-panel', id: 'wrPanel', hidden: true, role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Ligações', tabindex: '-1',
+      onkeydown: e => { if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); CadernoPonte.painel(); } } }));
   document.body.append(WR.el);
   return WR.el;
 }
@@ -181,7 +183,7 @@ function relink(old, now, selfId){
 function closeWriter(){
   leaveDoc();
   WR.el.hidden = true;
-  $('#wrPanel').hidden = true; WR.panelOn = false;
+  $('#wrPanel').hidden = true; $('#wrVeu').hidden = true; WR.panelOn = false;
   frameWin()?.ponteLigacoes?.(false);
   document.body.classList.remove('writing');
   if (!RD.eng && FC.el.hidden) document.body.classList.remove('reading');
@@ -235,7 +237,14 @@ window.CadernoPonte = {
   ir: name => followLink(name),
   etiqueta: tag => closeAll(() => { notesTab = 'notas'; notesTag = tag; go('notas'); }),
   trocar: () => quickSwitch(),
-  painel: () => { WR.panelOn = !WR.panelOn; $('#wrPanel').hidden = !WR.panelOn; frameWin()?.ponteLigacoes?.(WR.panelOn); if (WR.panelOn) paintWrPanel(); },
+  /* Ligações: pop-up no meio da tela, sobre um véu que fecha ao clicar */
+  painel: () => {
+    WR.panelOn = !WR.panelOn;
+    $('#wrPanel').hidden = $('#wrVeu').hidden = !WR.panelOn;
+    frameWin()?.ponteLigacoes?.(WR.panelOn);
+    if (WR.panelOn){ paintWrPanel(); setTimeout(() => { window.focus(); $('#wrPanel').focus({ preventScroll: true }); }, 0); }
+    else try { WR.frame?.focus(); frameWin()?.document.getElementById('editor')?.focus({ preventScroll: true }); } catch (e) {}
+  },
   titulos: q => {
     const k = norm(q.trim());
     const cur = WR.doc && WR.doc.k === 'nota' ? WR.doc.id : null;

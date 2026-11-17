@@ -737,8 +737,9 @@ function renderRevisao(){
   botao.hidden = !prefs.estilo || n === 0;
   if (botao.hidden){ fecharRevisao(); return; }
 
-  const aberto = $('#revisao').hidden === false;
-  botao.textContent = `${n} ponto${n > 1 ? 's' : ''} de atenção ${aberto ? '↓' : '↑'}`;
+  const aberto = $('#revisao').open;
+  botao.innerHTML = `<b>${n}</b> ponto${n > 1 ? 's' : ''} de atenção`;
+  $('#revConta').textContent = n.toLocaleString('pt-BR');
   if (aberto) preencherRevisao();
 }
 
@@ -750,21 +751,27 @@ function preencherRevisao(){
     </button>`).join('');
 }
 
+/* A lista abre no meio da tela, como os outros pop-ups. O <dialog> e
+   as funções abrirDialogo/fecharDialogo vêm do personalizar.js. */
 function abrirRevisao(){
   if (!apontamentos.length) return;
-  $('#revisao').hidden = false;
   $('#stRevisao').setAttribute('aria-expanded', 'true');
   preencherRevisao();
   renderRevisao();
+  const d = $('#revisao');
+  if (!d.open) abrirDialogo(d);
+  d.querySelector('.ponto')?.focus({ preventScroll: true });
 }
 function fecharRevisao(){
-  $('#revisao').hidden = true;
   $('#stRevisao').setAttribute('aria-expanded', 'false');
+  const d = $('#revisao');
+  if (d.open) fecharDialogo(d);
 }
 
 $('#stRevisao').onclick = () => {
-  if ($('#revisao').hidden) abrirRevisao(); else { fecharRevisao(); renderRevisao(); }
+  if (!$('#revisao').open) abrirRevisao(); else { fecharRevisao(); renderRevisao(); }
 };
+$('#revFechar').onclick = () => { fecharRevisao(); renderRevisao(); };
 $('#revisaoLista').addEventListener('click', (e) => {
   const botao = e.target.closest('.ponto');
   if (!botao) return;
@@ -778,6 +785,10 @@ $('#revisaoLista').addEventListener('click', (e) => {
   const [ini, fim] = destinos[indice];
   proximaOcorrencia.set(chave, (indice + 1) % destinos.length);
   alvoRevisao = ini;
+  // o pop-up sai antes: com ele aberto o editor está inerte
+  const dRev = $('#revisao');
+  if (dRev.open){ dRev.classList.remove('saindo'); dRev.close(); }
+  $('#stRevisao').setAttribute('aria-expanded', 'false');
   editor.focus({ preventScroll:true });
   editor.setSelectionRange(ini, fim);
   desenhar();
@@ -1481,6 +1492,17 @@ const ROTULO_CLASSE = {
 const COR_TEMA = { claro:'#ffffff', papel:'#fbf8f1', sepia:'#f6f0e4', nevoa:'#eef1f4', escuro:'#191a1c', noite:'#0f1520', grafite:'#2a2b2f', contraste:'#000000' };
 const CORPO_MIN = 14, CORPO_MAX = 28;
 
+/* Ícones da barra: traço de 1,5 num quadro de 20, cantos redondos,
+   no espírito dos SF Symbols. O rótulo vem ao lado e some no celular,
+   onde o ícone sozinho já diz o que é. */
+const ICONE = {
+  foco:     '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 7.2V5.5a2 2 0 0 1 2-2h1.7M12.8 3.5h1.7a2 2 0 0 1 2 2v1.7M16.5 12.8v1.7a2 2 0 0 1-2 2h-1.7M7.2 16.5H5.5a2 2 0 0 1-2-2v-1.7"/><circle cx="10" cy="10" r="2.3"/></svg>',
+  realce:   '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.4 3.6 4 4-6.5 6.5-4-4Z"/><path d="m5.9 10.1-1.6 3.6 2 2 3.6-1.6"/><path d="M11.5 16.5h5"/></svg>',
+  ver:      '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.4 10s2.9-5.2 7.6-5.2 7.6 5.2 7.6 5.2-2.9 5.2-7.6 5.2S2.4 10 2.4 10Z"/><circle cx="10" cy="10" r="2.4"/></svg>',
+  escrever: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.7 4.3 3 3-8.5 8.5-3.8.8.8-3.8Z"/><path d="m11.2 5.8 3 3"/></svg>',
+};
+const rotuloBarra = (icone, texto) => ICONE[icone] + '<span class="rot">' + texto + '</span>';
+
 function aplicarPrefs(){
   corpo.dataset.theme   = prefs.tema;
   corpo.dataset.fonte   = prefs.fonte;
@@ -1493,17 +1515,17 @@ function aplicarPrefs(){
   document.querySelector('meta[name=theme-color]').content = COR_TEMA[prefs.tema];
 
   const comFoco = prefs.escopo !== 'nenhum';
-  $('#btnFoco').textContent = ROTULO_ESCOPO[prefs.escopo];
+  $('#btnFoco').innerHTML = rotuloBarra('foco', ROTULO_ESCOPO[prefs.escopo]);
   $('#btnFoco').classList.toggle('ativo', comFoco || prefs.maquina);
 
   const comRealce = prefs.classe !== 'nenhuma';
-  $('#btnRealce').textContent = ROTULO_CLASSE[prefs.classe];
+  $('#btnRealce').innerHTML = rotuloBarra('realce', ROTULO_CLASSE[prefs.classe]);
   $('#btnRealce').classList.toggle('ativo', comRealce);
 
   $('#togVer').setAttribute('aria-pressed', prefs.visualizando);
-  // o trecho em .so-largo some nas telas estreitas: "Visualizar" → "Vis"
-  $('#togVer').innerHTML = prefs.visualizando
-    ? 'Editar' : 'Vis<span class="so-largo">ualizar</span>';
+  // lendo, o olho vira caneta: o botão mostra para onde ele leva
+  $('#togVer').innerHTML = prefs.visualizando ? rotuloBarra('escrever', 'Escrever') : rotuloBarra('ver', 'Visualizar');
+  $('#togVer').title = prefs.visualizando ? 'Voltar a escrever (Ctrl+E)' : 'Visualizar (Ctrl+E)';
   $('#corpoAgora').textContent = prefs.corpo + 'px';
   $('#togPoeta').setAttribute('aria-pressed', String(prefs.poeta));
   regua.hidden = !prefs.poeta;
@@ -1511,8 +1533,8 @@ function aplicarPrefs(){
   // marcas de estado dentro dos menus
   $$('[data-escopo]').forEach(b => b.setAttribute('aria-checked', b.dataset.escopo === prefs.escopo));
   $$('[data-classe]').forEach(b => b.setAttribute('aria-checked', b.dataset.classe === prefs.classe));
-  $$('[data-tema]').forEach(b => b.setAttribute('aria-checked', b.dataset.tema === prefs.tema));
-  $$('[data-fonte]').forEach(b => b.setAttribute('aria-checked', b.dataset.fonte === prefs.fonte));
+  $$('button[data-tema]').forEach(b => b.setAttribute('aria-checked', b.dataset.tema === prefs.tema));
+  $$('button[data-fonte]').forEach(b => b.setAttribute('aria-checked', b.dataset.fonte === prefs.fonte));
   $$('[data-alterna]').forEach(b => b.setAttribute('aria-checked', !!prefs[b.dataset.alterna]));
 
   // O corretor nativo do navegador é a fonte do sublinhado vermelho.
@@ -1730,18 +1752,98 @@ $('#stCont').onclick = () => {
   atualizarNumeros(editor.value);
 };
 
-// menus
+/* ── menus: pop-ups no meio da tela ───────────────────────────
+   Cada menu da barra é um <dialog> aberto com showModal: vai para a
+   camada de cima (o desfoque da barra não o prende), o resto da página
+   fica inerte e o Esc fecha. A classe .aberto continua sendo o estado:
+   quem quiser fechar os menus (a ponte, o painel Aa) só tira a classe,
+   e o observador abaixo fecha o diálogo junto. */
+const reduzMov = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function itensDoMenu(pop){ return [...pop.querySelectorAll('.mp-lista button')].filter(b => !b.hidden && b.offsetParent !== null); }
+function fecharMenuPop(pop, animar){
+  if (!pop.open) return;
+  if (!animar || reduzMov()){ pop.classList.remove('saindo'); pop.close(); return; }
+  if (pop.classList.contains('saindo')) return;
+  pop.classList.add('saindo');
+  const fim = () => { if (pop.classList.contains('saindo')){ pop.classList.remove('saindo'); pop.close(); } };
+  pop.addEventListener('animationend', fim, { once: true });
+  setTimeout(fim, 200);
+}
+function abrirMenu(menu){
+  $$('.menu').forEach(m => { if (m !== menu) m.classList.remove('aberto'); });
+  const pop = menu.querySelector('.menu-pop');
+  menu.classList.add('aberto');
+  pop.classList.remove('saindo');
+  if (!pop.open) pop.showModal();
+  // o foco cai no item marcado (ou no primeiro): as setas andam a partir dele
+  const itens = itensDoMenu(pop);
+  const alvo = itens.find(b => b.getAttribute('aria-checked') === 'true') || itens[0];
+  if (alvo) alvo.focus({ preventScroll: true });
+  pop.scrollTop = 0;
+}
 $$('.menu').forEach((menu) => {
+  const pop = menu.querySelector('.menu-pop');
   menu.querySelector('.menu-btn').onclick = (e) => {
     e.stopPropagation();
-    const jaAberto = menu.classList.contains('aberto');
-    $$('.menu').forEach(m => m.classList.remove('aberto'));
-    menu.classList.toggle('aberto', !jaAberto);
+    if (menu.classList.contains('aberto')) menu.classList.remove('aberto');
+    else abrirMenu(menu);
   };
-  // um menu só se fecha quando a escolha é única
-  menu.querySelector('.menu-pop').onclick = (e) => {
-    if (e.target.closest('[data-alterna]') || e.target.closest('.linha-corpo')) e.stopPropagation();
-  };
+  new MutationObserver(() => {
+    if (!menu.classList.contains('aberto')) fecharMenuPop(pop, true);
+  }).observe(menu, { attributes: true, attributeFilter: ['class'] });
+  pop.addEventListener('close', () => {
+    menu.classList.remove('aberto');
+    // fechou sem escolher nada (Esc, clique fora): o cursor volta ao texto
+    const a = document.activeElement;
+    if (!prefs.visualizando && (!a || a === document.body || a.closest('.menu'))) editor.focus({ preventScroll: true });
+  });
+  pop.addEventListener('cancel', (e) => { e.preventDefault(); menu.classList.remove('aberto'); });
+  // um clique no fundo escuro (o próprio <dialog>) fecha
+  pop.addEventListener('mousedown', (e) => { pop._fora = e.target === pop; });
+  pop.addEventListener('click', (e) => {
+    if (e.target === pop){ e.stopPropagation(); if (pop._fora) menu.classList.remove('aberto'); return; }
+    const b = e.target.closest('button');
+    // ligar e desligar deixa o menu aberto; escolher fecha
+    if (!b || b.closest('[data-alterna], .linha-corpo')){ e.stopPropagation(); return; }
+  });
+  /* Escolher fecha o diálogo ANTES da ação: com ele aberto o resto da
+     página está inerte, e a ação (focar a busca, abrir o sumário, o
+     seletor de arquivo) não alcançaria nada. */
+  pop.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.closest('[data-alterna], .linha-corpo')) return;
+    menu.classList.remove('aberto');
+    pop.classList.remove('saindo');
+    if (pop.open) pop.close();
+  }, true);
+  pop.addEventListener('keydown', (e) => {
+    const itens = itensDoMenu(pop);
+    const i = itens.indexOf(document.activeElement);
+    const mover = { ArrowDown: 1, ArrowUp: -1, Home: 'ini', End: 'fim' }[e.key];
+    if (mover !== undefined){
+      e.preventDefault();
+      const n = mover === 'ini' ? 0 : mover === 'fim' ? itens.length - 1 : (i + mover + itens.length) % itens.length;
+      itens[n]?.focus();
+      return;
+    }
+    // nas duas colunas do menu Documento as setas laterais trocam de coluna
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && pop.querySelector('.mp-col')){
+      const cols = [...pop.querySelectorAll('.mp-col')];
+      const c = cols.findIndex(x => x.contains(document.activeElement));
+      const outra = cols[(c + (e.key === 'ArrowRight' ? 1 : -1) + cols.length) % cols.length];
+      const alvo = [...outra.querySelectorAll('button')].find(b => !b.hidden);
+      if (alvo){ e.preventDefault(); alvo.focus(); }
+      return;
+    }
+    if (e.key === 'Escape') return;           // o próprio <dialog> cuida
+    if (e.ctrlKey || e.metaKey){ menu.classList.remove('aberto'); fecharMenuPop(pop, false); return; }
+    e.stopPropagation();                      // as outras teclas ficam no menu
+  });
+  // o item sob o ponteiro recebe o foco: mouse e setas acendem a mesma linha
+  pop.addEventListener('pointermove', (e) => {
+    const b = e.target.closest('.mp-lista button');
+    if (b && document.activeElement !== b) b.focus({ preventScroll: true });
+  });
 });
 document.addEventListener('click', () => $$('.menu').forEach(m => m.classList.remove('aberto')));
 
@@ -1754,11 +1856,11 @@ $$('[data-escopo]').forEach(b => b.onclick = () => {
   prefs.escopo = b.dataset.escopo;
   aplicarPrefs(); desenhar(); editor.focus();
 });
-$$('[data-tema]').forEach(b => b.onclick = () => {
+$$('button[data-tema]').forEach(b => b.onclick = () => {
   prefs.tema = b.dataset.tema; aplicarPrefs();
   if (!prefs.visualizando) editor.focus();
 });
-$$('[data-fonte]').forEach(b => b.onclick = () => {
+$$('button[data-fonte]').forEach(b => b.onclick = () => {
   prefs.fonte = b.dataset.fonte; aplicarPrefs();
   if (prefs.poeta) desenhar();
   if (prefs.maquina) centralizarCursor();
@@ -1874,7 +1976,7 @@ document.addEventListener('keydown', (e) => {
 
   if (e.key === 'Escape'){
     if ($$('.menu.aberto').length){ $$('.menu').forEach(m => m.classList.remove('aberto')); return; }
-    if (!$('#revisao').hidden){ fecharRevisao(); renderRevisao(); return; }
+    if ($('#revisao').open){ fecharRevisao(); renderRevisao(); return; }
     if (prefs.visualizando) definirVisualizacao(false);
     return;
   }
@@ -2057,7 +2159,7 @@ function obsPintar(estado, texto){
   $('#obsEsquecer').hidden = !temPasta;
   $('#obsDica').hidden = !ligada;
   $('#obsAuto').setAttribute('aria-checked', String(!!prefs.obsidianAuto));
-  // (a engrenagem virou a gaveta Personalizar)
+  // (a engrenagem virou o painel Personalizar)
 }
 
 function obsDescrever(){
@@ -2257,7 +2359,7 @@ scroller.addEventListener('pointerdown', (e) => {
 document.addEventListener('click', (e) => {
   if (prefs.visualizando) return;
   if (!e.target.closest('.bar, .stats, .revisao')) return;
-  if (e.target.closest('#btnAbrir, #fileInput, .menu-btn')) return;
+  if (e.target.closest('#btnAbrir, #fileInput, .menu-btn, .menu-pop')) return;
   editor.focus({ preventScroll:true });
 });
 
@@ -2363,6 +2465,10 @@ O menu **Realce** ajuda a encontrar problemas sem alterar o conteúdo automatica
 - **Conectivos** ligam palavras, orações e ideias, mostrando relações como adição, oposição, causa ou conclusão: “e”, “mas”, “porque”, “porém”, “portanto”.
 
 Escolha uma classe por vez para analisá-la ou selecione **Todas as classes** para comparar as cores. A análise é uma ajuda visual: palavras ambíguas podem depender do contexto e ficam sem realce quando não há segurança.
+
+## A barra e os menus
+
+Em cima ficam **Foco** (o visor), **Realce** (o marca-texto), **Visualizar** (o olho, que vira caneta enquanto você lê) e **Aa**. Os menus abrem no meio da tela: as setas andam pelas opções, \`Enter\` escolhe e \`Esc\` fecha. Embaixo, o rodapé conta as palavras e o tempo de leitura, avisa os pontos de atenção e mostra se o texto está salvo.
 
 ## Personalizar — Aa
 

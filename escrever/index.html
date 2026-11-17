@@ -19,65 +19,81 @@
 
     <div class="grupo grupo--escrita">
       <div class="menu" id="menuFoco">
-        <button class="menu-btn" id="btnFoco" title="Modo Foco (Ctrl+D)">Foco</button>
-        <div class="menu-pop" role="menu">
-          <button role="menuitemradio" data-escopo="nenhum">Desligado<kbd>Ctrl+D</kbd></button>
-          <button role="menuitemradio" data-escopo="frase">Frase</button>
-          <button role="menuitemradio" data-escopo="paragrafo">Parágrafo</button>
-          <button role="menuitemradio" data-escopo="linha">Linha</button>
-          <hr>
-          <button role="menuitemcheckbox" data-alterna="maquina">Máquina de escrever<kbd>Ctrl+T</kbd></button>
-        </div>
+        <button class="menu-btn com-ico" id="btnFoco" aria-haspopup="dialog" title="Modo Foco (Ctrl+D)">Foco</button>
+        <dialog class="menu-pop" aria-labelledby="menuFocoT">
+          <header class="mp-topo"><h2 id="menuFocoT">Foco</h2><p>Só o trecho atual fica nítido</p></header>
+          <div class="mp-lista" role="menu" aria-labelledby="menuFocoT">
+            <button role="menuitemradio" data-escopo="nenhum">Desligado<kbd>Ctrl+D</kbd></button>
+            <button role="menuitemradio" data-escopo="frase">Frase</button>
+            <button role="menuitemradio" data-escopo="paragrafo">Parágrafo</button>
+            <button role="menuitemradio" data-escopo="linha">Linha</button>
+            <hr>
+            <button role="menuitemcheckbox" data-alterna="maquina">Máquina de escrever<kbd>Ctrl+T</kbd></button>
+          </div>
+        </dialog>
       </div>
 
       <div class="menu" id="menuRealce">
-        <button class="menu-btn" id="btnRealce" title="Ortografia, estilo e gramática">Realce</button>
-        <div class="menu-pop" role="menu">
-          <button role="menuitemcheckbox" data-alterna="ortografia">Ortografia<kbd>Ctrl+P</kbd></button>
-          <button role="menuitemcheckbox" data-alterna="estilo">Revisão de estilo<kbd>Ctrl+R</kbd></button>
-          <hr>
-          <p class="menu-titulo">Classes gramaticais</p>
-          <button role="menuitemradio" data-classe="nenhuma">Desligado<kbd>Ctrl+G</kbd></button>
-          <button role="menuitemradio" data-classe="g-subst" title="Nomes de seres, lugares, objetos, sentimentos e ideias">Substantivos</button>
-          <button role="menuitemradio" data-classe="g-verbo" title="Ações, estados, mudanças e fenômenos">Verbos</button>
-          <button role="menuitemradio" data-classe="g-adj" title="Características ou qualidades atribuídas aos substantivos">Adjetivos</button>
-          <button role="menuitemradio" data-classe="g-adv" title="Circunstâncias de tempo, lugar, modo, intensidade, afirmação, negação ou dúvida">Advérbios</button>
-          <button role="menuitemradio" data-classe="g-conj" title="Palavras que ligam termos, orações e ideias">Conectivos</button>
-          <button role="menuitemradio" data-classe="todas">Todas as classes</button>
-        </div>
+        <button class="menu-btn com-ico" id="btnRealce" aria-haspopup="dialog" title="Ortografia, estilo e gramática">Realce</button>
+        <dialog class="menu-pop" aria-labelledby="menuRealceT">
+          <header class="mp-topo"><h2 id="menuRealceT">Realce</h2><p>Ortografia, estilo e gramática</p></header>
+          <div class="mp-lista" role="menu" aria-labelledby="menuRealceT">
+            <button role="menuitemcheckbox" data-alterna="ortografia">Ortografia<kbd>Ctrl+P</kbd></button>
+            <button role="menuitemcheckbox" data-alterna="estilo">Revisão de estilo<kbd>Ctrl+R</kbd></button>
+            <hr>
+            <p class="menu-titulo">Classes gramaticais</p>
+            <button role="menuitemradio" data-classe="nenhuma">Desligado<kbd>Ctrl+G</kbd></button>
+            <button role="menuitemradio" data-classe="g-subst" title="Nomes de seres, lugares, objetos, sentimentos e ideias">Substantivos</button>
+            <button role="menuitemradio" data-classe="g-verbo" title="Ações, estados, mudanças e fenômenos">Verbos</button>
+            <button role="menuitemradio" data-classe="g-adj" title="Características ou qualidades atribuídas aos substantivos">Adjetivos</button>
+            <button role="menuitemradio" data-classe="g-adv" title="Circunstâncias de tempo, lugar, modo, intensidade, afirmação, negação ou dúvida">Advérbios</button>
+            <button role="menuitemradio" data-classe="g-conj" title="Palavras que ligam termos, orações e ideias">Conectivos</button>
+            <button role="menuitemradio" data-classe="todas">Todas as classes</button>
+          </div>
+        </dialog>
       </div>
 
-      <button class="tog" id="togVer" aria-pressed="false" title="Visualizar (Ctrl+E)">Vis<span class="so-largo">ualizar</span></button>
-      <button class="tog" id="btnAa" aria-pressed="false" aria-haspopup="dialog" aria-controls="ajustes" title="Personalizar (Ctrl+,)">Aa</button>
+      <button class="tog com-ico" id="togVer" aria-pressed="false" title="Visualizar (Ctrl+E)">Visualizar</button>
+      <button class="tog com-ico" id="btnAa" aria-pressed="false" aria-haspopup="dialog" aria-controls="ajustes" title="Personalizar (Ctrl+,)" aria-label="Personalizar"><span class="ico-aa" aria-hidden="true">Aa</span></button>
     </div>
 
     <div class="grupo grupo--app">
       <div class="menu" id="menuMais">
-        <button class="ico menu-btn" id="btnMais" title="Mais" aria-label="Mais opções">
+        <button class="ico menu-btn" id="btnMais" aria-haspopup="dialog" title="Mais" aria-label="Mais opções">
           <svg viewBox="0 0 20 20"><circle cx="4.5" cy="10" r="1.1"/><circle cx="10" cy="10" r="1.1"/><circle cx="15.5" cy="10" r="1.1"/></svg>
         </button>
-        <div class="menu-pop" role="menu">
-          <button role="menuitem" id="btnNovo">Novo documento<kbd>Ctrl+Alt+N</kbd></button>
-          <button role="menuitem" id="btnAbrir">Abrir arquivo…</button>
-          <hr>
-          <button role="menuitem" id="btnBusca">Buscar e substituir<kbd>Ctrl+F</kbd></button>
-          <button role="menuitem" id="btnSumario">Sumário<kbd>Ctrl+Shift+O</kbd></button>
-          <button role="menuitemcheckbox" id="togPoeta" aria-pressed="false" title="Alinhar e recuar versos">Modo Poeta</button>
-          <button role="menuitemcheckbox" id="btnTela" aria-pressed="false">Tela cheia</button>
-          <hr>
-          <p class="menu-titulo">Exportar</p>
-          <button data-exp="md">Markdown<i>.md</i></button>
-          <button data-exp="txt">Texto simples<i>.txt</i></button>
-          <button data-exp="html">Página HTML<i>.html</i></button>
-          <button data-exp="doc">Word<i>.doc</i></button>
-          <button data-exp="pdf">PDF<i>imprimir</i></button>
-          <hr>
-          <button data-exp="copy">Copiar Markdown</button>
-          <button data-exp="copyhtml">Copiar HTML</button>
-          <hr>
-          <button role="menuitem" id="btnGuia">Guia do Escritor</button>
-          <button role="menuitem" id="btnSobre">Sobre o Escritor<i data-versao></i></button>
-        </div>
+        <dialog class="menu-pop" aria-labelledby="menuMaisT">
+          <header class="mp-topo"><h2 id="menuMaisT">Documento</h2><p>Arquivo, exportação e ajuda</p></header>
+          <div class="mp-lista mp-lista--duas" role="menu" aria-labelledby="menuMaisT">
+            <div class="mp-col">
+              <p class="menu-titulo">Arquivo</p>
+              <button role="menuitem" id="btnNovo">Novo documento<kbd>Ctrl+Alt+N</kbd></button>
+              <button role="menuitem" id="btnAbrir">Abrir arquivo…</button>
+              <hr>
+              <p class="menu-titulo">Ferramentas</p>
+              <button role="menuitem" id="btnBusca">Buscar e substituir<kbd>Ctrl+F</kbd></button>
+              <button role="menuitem" id="btnSumario">Sumário<kbd>Ctrl+Shift+O</kbd></button>
+              <button role="menuitemcheckbox" id="togPoeta" aria-pressed="false" title="Alinhar e recuar versos">Modo Poeta</button>
+              <button role="menuitemcheckbox" id="btnTela" aria-pressed="false">Tela cheia</button>
+              <hr>
+              <p class="menu-titulo">Ajuda</p>
+              <button role="menuitem" id="btnGuia">Guia do Escritor</button>
+              <button role="menuitem" id="btnSobre">Sobre o Escritor<i data-versao></i></button>
+            </div>
+            <div class="mp-col">
+              <p class="menu-titulo">Exportar</p>
+              <button role="menuitem" data-exp="md">Markdown<i>.md</i></button>
+              <button role="menuitem" data-exp="txt">Texto simples<i>.txt</i></button>
+              <button role="menuitem" data-exp="html">Página HTML<i>.html</i></button>
+              <button role="menuitem" data-exp="doc">Word<i>.doc</i></button>
+              <button role="menuitem" data-exp="pdf">PDF<i>imprimir</i></button>
+              <hr>
+              <p class="menu-titulo">Copiar</p>
+              <button role="menuitem" data-exp="copy">Markdown</button>
+              <button role="menuitem" data-exp="copyhtml">HTML formatado</button>
+            </div>
+          </div>
+        </dialog>
       </div>
     </div>
   </div>
@@ -140,110 +156,122 @@
             <h3 id="ajs-estilos">Estilos prontos</h3>
             <p class="aj-intro">Um clique troca papel, fonte, medidas e o jeito de escrever de uma vez. Depois é só ajustar o que quiser.</p>
             <div class="aj-estilos" id="ajEstilos" data-busca="estilo pronto predefinição perfil livro noturno rascunho concentração revisão"></div>
-            <div class="aj-linha aj-linha--pilha" data-busca="seus estilos salvar estilo meu perfil guardar">
-              <div class="aj-rot"><b>Seus estilos</b><small>Guarde a combinação de agora para voltar a ela depois.</small></div>
-              <div class="aj-meus" id="ajMeus"></div>
-              <form class="aj-salvar" id="ajSalvarForm" autocomplete="off">
-                <input id="ajNomeEstilo" type="text" maxlength="28" placeholder="Nome do estilo, ex.: Romance" aria-label="Nome do novo estilo">
-                <button type="submit" class="aj-bt">Salvar o atual</button>
-              </form>
+            <div class="aj-grupo">
+              <div class="aj-linha aj-linha--pilha" data-busca="seus estilos salvar estilo meu perfil guardar">
+                <div class="aj-rot"><b>Seus estilos</b><small>Guarde a combinação de agora para voltar a ela depois.</small></div>
+                <div class="aj-meus" id="ajMeus"></div>
+                <form class="aj-salvar" id="ajSalvarForm" autocomplete="off">
+                  <input id="ajNomeEstilo" type="text" maxlength="28" placeholder="Nome do estilo, ex.: Romance" aria-label="Nome do novo estilo">
+                  <button type="submit" class="aj-bt">Salvar o atual</button>
+                </form>
+              </div>
             </div>
           </section>
 
           <section class="aj-secao" data-secao="aparencia" aria-labelledby="ajs-aparencia">
             <h3 id="ajs-aparencia">Aparência</h3>
-            <div class="aj-linha aj-linha--pilha" data-busca="papel tema fundo claro escuro sépia noite grafite contraste névoa automático sistema">
-              <div class="aj-rot"><b>Papel</b><small>A cor da folha e da tinta.</small></div>
-              <div class="aj-papeis" id="optTema" role="radiogroup" aria-label="Papel"></div>
-            </div>
-            <div class="aj-linha aj-linha--pilha aj-auto" id="ajAuto" data-busca="automático dia noite sistema" hidden>
-              <div class="aj-rot"><b>No automático</b><small>Segue o claro ou escuro do sistema.</small></div>
-              <div class="aj-auto-pares">
-                <span class="aj-mini-rot">De dia</span><div class="aj-mini" id="optAutoClaro" role="radiogroup" aria-label="Papel de dia"></div>
-                <span class="aj-mini-rot">À noite</span><div class="aj-mini" id="optAutoEscuro" role="radiogroup" aria-label="Papel à noite"></div>
+            <div class="aj-grupo">
+              <div class="aj-linha aj-linha--pilha" data-busca="papel tema fundo claro escuro sépia noite grafite contraste névoa automático sistema">
+                <div class="aj-rot"><b>Papel</b><small>A cor da folha e da tinta.</small></div>
+                <div class="aj-papeis" id="optTema" role="radiogroup" aria-label="Papel"></div>
               </div>
-            </div>
-            <div class="aj-linha aj-linha--pilha" data-busca="cor de destaque cursor seleção links acento personalizada">
-              <div class="aj-rot"><b>Cor de destaque</b><small>Cursor, seleção, links e tudo o que está ligado.</small></div>
-              <div class="aj-cores" id="optCor" role="radiogroup" aria-label="Cor de destaque"></div>
-            </div>
-            <div class="aj-linha" data-busca="títulos cor dos títulos cabeçalho">
-              <div class="aj-rot"><b>Títulos</b><small>Na tinta do texto ou na cor de destaque.</small></div>
-              <div class="aj-seg" id="optTitulos" role="radiogroup" aria-label="Cor dos títulos"></div>
-            </div>
-            <div class="aj-linha" data-busca="sinais do markdown cerquilha asterisco ocultar discretos marcação">
-              <div class="aj-rot"><b>Sinais do Markdown</b><small>#, ** e _ em volta do texto.</small></div>
-              <div class="aj-seg" id="optSinais" role="radiogroup" aria-label="Sinais do Markdown"></div>
+              <div class="aj-linha aj-linha--pilha aj-auto" id="ajAuto" data-busca="automático dia noite sistema" hidden>
+                <div class="aj-rot"><b>No automático</b><small>Segue o claro ou escuro do sistema.</small></div>
+                <div class="aj-auto-pares">
+                  <span class="aj-mini-rot">De dia</span><div class="aj-mini" id="optAutoClaro" role="radiogroup" aria-label="Papel de dia"></div>
+                  <span class="aj-mini-rot">À noite</span><div class="aj-mini" id="optAutoEscuro" role="radiogroup" aria-label="Papel à noite"></div>
+                </div>
+              </div>
+              <div class="aj-linha aj-linha--pilha" data-busca="cor de destaque cursor seleção links acento personalizada">
+                <div class="aj-rot"><b>Cor de destaque</b><small>Cursor, seleção, links e tudo o que está ligado.</small></div>
+                <div class="aj-cores" id="optCor" role="radiogroup" aria-label="Cor de destaque"></div>
+              </div>
+              <div class="aj-linha" data-busca="títulos cor dos títulos cabeçalho">
+                <div class="aj-rot"><b>Títulos</b><small>Na tinta do texto ou na cor de destaque.</small></div>
+                <div class="aj-seg" id="optTitulos" role="radiogroup" aria-label="Cor dos títulos"></div>
+              </div>
+              <div class="aj-linha" data-busca="sinais do markdown cerquilha asterisco ocultar discretos marcação">
+                <div class="aj-rot"><b>Sinais do Markdown</b><small>#, ** e _ em volta do texto.</small></div>
+                <div class="aj-seg" id="optSinais" role="radiogroup" aria-label="Sinais do Markdown"></div>
+              </div>
             </div>
           </section>
 
           <section class="aj-secao" data-secao="texto" aria-labelledby="ajs-texto">
             <h3 id="ajs-texto">Texto</h3>
-            <div class="aj-linha aj-linha--pilha" data-busca="fonte letra família duo mono quattro serifa sem serifa inter">
-              <div class="aj-rot"><b>Fonte</b><small>Todas mantêm o cursor no lugar certo.</small></div>
-              <div class="aj-fontes" id="optFonte" role="radiogroup" aria-label="Fonte"></div>
-            </div>
-            <div class="aj-linha" data-busca="corpo tamanho da letra fonte maior menor">
-              <div class="aj-rot"><b>Corpo</b><small>Só o texto cresce; a tela fica igual.</small></div>
-              <div class="aj-faixa">
-                <button type="button" class="aj-passo" id="corpoMenos" aria-label="Diminuir o corpo">−</button>
-                <input type="range" id="rngCorpo" min="14" max="28" step="1" aria-label="Corpo">
-                <button type="button" class="aj-passo" id="corpoMais" aria-label="Aumentar o corpo">+</button>
-                <output id="corpoAgora" for="rngCorpo">18px</output>
+            <div class="aj-grupo">
+              <div class="aj-linha aj-linha--pilha" data-busca="fonte letra família duo mono quattro serifa sem serifa inter">
+                <div class="aj-rot"><b>Fonte</b><small>Todas mantêm o cursor no lugar certo.</small></div>
+                <div class="aj-fontes" id="optFonte" role="radiogroup" aria-label="Fonte"></div>
               </div>
-            </div>
-            <div class="aj-linha" data-busca="entrelinha altura da linha espaçamento entre linhas">
-              <div class="aj-rot"><b>Entrelinha</b><small>O respiro entre uma linha e outra.</small></div>
-              <div class="aj-faixa"><input type="range" id="rngAltura" min="1.3" max="2.3" step="0.05" aria-label="Entrelinha"><output id="outAltura" for="rngAltura"></output></div>
-            </div>
-            <div class="aj-linha" data-busca="espaço entre letras espacejamento tracking kerning">
-              <div class="aj-rot"><b>Espaço entre letras</b><small>Um pouco de ar ajuda nos papéis escuros.</small></div>
-              <div class="aj-faixa"><input type="range" id="rngLetras" min="-0.02" max="0.06" step="0.005" aria-label="Espaço entre letras"><output id="outLetras" for="rngLetras"></output></div>
-            </div>
-            <div class="aj-linha" data-busca="largura da coluna medida linha caracteres por linha margem">
-              <div class="aj-rot"><b>Largura da coluna</b><small id="outColunaDica">Entre 60 e 75 letras por linha é o confortável.</small></div>
-              <div class="aj-faixa"><input type="range" id="rngColuna" min="28" max="64" step="1" aria-label="Largura da coluna"><output id="outColuna" for="rngColuna"></output></div>
+              <div class="aj-linha" data-busca="corpo tamanho da letra fonte maior menor">
+                <div class="aj-rot"><b>Corpo</b><small>Só o texto cresce; a tela fica igual.</small></div>
+                <div class="aj-faixa">
+                  <button type="button" class="aj-passo" id="corpoMenos" aria-label="Diminuir o corpo">−</button>
+                  <input type="range" id="rngCorpo" min="14" max="28" step="1" aria-label="Corpo">
+                  <button type="button" class="aj-passo" id="corpoMais" aria-label="Aumentar o corpo">+</button>
+                  <output id="corpoAgora" for="rngCorpo">18px</output>
+                </div>
+              </div>
+              <div class="aj-linha" data-busca="entrelinha altura da linha espaçamento entre linhas">
+                <div class="aj-rot"><b>Entrelinha</b><small>O respiro entre uma linha e outra.</small></div>
+                <div class="aj-faixa"><input type="range" id="rngAltura" min="1.3" max="2.3" step="0.05" aria-label="Entrelinha"><output id="outAltura" for="rngAltura"></output></div>
+              </div>
+              <div class="aj-linha" data-busca="espaço entre letras espacejamento tracking kerning">
+                <div class="aj-rot"><b>Espaço entre letras</b><small>Um pouco de ar ajuda nos papéis escuros.</small></div>
+                <div class="aj-faixa"><input type="range" id="rngLetras" min="-0.02" max="0.06" step="0.005" aria-label="Espaço entre letras"><output id="outLetras" for="rngLetras"></output></div>
+              </div>
+              <div class="aj-linha" data-busca="largura da coluna medida linha caracteres por linha margem">
+                <div class="aj-rot"><b>Largura da coluna</b><small id="outColunaDica">Entre 60 e 75 letras por linha é o confortável.</small></div>
+                <div class="aj-faixa"><input type="range" id="rngColuna" min="28" max="64" step="1" aria-label="Largura da coluna"><output id="outColuna" for="rngColuna"></output></div>
+              </div>
             </div>
           </section>
 
           <section class="aj-secao" data-secao="escrita" aria-labelledby="ajs-escrita">
             <h3 id="ajs-escrita">Escrita</h3>
-            <div class="aj-linha" data-busca="modo foco frase parágrafo linha concentração">
-              <div class="aj-rot"><b>Modo Foco</b><small>Só o trecho atual fica nítido. <kbd>Ctrl+D</kbd></small></div>
-              <div class="aj-seg" id="optEscopo" role="radiogroup" aria-label="Modo Foco"></div>
+            <div class="aj-grupo">
+              <div class="aj-linha" data-busca="modo foco frase parágrafo linha concentração">
+                <div class="aj-rot"><b>Modo Foco</b><small>Só o trecho atual fica nítido. <kbd>Ctrl+D</kbd></small></div>
+                <div class="aj-seg" id="optEscopo" role="radiogroup" aria-label="Modo Foco"></div>
+              </div>
+              <div class="aj-linha" data-busca="esmaecer intensidade do foco apagado contraste">
+                <div class="aj-rot"><b>Intensidade do foco</b><small>Quanto o resto do texto recua.</small></div>
+                <div class="aj-seg" id="optEsmaecer" role="radiogroup" aria-label="Intensidade do foco"></div>
+              </div>
+              <div class="aj-chaves" id="optEscrita"></div>
             </div>
-            <div class="aj-linha" data-busca="esmaecer intensidade do foco apagado contraste">
-              <div class="aj-rot"><b>Intensidade do foco</b><small>Quanto o resto do texto recua.</small></div>
-              <div class="aj-seg" id="optEsmaecer" role="radiogroup" aria-label="Intensidade do foco"></div>
-            </div>
-            <div class="aj-chaves" id="optEscrita"></div>
           </section>
 
           <section class="aj-secao" data-secao="revisao" aria-labelledby="ajs-revisao">
             <h3 id="ajs-revisao">Revisão</h3>
-            <div class="aj-chaves" id="optRevisao"></div>
-            <div class="aj-linha aj-linha--pilha" data-busca="classes gramaticais substantivos verbos adjetivos advérbios conectivos realce gramática">
-              <div class="aj-rot"><b>Classes gramaticais</b><small>Pinta uma classe por vez e recua o resto. <kbd>Ctrl+G</kbd></small></div>
-              <div class="aj-classes" id="optClasse" role="radiogroup" aria-label="Classes gramaticais"></div>
+            <div class="aj-grupo">
+              <div class="aj-chaves" id="optRevisao"></div>
+              <div class="aj-linha aj-linha--pilha" data-busca="classes gramaticais substantivos verbos adjetivos advérbios conectivos realce gramática">
+                <div class="aj-rot"><b>Classes gramaticais</b><small>Pinta uma classe por vez e recua o resto. <kbd>Ctrl+G</kbd></small></div>
+                <div class="aj-classes" id="optClasse" role="radiogroup" aria-label="Classes gramaticais"></div>
+              </div>
             </div>
           </section>
 
           <section class="aj-secao" data-secao="tela" aria-labelledby="ajs-tela">
             <h3 id="ajs-tela">Tela e meta</h3>
-            <div class="aj-chaves" id="optTela"></div>
-            <div class="aj-linha" data-busca="contagem rodapé palavras caracteres frases parágrafos contador">
-              <div class="aj-rot"><b>O rodapé conta</b><small>Também troca clicando no número.</small></div>
-              <select class="aj-select" id="selContagem" aria-label="O que o rodapé conta"></select>
-            </div>
-            <div class="aj-linha" data-busca="velocidade de leitura palavras por minuto tempo de leitura">
-              <div class="aj-rot"><b>Ritmo de leitura</b><small>Base do “min de leitura”.</small></div>
-              <div class="aj-seg" id="optPpm" role="radiogroup" aria-label="Palavras por minuto"></div>
-            </div>
-            <div class="aj-linha aj-linha--pilha" data-busca="meta de palavras objetivo progresso">
-              <div class="aj-rot"><b>Meta de palavras</b><small>Com meta, o rodapé mostra quanto falta.</small></div>
-              <div class="aj-meta">
-                <input type="number" id="numMeta" min="0" step="50" inputmode="numeric" placeholder="sem meta" aria-label="Meta de palavras">
-                <div class="aj-fichas" id="optMeta" role="radiogroup" aria-label="Metas comuns"></div>
+            <div class="aj-grupo">
+              <div class="aj-chaves" id="optTela"></div>
+              <div class="aj-linha" data-busca="contagem rodapé palavras caracteres frases parágrafos contador">
+                <div class="aj-rot"><b>O rodapé conta</b><small>Também troca clicando no número.</small></div>
+                <select class="aj-select" id="selContagem" aria-label="O que o rodapé conta"></select>
+              </div>
+              <div class="aj-linha" data-busca="velocidade de leitura palavras por minuto tempo de leitura">
+                <div class="aj-rot"><b>Ritmo de leitura</b><small>Base do “min de leitura”.</small></div>
+                <div class="aj-seg" id="optPpm" role="radiogroup" aria-label="Palavras por minuto"></div>
+              </div>
+              <div class="aj-linha aj-linha--pilha" data-busca="meta de palavras objetivo progresso">
+                <div class="aj-rot"><b>Meta de palavras</b><small>Com meta, o rodapé mostra quanto falta.</small></div>
+                <div class="aj-meta">
+                  <input type="number" id="numMeta" min="0" step="50" inputmode="numeric" placeholder="sem meta" aria-label="Meta de palavras">
+                  <div class="aj-fichas" id="optMeta" role="radiogroup" aria-label="Metas comuns"></div>
+                </div>
               </div>
             </div>
           </section>
@@ -265,7 +293,7 @@
 
           <section class="aj-secao" data-secao="atalhos" aria-labelledby="ajs-atalhos" data-busca="atalhos teclado tecla ctrl comando">
             <h3 id="ajs-atalhos">Atalhos</h3>
-            <dl class="aj-atalhos" id="ajAtalhos"></dl>
+            <div class="aj-grupo"><dl class="aj-atalhos" id="ajAtalhos"></dl></div>
           </section>
 
           <p class="aj-nada" id="ajNada" hidden></p>
@@ -343,22 +371,32 @@
   <article class="preview" id="preview" hidden></article>
 </main>
 
-<!-- ══ painel da revisão de estilo ══ -->
-<aside class="revisao" id="revisao" hidden aria-label="Pontos de atenção">
-  <div class="revisao-inner" id="revisaoLista"></div>
-</aside>
+<!-- ══ revisão de estilo: lista central ══ -->
+<dialog class="aj aj--lista revisao" id="revisao" aria-labelledby="revTitulo">
+  <div class="aj-painel">
+    <header class="aj-topo">
+      <h2 class="aj-titulo" id="revTitulo">Pontos de atenção</h2>
+      <span class="aj-conta" id="revConta"></span>
+      <button type="button" class="aj-x" id="revFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 5.5 9 9m0-9-9 9"/></svg>
+      </button>
+    </header>
+    <div class="revisao-inner" id="revisaoLista"></div>
+    <footer class="aj-pe aj-pe--dica"><span>Clique num ponto para ir até ele no texto</span><span><kbd>Esc</kbd> fechar</span></footer>
+  </div>
+</dialog>
 
 <!-- ══ rodapé de estatísticas ══ -->
 <footer class="stats" id="stats">
   <div class="stats-inner">
     <button class="stat" id="stCont" title="Trocar a contagem"><b>0</b> palavras</button>
     <span class="sep">·</span>
-    <span class="stat quieto" id="stLeitura"><b id="stTempo">0</b> min de leitura</span>
+    <span class="stat quieto" id="stLeitura"><i class="st-ico st-ico--relogio" aria-hidden="true"></i><b id="stTempo">0</b> min de leitura</span>
     <span class="cresce"></span>
     <button class="stat dica" id="stDica" hidden title="Corrigir a palavra (Ctrl+;)"></button>
     <button class="stat alerta" id="stRevisao" hidden aria-expanded="false" aria-controls="revisao"></button>
     <span class="stat meta" id="stMeta" hidden><i class="meta-barra"><i id="metaFill"></i></i><span id="metaTexto"></span></span>
-    <span class="stat quieto" id="stSalvo">salvo</span>
+    <span class="stat quieto" id="stSalvo" data-estado="salvo">salvo</span>
   </div>
 </footer>
 

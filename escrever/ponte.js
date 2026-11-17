@@ -43,14 +43,20 @@ if (PONTE) (() => {
   };
 
   const liga = document.createElement('button');
-  liga.className = 'tog';
+  liga.className = 'tog com-ico';
   liga.id = 'btnLigacoes';
   liga.setAttribute('aria-pressed', 'false');
   liga.title = 'Ligações: quem cita esta nota, o que ela cita, marcações da fonte';
-  liga.innerHTML = SVG_LIGA + '<span class="so-largo">Ligações</span>';
+  liga.innerHTML = SVG_LIGA + '<span class="rot">Ligações</span>';
   liga.onclick = () => PONTE.painel();
   $('.grupo--app').prepend(liga);
   window.ponteLigacoes = (on) => liga.setAttribute('aria-pressed', String(!!on));
+  // com as Ligações abertas, o Esc digitado aqui dentro fecha o pop-up lá fora
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && liga.getAttribute('aria-pressed') === 'true'){
+      e.preventDefault(); e.stopImmediatePropagation(); PONTE.painel();
+    }
+  }, true);
 
   $('#btnGuia').onclick = () => { ponteFlush(); PONTE.guia(GUIA); };
 
