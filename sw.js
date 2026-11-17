@@ -4,7 +4,7 @@
    segundo plano; uma versão nova aparece na abertura seguinte.
    A sincronização (api.github.com) e o modelo do Whisper (Hugging Face,
    guardado pela própria biblioteca) não passam por aqui. */
-const CACHE = 'caderno-v4';
+const CACHE = 'caderno-v5';
 const FILES = [
   './', 'index.html', 'style.css', 'estudo.css', 'manifest.webmanifest',
   'js/rotina.js', 'js/base.js', 'js/formatos.js', 'js/leitor.js', 'js/pdf.js', 'js/analise.js',

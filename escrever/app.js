@@ -53,7 +53,12 @@ const prefs = Object.assign({
   // personalizar.js: cor de destaque, entrelinha, largura da coluna,
   // sinais do Markdown, barra, rodapé, tipografia e meta de palavras
   cor: 'padrao', altura: 1.75, coluna: 46, sinais: 'visiveis',
-  barraSome: true, rodape: true, tipografia: false, meta: 0
+  barraSome: true, rodape: true, tipografia: false, meta: 0,
+  // painel Personalizar: papel automático, cor própria, títulos,
+  // espaço entre letras, intensidade do foco, leitura e seus estilos
+  autoClaro: 'claro', autoEscuro: 'escuro', corPropria: '#2b7fff',
+  titulos: 'tinta', letras: 0, esmaecer: 'medio', ppm: 200,
+  mostrarTempo: true, meusEstilos: []
 }, lerPrefs());
 
 /* Migração da primeira versão, em que a ferramenta se chamava
@@ -940,7 +945,7 @@ function atualizarNumeros(texto){
   // o rótulo recebe o número de verdade; o HTML entra depois
   $('#stCont').innerHTML = `<b>${n.toLocaleString('pt-BR')}</b> ${modo.rotulo(n)}`;
   const palavras = texto.trim() ? texto.trim().split(/\s+/).length : 0;
-  $('#stTempo').textContent = palavras ? Math.max(1, Math.round(palavras / 200)) : 0;
+  $('#stTempo').textContent = palavras ? Math.max(1, Math.round(palavras / (prefs.ppm || 200))) : 0;
 }
 
 /* Com o cursor em cima de uma palavra que a lista conhece, a forma
@@ -1559,7 +1564,9 @@ function larguraEspaco(){
   const canvas = larguraEspaco.canvas || (larguraEspaco.canvas = document.createElement('canvas'));
   const ctx = canvas.getContext('2d');
   ctx.font = `${estilo.fontWeight} ${estilo.fontSize} ${estilo.fontFamily}`;
-  return Math.max(4, ctx.measureText(' ').width);
+  // o espaço entre letras soma em cada caractere, inclusive no espaço
+  const extra = parseFloat(estilo.letterSpacing) || 0;
+  return Math.max(4, ctx.measureText(' ').width + extra);
 }
 
 function colunasNoCursor(){
@@ -2357,13 +2364,16 @@ O menu **Realce** ajuda a encontrar problemas sem alterar o conteúdo automatica
 
 Escolha uma classe por vez para analisá-la ou selecione **Todas as classes** para comparar as cores. A análise é uma ajuda visual: palavras ambíguas podem depender do contexto e ficam sem realce quando não há segurança.
 
-## Aparência — Aa
+## Personalizar — Aa
 
-O menu **Aa** muda apenas a aparência, nunca o conteúdo:
+O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. Ele muda a aparência e o jeito de escrever, nunca o conteúdo, e a amostra ao lado mostra cada mudança na hora:
 
-- **Fonte** escolhe entre Duo, Mono e Quattro.
-- **Corpo** aumenta ou diminui o tamanho das letras.
-- **Papel** troca entre os temas Claro, Sépia e Escuro.
+- **Estilos prontos** trocam tudo de uma vez: Livro, Noturno, Concentração, Revisão e outros. Você também pode salvar a sua combinação com um nome.
+- **Aparência**: oito papéis e o Automático, que segue o claro ou escuro do sistema; a cor de destaque, inclusive uma escolhida por você; a cor dos títulos e os sinais do Markdown.
+- **Texto**: fonte, corpo, entrelinha, espaço entre letras e largura da coluna.
+- **Escrita**, **Revisão** e **Tela e meta** reúnem o Foco, a máquina de escrever, a tipografia inteligente, a ortografia, as classes gramaticais, o rodapé e a meta de palavras.
+
+A busca no alto do painel (\`Ctrl+F\` com ele aberto) acha qualquer ajuste pelo nome. **Exportar ajustes** guarda tudo num arquivo .json, que **Importar** traz de volta em outro navegador.
 
 ## Visualizar
 

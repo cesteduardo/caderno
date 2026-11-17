@@ -48,7 +48,7 @@
       </div>
 
       <button class="tog" id="togVer" aria-pressed="false" title="Visualizar (Ctrl+E)">Vis<span class="so-largo">ualizar</span></button>
-      <button class="tog" id="btnAa" aria-pressed="false" aria-controls="gaveta" title="Personalizar: papel, cor, fonte, medidas">Aa</button>
+      <button class="tog" id="btnAa" aria-pressed="false" aria-haspopup="dialog" aria-controls="ajustes" title="Personalizar (Ctrl+,)">Aa</button>
     </div>
 
     <div class="grupo grupo--app">
@@ -104,78 +104,209 @@
   </div>
 </div>
 
-<!-- ══ gaveta: personalizar e sumário ══ -->
-<aside class="gaveta" id="gaveta" hidden aria-label="Personalizar e sumário">
-  <div class="gaveta-topo">
-    <div class="gaveta-abas" role="tablist">
-      <button type="button" role="tab" data-aba="pers" aria-selected="true">Personalizar</button>
-      <button type="button" role="tab" data-aba="sum" aria-selected="false">Sumário</button>
+<!-- ══ Personalizar: painel central (Aa, Ctrl+,) ══
+     Um <dialog> de verdade: o resto da página fica inerte enquanto ele
+     está aberto, o Tab não escapa e o leitor de tela anuncia o título. -->
+<dialog class="aj" id="ajustes" aria-labelledby="ajTitulo">
+  <div class="aj-painel">
+    <header class="aj-topo">
+      <h2 class="aj-titulo" id="ajTitulo">Personalizar</h2>
+      <label class="aj-busca">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.1"/><path d="m12.4 12.4 4.1 4.1"/></svg>
+        <input id="ajBusca" type="search" placeholder="Buscar um ajuste" aria-label="Buscar um ajuste" autocomplete="off" spellcheck="false">
+        <kbd>Ctrl+F</kbd>
+      </label>
+      <button type="button" class="aj-x" id="ajFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 5.5 9 9m0-9-9 9"/></svg>
+      </button>
+    </header>
+
+    <div class="aj-meio">
+      <nav class="aj-nav" id="ajNav" aria-label="Seções">
+        <button type="button" data-ir="estilos"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" rx="2"/><path d="M7.5 16.5h7a2 2 0 0 0 2-2v-7"/></svg><span>Estilos</span></button>
+        <button type="button" data-ir="aparencia"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M10 3.5v13a6.5 6.5 0 0 0 0-13Z" class="cheio"/></svg><span>Aparência</span></button>
+        <button type="button" data-ir="texto"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 15.5 7.6 4.5h.8l4.1 11M5 11.6h6M13.5 15.5v-5.2m0 0a2.4 2.4 0 1 1 3 2.6"/></svg><span>Texto</span></button>
+        <button type="button" data-ir="escrita"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.6 4.4 3 3-8.4 8.4-3.7.7.7-3.7Z"/></svg><span>Escrita</span></button>
+        <button type="button" data-ir="revisao"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 9.5 7.8 13 16 5"/><path d="M4 16.5c1.3-1 2.7-1 4 0s2.7 1 4 0 2.7-1 4 0"/></svg><span>Revisão</span></button>
+        <button type="button" data-ir="tela"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M3 12.5h14"/></svg><span>Tela e meta</span></button>
+        <button type="button" data-ir="obsidian"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6.5a2 2 0 0 1 2-2h3l2 2h5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><span>Obsidian</span></button>
+        <button type="button" data-ir="atalhos"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="5.5" width="15" height="9" rx="2"/><path d="M5.5 8.5h1m2.5 0h2m2.5 0h1m-8 3h5"/></svg><span>Atalhos</span></button>
+      </nav>
+
+      <div class="aj-rolagem" id="ajRolagem">
+        <div class="aj-conteudo" id="ajConteudo">
+
+          <section class="aj-secao" data-secao="estilos" aria-labelledby="ajs-estilos">
+            <h3 id="ajs-estilos">Estilos prontos</h3>
+            <p class="aj-intro">Um clique troca papel, fonte, medidas e o jeito de escrever de uma vez. Depois é só ajustar o que quiser.</p>
+            <div class="aj-estilos" id="ajEstilos" data-busca="estilo pronto predefinição perfil livro noturno rascunho concentração revisão"></div>
+            <div class="aj-linha aj-linha--pilha" data-busca="seus estilos salvar estilo meu perfil guardar">
+              <div class="aj-rot"><b>Seus estilos</b><small>Guarde a combinação de agora para voltar a ela depois.</small></div>
+              <div class="aj-meus" id="ajMeus"></div>
+              <form class="aj-salvar" id="ajSalvarForm" autocomplete="off">
+                <input id="ajNomeEstilo" type="text" maxlength="28" placeholder="Nome do estilo, ex.: Romance" aria-label="Nome do novo estilo">
+                <button type="submit" class="aj-bt">Salvar o atual</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="aj-secao" data-secao="aparencia" aria-labelledby="ajs-aparencia">
+            <h3 id="ajs-aparencia">Aparência</h3>
+            <div class="aj-linha aj-linha--pilha" data-busca="papel tema fundo claro escuro sépia noite grafite contraste névoa automático sistema">
+              <div class="aj-rot"><b>Papel</b><small>A cor da folha e da tinta.</small></div>
+              <div class="aj-papeis" id="optTema" role="radiogroup" aria-label="Papel"></div>
+            </div>
+            <div class="aj-linha aj-linha--pilha aj-auto" id="ajAuto" data-busca="automático dia noite sistema" hidden>
+              <div class="aj-rot"><b>No automático</b><small>Segue o claro ou escuro do sistema.</small></div>
+              <div class="aj-auto-pares">
+                <span class="aj-mini-rot">De dia</span><div class="aj-mini" id="optAutoClaro" role="radiogroup" aria-label="Papel de dia"></div>
+                <span class="aj-mini-rot">À noite</span><div class="aj-mini" id="optAutoEscuro" role="radiogroup" aria-label="Papel à noite"></div>
+              </div>
+            </div>
+            <div class="aj-linha aj-linha--pilha" data-busca="cor de destaque cursor seleção links acento personalizada">
+              <div class="aj-rot"><b>Cor de destaque</b><small>Cursor, seleção, links e tudo o que está ligado.</small></div>
+              <div class="aj-cores" id="optCor" role="radiogroup" aria-label="Cor de destaque"></div>
+            </div>
+            <div class="aj-linha" data-busca="títulos cor dos títulos cabeçalho">
+              <div class="aj-rot"><b>Títulos</b><small>Na tinta do texto ou na cor de destaque.</small></div>
+              <div class="aj-seg" id="optTitulos" role="radiogroup" aria-label="Cor dos títulos"></div>
+            </div>
+            <div class="aj-linha" data-busca="sinais do markdown cerquilha asterisco ocultar discretos marcação">
+              <div class="aj-rot"><b>Sinais do Markdown</b><small>#, ** e _ em volta do texto.</small></div>
+              <div class="aj-seg" id="optSinais" role="radiogroup" aria-label="Sinais do Markdown"></div>
+            </div>
+          </section>
+
+          <section class="aj-secao" data-secao="texto" aria-labelledby="ajs-texto">
+            <h3 id="ajs-texto">Texto</h3>
+            <div class="aj-linha aj-linha--pilha" data-busca="fonte letra família duo mono quattro serifa sem serifa inter">
+              <div class="aj-rot"><b>Fonte</b><small>Todas mantêm o cursor no lugar certo.</small></div>
+              <div class="aj-fontes" id="optFonte" role="radiogroup" aria-label="Fonte"></div>
+            </div>
+            <div class="aj-linha" data-busca="corpo tamanho da letra fonte maior menor">
+              <div class="aj-rot"><b>Corpo</b><small>Só o texto cresce; a tela fica igual.</small></div>
+              <div class="aj-faixa">
+                <button type="button" class="aj-passo" id="corpoMenos" aria-label="Diminuir o corpo">−</button>
+                <input type="range" id="rngCorpo" min="14" max="28" step="1" aria-label="Corpo">
+                <button type="button" class="aj-passo" id="corpoMais" aria-label="Aumentar o corpo">+</button>
+                <output id="corpoAgora" for="rngCorpo">18px</output>
+              </div>
+            </div>
+            <div class="aj-linha" data-busca="entrelinha altura da linha espaçamento entre linhas">
+              <div class="aj-rot"><b>Entrelinha</b><small>O respiro entre uma linha e outra.</small></div>
+              <div class="aj-faixa"><input type="range" id="rngAltura" min="1.3" max="2.3" step="0.05" aria-label="Entrelinha"><output id="outAltura" for="rngAltura"></output></div>
+            </div>
+            <div class="aj-linha" data-busca="espaço entre letras espacejamento tracking kerning">
+              <div class="aj-rot"><b>Espaço entre letras</b><small>Um pouco de ar ajuda nos papéis escuros.</small></div>
+              <div class="aj-faixa"><input type="range" id="rngLetras" min="-0.02" max="0.06" step="0.005" aria-label="Espaço entre letras"><output id="outLetras" for="rngLetras"></output></div>
+            </div>
+            <div class="aj-linha" data-busca="largura da coluna medida linha caracteres por linha margem">
+              <div class="aj-rot"><b>Largura da coluna</b><small id="outColunaDica">Entre 60 e 75 letras por linha é o confortável.</small></div>
+              <div class="aj-faixa"><input type="range" id="rngColuna" min="28" max="64" step="1" aria-label="Largura da coluna"><output id="outColuna" for="rngColuna"></output></div>
+            </div>
+          </section>
+
+          <section class="aj-secao" data-secao="escrita" aria-labelledby="ajs-escrita">
+            <h3 id="ajs-escrita">Escrita</h3>
+            <div class="aj-linha" data-busca="modo foco frase parágrafo linha concentração">
+              <div class="aj-rot"><b>Modo Foco</b><small>Só o trecho atual fica nítido. <kbd>Ctrl+D</kbd></small></div>
+              <div class="aj-seg" id="optEscopo" role="radiogroup" aria-label="Modo Foco"></div>
+            </div>
+            <div class="aj-linha" data-busca="esmaecer intensidade do foco apagado contraste">
+              <div class="aj-rot"><b>Intensidade do foco</b><small>Quanto o resto do texto recua.</small></div>
+              <div class="aj-seg" id="optEsmaecer" role="radiogroup" aria-label="Intensidade do foco"></div>
+            </div>
+            <div class="aj-chaves" id="optEscrita"></div>
+          </section>
+
+          <section class="aj-secao" data-secao="revisao" aria-labelledby="ajs-revisao">
+            <h3 id="ajs-revisao">Revisão</h3>
+            <div class="aj-chaves" id="optRevisao"></div>
+            <div class="aj-linha aj-linha--pilha" data-busca="classes gramaticais substantivos verbos adjetivos advérbios conectivos realce gramática">
+              <div class="aj-rot"><b>Classes gramaticais</b><small>Pinta uma classe por vez e recua o resto. <kbd>Ctrl+G</kbd></small></div>
+              <div class="aj-classes" id="optClasse" role="radiogroup" aria-label="Classes gramaticais"></div>
+            </div>
+          </section>
+
+          <section class="aj-secao" data-secao="tela" aria-labelledby="ajs-tela">
+            <h3 id="ajs-tela">Tela e meta</h3>
+            <div class="aj-chaves" id="optTela"></div>
+            <div class="aj-linha" data-busca="contagem rodapé palavras caracteres frases parágrafos contador">
+              <div class="aj-rot"><b>O rodapé conta</b><small>Também troca clicando no número.</small></div>
+              <select class="aj-select" id="selContagem" aria-label="O que o rodapé conta"></select>
+            </div>
+            <div class="aj-linha" data-busca="velocidade de leitura palavras por minuto tempo de leitura">
+              <div class="aj-rot"><b>Ritmo de leitura</b><small>Base do “min de leitura”.</small></div>
+              <div class="aj-seg" id="optPpm" role="radiogroup" aria-label="Palavras por minuto"></div>
+            </div>
+            <div class="aj-linha aj-linha--pilha" data-busca="meta de palavras objetivo progresso">
+              <div class="aj-rot"><b>Meta de palavras</b><small>Com meta, o rodapé mostra quanto falta.</small></div>
+              <div class="aj-meta">
+                <input type="number" id="numMeta" min="0" step="50" inputmode="numeric" placeholder="sem meta" aria-label="Meta de palavras">
+                <div class="aj-fichas" id="optMeta" role="radiogroup" aria-label="Metas comuns"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="aj-secao obs" data-secao="obsidian" aria-labelledby="ajs-obsidian" data-busca="obsidian pasta salvar arquivo markdown cofre vault">
+            <h3 id="ajs-obsidian">Pasta no Obsidian</h3>
+            <p class="aj-intro" id="obsTexto">Escolha uma pasta da sua máquina. O Escritor grava o Markdown direto nela, sem plugin e sem importar: o Obsidian vê o arquivo aparecer.</p>
+            <p class="aj-estado" id="obsEstado" data-estado="vazio">Nenhuma pasta escolhida.</p>
+            <div class="aj-obs-acoes">
+              <button type="button" class="aj-bt" id="obsEscolher">Escolher pasta</button>
+              <button type="button" class="aj-bt" id="obsSalvar" hidden>Salvar no Obsidian<kbd>Ctrl+S</kbd></button>
+              <button type="button" class="aj-bt" id="obsEsquecer" hidden>Esquecer a pasta</button>
+            </div>
+            <button type="button" class="aj-chave" id="obsAuto" role="switch" aria-checked="false" hidden>
+              <span class="aj-rot"><b>Salvar sozinho enquanto escrevo</b><small>Grava na pasta a cada pausa.</small></span><i class="aj-interruptor" aria-hidden="true"></i>
+            </button>
+            <p class="aj-intro" id="obsDica" hidden>O arquivo recebe o nome da primeira linha do texto, e por isso o título não é gravado de novo dentro dele: no Obsidian a nota já se chama assim. Trocando o título, o próximo salvamento cria um arquivo novo e o antigo fica onde está.</p>
+          </section>
+
+          <section class="aj-secao" data-secao="atalhos" aria-labelledby="ajs-atalhos" data-busca="atalhos teclado tecla ctrl comando">
+            <h3 id="ajs-atalhos">Atalhos</h3>
+            <dl class="aj-atalhos" id="ajAtalhos"></dl>
+          </section>
+
+          <p class="aj-nada" id="ajNada" hidden></p>
+        </div>
+      </div>
+
+      <aside class="aj-amostra" aria-label="Amostra">
+        <p class="aj-amostra-rot">Amostra</p>
+        <div class="aj-folha" id="ajFolha" aria-hidden="true"></div>
+        <p class="aj-amostra-pe" id="ajAmostraPe"></p>
+      </aside>
     </div>
-    <button type="button" class="gaveta-x" id="gavetaFechar" aria-label="Fechar">×</button>
-  </div>
 
-  <div class="gaveta-corpo" data-painel="pers">
-    <section>
-      <h3>Papel</h3>
-      <div class="papeis" id="optTema"></div>
-    </section>
-    <section>
-      <h3>Cor de destaque</h3>
-      <p class="g-nota">Cursor, seleção, links e o que está ligado.</p>
-      <div class="cores" id="optCor"></div>
-    </section>
-    <section>
-      <h3>Fonte</h3>
-      <div class="fontes" id="optFonte"></div>
-    </section>
-    <section>
-      <h3>Medidas</h3>
-      <label class="faixa"><span>Corpo</span><input type="range" id="rngCorpo" min="14" max="28" step="1"><output id="corpoAgora">18px</output></label>
-      <label class="faixa"><span>Entrelinha</span><input type="range" id="rngAltura" min="1.3" max="2.3" step="0.05"><output id="outAltura"></output></label>
-      <label class="faixa"><span>Largura</span><input type="range" id="rngColuna" min="28" max="64" step="1"><output id="outColuna"></output></label>
-      <button type="button" id="corpoMenos" hidden>A−</button>
-      <button type="button" id="corpoMais" hidden>A+</button>
-    </section>
-    <section>
-      <h3>Sinais do Markdown</h3>
-      <div class="seg" id="optSinais" role="radiogroup" aria-label="Sinais do Markdown"></div>
-    </section>
-    <section>
-      <h3>Enquanto escreve</h3>
-      <div class="chaves" id="optChaves"></div>
-    </section>
-    <section>
-      <h3>Meta</h3>
-      <label class="faixa meta"><span>Palavras</span><input type="number" id="numMeta" min="0" step="50" inputmode="numeric" placeholder="sem meta"></label>
-      <p class="g-nota">Com uma meta, o rodapé mostra quanto falta.</p>
-    </section>
-    <section class="obs">
-      <h3>Pasta no Obsidian</h3>
-      <p class="pop-texto" id="obsTexto">
-            Escolha uma pasta da sua máquina. O Escritor grava o Markdown direto
-            nela, sem plugin e sem importar: o Obsidian vê o arquivo aparecer.
-          </p>
-          <p class="pop-estado" id="obsEstado" data-estado="vazio">Nenhuma pasta escolhida.</p>
-          <button type="button" id="obsEscolher">Escolher pasta</button>
-          <button type="button" id="obsSalvar" hidden>Salvar no Obsidian<kbd>Ctrl+S</kbd></button>
-          <button type="button" id="obsAuto" role="menuitemcheckbox" aria-checked="false" hidden>
-            Salvar sozinho enquanto escrevo
-          </button>
-          <button type="button" id="obsEsquecer" hidden>Esquecer a pasta</button>
-          <p class="pop-dica" id="obsDica" hidden>
-            O arquivo recebe o nome da primeira linha do texto, e por isso o
-            título não é gravado de novo dentro dele: no Obsidian a nota já se
-            chama assim. Trocando o título, o próximo salvamento cria um arquivo
-            novo e o antigo fica onde está.
-          </p>
-    </section>
-    <button type="button" class="g-padrao" id="btnPadrao">Voltar tudo ao padrão</button>
+    <footer class="aj-pe">
+      <button type="button" class="aj-bt aj-bt--leve" id="btnPadrao">Voltar ao padrão</button>
+      <button type="button" class="aj-bt aj-bt--leve" id="ajExportar"><span>Exportar<span class="aj-largo"> ajustes</span></span></button>
+      <button type="button" class="aj-bt aj-bt--leve" id="ajImportar">Importar…</button>
+      <input type="file" id="ajArquivo" accept=".json,application/json" hidden>
+      <span class="cresce"></span>
+      <button type="button" class="aj-bt aj-bt--principal" id="ajPronto">Pronto</button>
+    </footer>
   </div>
+</dialog>
 
-  <div class="gaveta-corpo" data-painel="sum" hidden>
-    <ol class="sumario" id="listaSumario"></ol>
+<!-- ══ sumário: lista de títulos, também central (Ctrl+Shift+O) ══ -->
+<dialog class="aj aj--sumario" id="sumario" aria-labelledby="sumTitulo">
+  <div class="aj-painel">
+    <header class="aj-topo">
+      <h2 class="aj-titulo" id="sumTitulo">Sumário</h2>
+      <label class="aj-busca">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.1"/><path d="m12.4 12.4 4.1 4.1"/></svg>
+        <input id="sumBusca" type="search" placeholder="Ir para o título…" aria-label="Filtrar títulos" autocomplete="off" spellcheck="false" aria-controls="listaSumario">
+      </label>
+      <button type="button" class="aj-x" id="sumFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 5.5 9 9m0-9-9 9"/></svg>
+      </button>
+    </header>
+    <ol class="sumario" id="listaSumario" role="listbox" aria-label="Títulos do texto"></ol>
+    <footer class="aj-pe aj-pe--dica"><span><kbd>↑</kbd><kbd>↓</kbd> escolher</span><span><kbd>Enter</kbd> ir</span><span><kbd>Esc</kbd> fechar</span></footer>
   </div>
-</aside>
+</dialog>
 
 <!-- ══ régua de recuo: atua sobre a linha ou seleção atual ══ -->
 <div class="regua" id="regua" hidden aria-label="Ferramentas do Modo Poeta">
