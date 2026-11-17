@@ -177,34 +177,94 @@ function confirmBox(msg, ok = 'Apagar'){
 
 /* ---------- Barra de seleção ----------
    Aparece logo abaixo do trecho selecionado (o menu do Android fica
-   acima). actions: [{label, cls, onclick}] */
+   acima). actions: [{label, cls, title, onclick}] ; {br:1} quebra a
+   linha. card(rect, el) mostra um cartão no mesmo lugar (tradução). */
 const selbar = {
   el: $('#selbar'),
-  show(rect, actions, within){
+  place(rect){
     const el = this.el;
-    el.replaceChildren(...actions.map(a => h('button', { type: 'button', class: a.cls || '', title: a.title || null, 'aria-label': a.title || a.label, text: a.label,
-      onmousedown: e => e.preventDefault(),
-      onclick: e => { e.stopPropagation(); a.onclick(); } })));
-    el.hidden = false;
     const W = el.offsetWidth, H = el.offsetHeight, vw = innerWidth, vh = innerHeight;
     let x = Math.max(8, Math.min(vw - W - 8, rect.left + rect.width / 2 - W / 2));
     let y = rect.bottom + 12;
     if (y + H > vh - 8) y = Math.max(8, rect.top - H - 12);
     el.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
+  },
+  show(rect, actions, within){
+    const el = this.el;
+    const list = actions.filter(Boolean);
+    el.className = 'selbar' + (list.some(a => a.br) ? ' multi' : '');
+    el.replaceChildren(...list.map(a => a.br ? h('span', { class: 'sb-br', 'aria-hidden': 'true' }) :
+      h('button', { type: 'button', class: a.cls || '', title: a.title || null, 'aria-label': a.title || a.label, 'aria-pressed': a.on == null ? null : String(!!a.on),
+        onmousedown: e => e.preventDefault(),
+        onclick: e => { e.stopPropagation(); a.onclick(); } }, a.html ? a.html() : a.label)));
+    el.hidden = false;
+    this.rect = rect;
+    this.place(rect);
     this.within = within || null;
+  },
+  card(rect, node){
+    const el = this.el;
+    el.className = 'selbar card-mode';
+    el.replaceChildren(node);
+    el.hidden = false;
+    this.rect = rect || this.rect;
+    this.place(this.rect);
   },
   hide(){ this.el.hidden = true; this.within = null; },
 };
-document.addEventListener('mousedown', e => { if (!selbar.el.hidden && !selbar.el.contains(e.target)) setTimeout(() => { const s = getSelection(); if (!s || s.isCollapsed) selbar.hide(); }, 0); });
+document.addEventListener('mousedown', e => { if (!selbar.el.hidden && !selbar.el.contains(e.target)) setTimeout(() => { const s = getSelection(); if (!s || s.isCollapsed || selbar.el.classList.contains('card-mode')) selbar.hide(); }, 0); });
 
-/* Cores de destaque */
+/* ---------- Marcações: cores e estilos ----------
+   Cada marcação tem cor (color) e estilo (style). Os nomes das cores
+   podem ganhar sentido (“Azul = conceito”) e vão junto na sincronização
+   (E.prefs.hlNames). A caneta guarda o último estilo usado. */
 const HL_COLORS = [
   { id: 'am', name: 'Amarelo' },
   { id: 'vd', name: 'Verde' },
   { id: 'az', name: 'Azul' },
   { id: 'rs', name: 'Rosa' },
+  { id: 'lj', name: 'Laranja' },
+  { id: 'rx', name: 'Roxo' },
 ];
-const colorDots = (cur, pick) => HL_COLORS.map(c => ({ label: '', cls: 'dot c-' + c.id + (cur === c.id ? ' on' : ''), title: c.name, onclick: () => pick(c.id) }));
+const HL_STYLES = [
+  { id: 'marca', name: 'Marca-texto' },
+  { id: 'sub', name: 'Sublinhado' },
+  { id: 'ond', name: 'Ondulado' },
+  { id: 'risco', name: 'Tachado' },
+];
+const PEN = { color: 'am', style: 'marca' };
+try { Object.assign(PEN, JSON.parse(localStorage.getItem('caderno-caneta') || '{}')); } catch (e) {}
+const savePen = () => { try { localStorage.setItem('caderno-caneta', JSON.stringify(PEN)); } catch (e) {} };
+const hlColorName = id => ((E.prefs && E.prefs.hlNames) || {})[id] || (HL_COLORS.find(c => c.id === id) || {}).name || '';
+const hlStyleName = id => (HL_STYLES.find(s => s.id === (id || 'marca')) || HL_STYLES[0]).name;
+const hlClass = x => 'hl c-' + (x.color || 'am') + ' s-' + (x.style || 'marca') + (x.note ? ' has-note' : '') + (x.tr ? ' has-tr' : '');
+const colorDots = (cur, pick) => HL_COLORS.map(c => ({ label: '', cls: 'dot c-' + c.id + (cur === c.id ? ' on' : ''), title: hlColorName(c.id), onclick: () => pick(c.id) }));
+/* Botão que mostra o estilo atual com uma amostra */
+const styleBtn = (cur, onclick) => ({ label: hlStyleName(cur), cls: 'sty', title: 'Estilo: ' + hlStyleName(cur), html: () => [h('span', { class: 'sty-ab s-' + (cur || 'marca'), text: 'ab' }), h('span', { class: 'sty-t', text: hlStyleName(cur) })], onclick });
+const styleRow = (cur, pick, back) => [
+  { label: '←', title: 'Voltar', onclick: back },
+  ...HL_STYLES.map(s => ({ label: s.name, cls: 'sty' + ((cur || 'marca') === s.id ? ' on' : ''), title: s.name, html: () => [h('span', { class: 'sty-ab s-' + s.id, text: 'ab' }), h('span', { class: 'sty-t', text: s.name })], onclick: () => pick(s.id) })),
+];
+
+/* Remove marcações com “Desfazer” no aviso */
+function removeHls(list, msg, extra){
+  list = list.filter(Boolean);
+  if (!list.length) return;
+  const keep = list.map(x => ({ ...x }));
+  for (const x of list) delI('hl', x.id);
+  const after = () => {
+    if (typeof RD !== 'undefined' && RD.eng) RD.eng.repaint();
+    if (currentView === 'notas') renderNotes();
+    if (currentView === 'aula' && typeof renderLesson === 'function') renderLesson(curLesson, true);
+    const p = $('#rdPanel'); if (p && !p.hidden && p.dataset.tab === 'hl') panelSwap('hl');
+  };
+  after();
+  toast(msg || (list.length === 1 ? 'Marcação removida.' : `${list.length} marcações removidas.`), 'Desfazer', () => {
+    for (const k of keep) putI('hl', { ...k });
+    if (extra) extra();
+    after();
+  });
+}
 
 /* ---------- Editor de nota ---------- */
 function editNote(initial, onSave, title = 'Nota'){

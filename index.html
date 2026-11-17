@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Caderno de estudo: rotina, leitura com destaques, aulas transcritas e revisão espaçada.">
+<meta name="description" content="Caderno de estudo: rotina, leitura com marcações e tradução, aulas transcritas, notas ligadas no Escritor e revisão espaçada.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -72,7 +72,7 @@
     <section class="card diary">
       <div class="card-head">
         <h2>Diário</h2>
-        <span class="pill-muted" id="wordCount">0 palavras</span>
+        <span class="diary-tools"><span class="pill-muted" id="wordCount">0 palavras</span><button class="btn ghost small" id="diaryOpen" type="button" title="Abrir o diário no Escritor, com [[ligações]] e #etiquetas">Abrir no Escritor</button></span>
       </div>
       <textarea id="diary" placeholder="O que estudou, o que observou, uma frase que ficou."></textarea>
     </section>
@@ -123,7 +123,7 @@
     <header class="page-head">
       <span class="eyebrow">Anotações</span>
       <h1>Notas</h1>
-      <p class="lead">Tudo o que você marcou e escreveu, nos livros e nas aulas, num lugar só. A busca procura também dentro das transcrições.</p>
+      <p class="lead">Notas em Markdown que abrem no Escritor e se ligam umas às outras com [[colchetes duplos]], o diário de cada dia e tudo o que você marcou nos livros e nas aulas. Ctrl+O abre qualquer coisa pelo nome.</p>
     </header>
     <div id="notesHome"></div>
   </section>
@@ -267,9 +267,11 @@
 <script src="js/formatos.js" defer></script>
 <script src="js/leitor.js" defer></script>
 <script src="js/pdf.js" defer></script>
+<script src="js/traduzir.js" defer></script>
 <script src="js/analise.js" defer></script>
 <script src="js/aulas.js" defer></script>
 <script src="js/revisar.js" defer></script>
+<script src="js/escrever.js" defer></script>
 <script src="js/notas.js" defer></script>
 <script src="js/app.js" defer></script>
 </body>

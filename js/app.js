@@ -159,6 +159,13 @@ $('#fileImport').addEventListener('change', async e => {
   refreshView();
 });
 
+/* ---------- Diário no Escritor ---------- */
+$('#diaryOpen').addEventListener('click', () => {
+  const e = entryFor(viewDay);
+  e.diary = $('#diary').value; e.t = Date.now(); save('log');
+  openDiary(viewDay);
+});
+
 /* ---------- Início ---------- */
 (async () => {
   await loadE();

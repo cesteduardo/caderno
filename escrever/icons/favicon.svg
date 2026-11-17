@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" role="img" aria-label="Escritor">
+  <!-- Uma folha, e só: o Escritor é uma página em branco, e o ícone padrão de
+       documento do navegador já diz isso melhor do que qualquer símbolo novo. -->
+  <path d="M3.6 1.6h5.2l3.6 3.6v9.2a.6.6 0 0 1-.6.6H3.6a.6.6 0 0 1-.6-.6V2.2a.6.6 0 0 1 .6-.6z" fill="#F7F7F7" stroke="#0E0E10" stroke-width="1.1" stroke-linejoin="round"/>
+  <path d="M8.8 1.6v3.6h3.6" fill="none" stroke="#0E0E10" stroke-width="1.1" stroke-linejoin="round"/>
+  <path d="M5.4 8.2h5.2M5.4 10.6h5.2M5.4 13h3" stroke="#93939C" stroke-width="1" stroke-linecap="round"/>
+</svg>

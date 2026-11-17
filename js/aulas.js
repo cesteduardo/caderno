@@ -592,17 +592,19 @@ function paintLessonHl(l, root){
   for (const x of live('hl').filter(x => x.lesson === l.id)){
     const a0 = segStart(root, x.s1), b0 = segStart(root, x.s2);
     if (a0 == null || b0 == null) continue;
-    wrapOffsets(root, a0 + x.a, b0 + x.b, () => { const m = document.createElement('mark'); m.className = 'hl c-' + x.color + (x.note ? ' has-note' : ''); m.dataset.h = x.id; return m; });
+    wrapOffsets(root, a0 + x.a, b0 + x.b, () => { const m = document.createElement('mark'); m.className = hlClass(x); m.dataset.h = x.id; return m; });
   }
 }
 function lessonHlActions(l, x){
   const redo = () => renderLesson(l.id);
   return [
-    ...colorDots(x.color, c => { x.color = c; putI('hl', x); selbar.hide(); redo(); }),
+    ...colorDots(x.color, c => { x.color = c; PEN.color = c; savePen(); putI('hl', x); selbar.hide(); redo(); }),
+    styleBtn(x.style, () => selbar.show(selbar.rect, styleRow(x.style, st => { x.style = st; PEN.style = st; savePen(); putI('hl', x); selbar.hide(); redo(); }, () => selbar.show(selbar.rect, lessonHlActions(l, x))))),
+    { br: 1 },
     { label: x.note ? 'Ver nota' : 'Nota', onclick: () => { selbar.hide(); editNote(x.note, v => { x.note = v; putI('hl', x); redo(); }); } },
     { label: 'Cartão', onclick: () => { selbar.hide(); lessonCard(l, x); } },
     l.hasAudio ? { label: '▶', title: 'Ouvir', onclick: () => { selbar.hide(); player.playAt(l, x.ms); } } : null,
-    { label: 'Apagar', cls: 'danger', onclick: () => { selbar.hide(); delI('hl', x.id); redo(); } },
+    { label: 'Remover', cls: 'danger', onclick: () => { selbar.hide(); removeHls([x]); } },
   ].filter(Boolean);
 }
 function lessonCard(l, x){ openCardEditor({ kind: 'cloze', text: x.text, deck: l.course || 'Aulas', hint: x.note, src: { t: 'hl', id: x.id, lesson: l.id, label: `${l.name}, ${fmtClock(x.ms)}` } }); }
@@ -624,16 +626,17 @@ function lessonSel(){
   const l = getI('lessons', curLesson);
   const A = absOffset(root, r.startContainer, r.startOffset), B = absOffset(root, r.endContainer, r.endOffset);
   const make = color => {
-    const x = putI('hl', { id: uid() + uid(), lesson: l.id, s1: s1.dataset.s, a: A - segStart(root, s1.dataset.s), s2: s2.dataset.s, b: B - segStart(root, s2.dataset.s), ms: +s1.dataset.ms, text, color, note: '', created: Date.now() });
+    const x = putI('hl', { id: uid() + uid(), lesson: l.id, s1: s1.dataset.s, a: A - segStart(root, s1.dataset.s), s2: s2.dataset.s, b: B - segStart(root, s2.dataset.s), ms: +s1.dataset.ms, text, color, style: PEN.style, note: '', created: Date.now() });
     return x;
   };
   const done = () => { selbar.hide(); getSelection().removeAllRanges(); };
   const rects = r.getClientRects(), last = rects[rects.length - 1] || r.getBoundingClientRect();
   const words = text.split(' ').length;
   selbar.show(last, [
-    ...colorDots(null, c => { make(c); done(); renderLesson(l.id); }),
-    { label: 'Nota', onclick: () => { const x = make('am'); done(); editNote('', v => { x.note = v; putI('hl', x); renderLesson(l.id); }); renderLesson(l.id); } },
-    { label: 'Cartão', onclick: () => { const x = make('am'); done(); renderLesson(l.id); lessonCard(l, x); } },
+    ...colorDots(null, c => { PEN.color = c; savePen(); make(c); done(); renderLesson(l.id); }),
+    { br: 1 },
+    { label: 'Nota', onclick: () => { const x = make(PEN.color); done(); editNote('', v => { x.note = v; putI('hl', x); renderLesson(l.id); }); renderLesson(l.id); } },
+    { label: 'Cartão', onclick: () => { const x = make(PEN.color); done(); renderLesson(l.id); lessonCard(l, x); } },
     words <= 4 ? { label: 'Corrigir', title: 'Corrigir este nome em toda a aula', onclick: () => {
       done();
       const inp = h('input', { type: 'text', value: text, 'aria-label': 'Forma certa', autofocus: true });

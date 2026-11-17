@@ -1,0 +1,1066 @@
+/* ═══════════════════════════════════════════════════════════
+   Escritor — superfície de escrita no espírito do iA Writer
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── as fontes da iA, embutidas ─────────────────────────────
+   Apache 2.0 — github.com/iaolo/iA-Fonts (licença em fontes/).
+   Duo e Mono têm largura de avanço idêntica em regular, negrito
+   e itálico: é por isso que dá para deixar um título em negrito
+   sem que o cursor da textarea saia do lugar. */
+@font-face{ font-family:"iA Duo"; font-weight:400; font-style:normal;
+  src:url("fontes/iAWriterDuoS-Regular.woff2") format("woff2"); font-display:block; }
+@font-face{ font-family:"iA Duo"; font-weight:700; font-style:normal;
+  src:url("fontes/iAWriterDuoS-Bold.woff2") format("woff2"); font-display:block; }
+@font-face{ font-family:"iA Duo"; font-weight:400; font-style:italic;
+  src:url("fontes/iAWriterDuoS-Italic.woff2") format("woff2"); font-display:block; }
+@font-face{ font-family:"iA Duo"; font-weight:700; font-style:italic;
+  src:url("fontes/iAWriterDuoS-BoldItalic.woff2") format("woff2"); font-display:block; }
+
+@font-face{ font-family:"iA Mono"; font-weight:400; font-style:normal;
+  src:url("fontes/iAWriterMonoS-Regular.woff2") format("woff2"); font-display:block; }
+@font-face{ font-family:"iA Mono"; font-weight:700; font-style:normal;
+  src:url("fontes/iAWriterMonoS-Bold.woff2") format("woff2"); font-display:block; }
+@font-face{ font-family:"iA Mono"; font-weight:400; font-style:italic;
+  src:url("fontes/iAWriterMonoS-Italic.woff2") format("woff2"); font-display:block; }
+@font-face{ font-family:"iA Mono"; font-weight:700; font-style:italic;
+  src:url("fontes/iAWriterMonoS-BoldItalic.woff2") format("woff2"); font-display:block; }
+
+/* Quattro é proporcional: o itálico é 3,6% mais largo que o
+   regular, o que desalinharia o cursor. A família entra sem os
+   arquivos itálicos, e o realce de ênfase usa outro recurso. */
+@font-face{ font-family:"iA Quattro"; font-weight:400; font-style:normal;
+  src:url("fontes/iAWriterQuattroS-Regular.woff2") format("woff2"); font-display:block; }
+@font-face{ font-family:"iA Quattro"; font-weight:700; font-style:normal;
+  src:url("fontes/iAWriterQuattroS-Bold.woff2") format("woff2"); font-display:block; }
+
+:root{
+  --ui: ui-sans-serif,-apple-system,"Segoe UI",Inter,"Helvetica Neue",sans-serif;
+  --doc: "iA Duo","Liberation Mono",ui-monospace,monospace;
+
+  --tam: 18px;
+  --altura: 1.75;
+  --coluna: 46rem;
+  --pad-topo: 12vh;
+  --pad-base: 26vh;
+  --pad-lado: 1.6rem;
+
+  --raio: 7px;
+  --transicao: 180ms cubic-bezier(.32,.72,.31,1);
+}
+[data-fonte="duo"]     { --doc:"iA Duo","Liberation Mono",ui-monospace,monospace; }
+[data-fonte="mono"]    { --doc:"iA Mono","Liberation Mono",ui-monospace,monospace; }
+[data-fonte="quattro"] { --doc:"iA Quattro","Liberation Mono",ui-monospace,monospace; }
+
+/* Com o Quattro não há arquivo itálico de mesma largura. Em vez de
+   deixar o navegador inclinar a fonte (o que moveria o cursor), a
+   ênfase fica marcada só pela cor. */
+[data-fonte="quattro"] .t-enf{ font-style:normal; color:var(--c-enfase); }
+
+/* Nada de negrito ou itálico sintético: o navegador só pode usar
+   os arquivos reais, que têm a métrica certa. */
+.overlay,#editor,.preview{ font-synthesis:none; -webkit-font-synthesis:none; }
+
+/* ── papéis ────────────────────────────────────────────────
+   O iA Writer quase não colore o texto: a tinta é preta, os sinais
+   do Markdown recuam para um cinza-azulado e a cor fica reservada
+   ao que precisa de atenção. */
+[data-theme="claro"]{
+  --papel:#ffffff;      --tinta:#1c1c1e;      --tinta-foco:#000000; --apagado:#c2c6cc;
+  --marca:#b9c0c9;      --linha:#e8eaee;      --sombra:rgba(20,24,34,.10);
+  --caret:#2b7fff;      --selecao:rgba(43,127,255,.16);
+
+  --c-enfase:#7a6ea6;   --c-link:#2b7fff;     --c-url:#93a3b8;
+  --c-codigo:#5b7385;   --c-erro:#e0655f;     --c-estilo:#c19a2e;
+
+  --g-subst:#4b9fe1;    --g-verbo:#e0655f;    --g-adj:#dd9a2b;
+  --g-adv:#b07ecf;      --g-conj:#5fae67;
+}
+[data-theme="sepia"]{
+  --papel:#f6f0e4;      --tinta:#2a2620;      --tinta-foco:#4a321f; --apagado:#c5b99f;
+  --marca:#bfb197;      --linha:#e4dac6;      --sombra:rgba(60,48,26,.12);
+  --caret:#1f6fd0;      --selecao:rgba(31,111,208,.16);
+
+  --c-enfase:#6f5f9c;   --c-link:#1f6fd0;     --c-url:#a1937a;
+  --c-codigo:#63705e;   --c-erro:#cf574f;     --c-estilo:#a8811c;
+
+  --g-subst:#3384c9;    --g-verbo:#cf574f;    --g-adj:#bd8318;
+  --g-adv:#98639f;      --g-conj:#4f9557;
+}
+[data-theme="escuro"]{
+  --papel:#191a1c;      --tinta:#dcdde0;      --tinta-foco:#ffffff; --apagado:#4b5057;
+  --marca:#565c65;      --linha:#2a2c31;      --sombra:rgba(0,0,0,.5);
+  --caret:#4d9dff;      --selecao:rgba(77,157,255,.24);
+
+  --c-enfase:#a89bd4;   --c-link:#4d9dff;     --c-url:#6b7686;
+  --c-codigo:#8aa3b4;   --c-erro:#ff6f6a;     --c-estilo:#d8b356;
+
+  --g-subst:#5aa8ea;    --g-verbo:#ff6f6a;    --g-adj:#e5a840;
+  --g-adv:#bd8ade;      --g-conj:#6cbd75;
+}
+
+*{ box-sizing:border-box; }
+
+html,body{ height:100%; height:100dvh; }
+body{
+  margin:0;
+  display:flex; flex-direction:column;
+  background:var(--papel); color:var(--tinta);
+  font-family:var(--ui);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  transition:background var(--transicao), color var(--transicao);
+}
+button{ font:inherit; color:inherit; }
+.cresce{ flex:1; }
+
+/* No modo máquina de escrever a linha do cursor precisa alcançar o
+   meio da tela — inclusive a primeira e a última do documento. */
+body[data-maquina="1"]{ --pad-topo:44vh; --pad-base:48vh; }
+
+/* ══════════ barra superior ══════════ */
+.bar{
+  position:sticky; top:0; z-index:40;
+  background:color-mix(in srgb, var(--papel) 88%, transparent);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid transparent;
+  transition:opacity var(--transicao), transform var(--transicao), border-color var(--transicao);
+}
+body[data-scrolled="1"] .bar{ border-bottom-color:var(--linha); }
+body[data-chrome="oculto"] .bar{
+  opacity:0; transform:translateY(-6px); pointer-events:none;
+}
+/* Os três blocos (documento, escrita e aplicativo) formam uma fila só,
+   centrada na tela e com um vão claro entre eles. Com um espaçador de
+   flex:1 no meio, a fila era empurrada para a direita e a barra pendia
+   para um lado. A largura vai a 55rem, um pouco além da coluna de texto,
+   para os vãos caberem sem espremer os rótulos. */
+.bar-inner{
+  max-width:min(55rem, 100% - 2.5rem); margin:0 auto;
+  padding:.5rem calc(var(--pad-lado) - .35rem);
+  /* o vão entre os três blocos encolhe junto com a tela, para a fila não
+     precisar quebrar antes da hora */
+  display:flex; justify-content:center; align-items:center;
+  gap:clamp(.45rem, 2.4vw, 1.7rem);
+}
+.grupo{ display:flex; align-items:center; gap:.1rem; }
+
+.ico,.tog,.menu-btn{
+  appearance:none; border:0; background:transparent;
+  border-radius:var(--raio); cursor:pointer;
+  color:var(--apagado);
+  transition:color 120ms, background 120ms;
+  white-space:nowrap;
+}
+.ico{ display:grid; place-items:center; width:32px; height:30px; }
+.ico.com-rotulo{
+  display:flex; width:auto; padding:0 .55rem; gap:.38rem;
+  font-size:.8rem; letter-spacing:.006em;
+}
+.ico svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.4;
+          stroke-linejoin:round; stroke-linecap:round; }
+/* o botão de tela cheia troca o desenho conforme o estado */
+#btnTela .tela-sair{ display:none; }
+body[data-tela="1"] #btnTela .tela-entrar{ display:none; }
+body[data-tela="1"] #btnTela .tela-sair{ display:block; }
+body[data-tela="1"] #btnTela{ color:var(--caret); }
+.tog,.menu-btn{
+  height:30px; padding:0 .55rem;
+  font-size:.8rem; letter-spacing:.006em;
+}
+/* O botao da engrenagem e .ico E .menu-btn. Como o .menu-btn vem depois, era
+   o padding dele (0 .55rem = 8,8px) que valia: com box-sizing:border-box a
+   caixa de conteudo caia para 14,4px dentro dos 32px do botao e o icone de
+   18px ficava 1,8px a direita do centro, fora de esquadro com os vizinhos.
+   Botao de icone usa a medida do .ico. */
+.ico.menu-btn{ padding:1px 6px; }
+/* A engrenagem e a unica com viewBox de 24 (as outras da barra sao de 20). O
+   traco e medido no espaco do viewBox, entao 1,4 la vira 1,05px na tela
+   contra 1,26px das vizinhas, e ela lia mais fina que todas. 1,68 = 1,4x24/20. */
+#btnConfig svg{ stroke-width:1.68; }
+
+.ico:hover,.tog:hover,.menu-btn:hover{
+  color:var(--tinta); background:color-mix(in srgb, var(--tinta) 7%, transparent);
+}
+.tog[aria-pressed="true"],.menu-btn.ativo{ color:var(--caret); font-weight:600; }
+.menu.aberto .menu-btn{ color:var(--tinta); background:color-mix(in srgb, var(--tinta) 7%, transparent); }
+
+/* menus suspensos */
+.menu{ position:relative; }
+.menu-pop{
+  position:absolute; top:calc(100% + .4rem); right:0; z-index:50;
+  min-width:14rem; padding:.3rem;
+  display:none; flex-direction:column;
+  background:var(--papel);
+  border:1px solid var(--linha); border-radius:11px;
+  box-shadow:0 1px 2px var(--sombra), 0 12px 34px var(--sombra);
+}
+.menu.aberto .menu-pop{ display:flex; }
+.menu-pop button{
+  display:flex; align-items:baseline; gap:.6rem;
+  padding:.42rem .55rem .42rem 1.55rem;
+  position:relative;
+  border:0; border-radius:6px;
+  background:transparent; text-align:left; cursor:pointer;
+  font-size:.79rem; color:var(--tinta);
+}
+.menu-pop button:hover{ background:color-mix(in srgb, var(--caret) 12%, transparent); color:var(--caret); }
+.menu-pop button i,.menu-pop button kbd{
+  margin-left:auto; font-style:normal; font-family:var(--ui);
+  font-size:.68rem; color:var(--apagado); white-space:nowrap;
+}
+.menu-pop button:hover i,.menu-pop button:hover kbd{ color:inherit; opacity:.7; }
+/* o estado ligado aparece como marca, não como cor sozinha */
+.menu-pop button[aria-checked="true"]::before{
+  content:"✓"; position:absolute; left:.5rem; top:.42rem;
+  font-size:.72rem; line-height:1.5; color:var(--caret);
+}
+.menu-pop button[aria-checked="true"]{ font-weight:600; }
+.menu-pop hr{ height:1px; margin:.28rem .2rem; border:0; background:var(--linha); }
+.menu-titulo{
+  margin:.35rem .2rem .1rem .55rem; font-size:.63rem;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--apagado);
+}
+.linha-corpo{
+  display:flex; align-items:center; gap:.3rem; padding:.1rem .3rem .25rem;
+}
+.linha-corpo button{
+  padding:.2rem 0; justify-content:center; min-width:2.1rem;
+  border:1px solid var(--linha); border-radius:6px; font-size:.78rem;
+}
+.linha-corpo span{
+  flex:1; text-align:center; font-size:.72rem; color:var(--apagado);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ══════════ régua de recuo ══════════
+   A escala acompanha a largura real da coluna. O marcador aplica
+   espaços à linha atual ou às linhas selecionadas, portanto o recuo
+   continua existindo no Markdown, no Word e nas demais exportações. */
+.regua{
+  position:relative; z-index:30;
+  flex:0 0 38px;
+  border-bottom:1px solid var(--linha);
+  background:color-mix(in srgb, var(--papel) 94%, transparent);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.regua[hidden]{ display:none; }
+.regua-inner{
+  max-width:var(--coluna); height:38px; margin:0 auto;
+  padding:0 var(--pad-lado);
+  display:flex; align-items:center; gap:.5rem;
+}
+.regua-alvo{
+  width:5.4rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  color:var(--apagado); font:500 .68rem/1 var(--ui);
+}
+.regua-trilho{
+  --passo-regua:10px;
+  position:relative; flex:1; height:22px; cursor:crosshair;
+  border-bottom:1px solid var(--linha);
+}
+.regua-trilho::before{
+  content:""; position:absolute; inset:auto 0 0; height:8px;
+  background:repeating-linear-gradient(to right,
+    transparent 0 calc(var(--passo-regua) - 1px),
+    var(--linha) calc(var(--passo-regua) - 1px) var(--passo-regua));
+}
+.regua-marcas{ position:absolute; inset:0; pointer-events:none; }
+.regua-numero{
+  position:absolute; bottom:8px; transform:translateX(-50%);
+  color:var(--apagado); font:500 .62rem/1 var(--ui);
+  font-variant-numeric:tabular-nums;
+}
+.regua-cursor{
+  appearance:none; position:absolute; z-index:2;
+  left:0; bottom:-6px; width:14px; height:14px; padding:0;
+  border:0; background:var(--caret); cursor:ew-resize;
+  transform:translateX(-50%);
+  clip-path:polygon(50% 0,100% 42%,100% 100%,0 100%,0 42%);
+}
+.regua-cursor:focus-visible{ outline:2px solid var(--caret); outline-offset:3px; }
+.regua-campo{
+  height:26px; display:flex; align-items:center; gap:.2rem;
+  padding:0 .35rem; border:1px solid var(--linha); border-radius:6px;
+  color:var(--apagado); font:500 .68rem/1 var(--ui);
+}
+.regua-campo:focus-within{ border-color:var(--caret); }
+.regua-campo input{
+  appearance:textfield; width:2rem; padding:0; border:0; outline:0;
+  background:transparent; color:var(--tinta); text-align:right;
+  font:600 .72rem/1 var(--ui); font-variant-numeric:tabular-nums;
+}
+.regua-campo input::-webkit-inner-spin-button{ appearance:none; }
+.regua-acoes{ display:flex; align-items:center; gap:2px; }
+.regua-acoes button{
+  height:26px; min-width:26px; padding:0 .38rem;
+  border:0; border-radius:5px; background:transparent;
+  color:var(--apagado); cursor:pointer; font:600 .72rem/1 var(--ui);
+}
+.regua-acoes button:hover{
+  color:var(--tinta); background:color-mix(in srgb,var(--tinta) 7%,transparent);
+}
+.regua.arrastando .regua-cursor{ transform:translateX(-50%) scale(1.18); }
+.regua.arrastando .regua-trilho{ cursor:ew-resize; }
+@media (max-width:680px){
+  .regua-alvo,.regua-acoes{ display:none; }
+}
+@media (max-width:560px){
+  .regua-inner{ padding-inline:1rem; }
+  .regua-campo span{ display:none; }
+  .numeros-linha{ width:calc(var(--pad-lado) - .2rem); font-size:.52rem; }
+}
+
+/* ══════════ folha de escrita ══════════ */
+.scroller{
+  flex:1; min-height:0;
+  overflow-y:auto; overflow-x:hidden;
+  scroll-behavior:auto;
+}
+/* A folha alcança o fundo da janela mesmo com o documento curto.
+   Sem isto, a caixa de edição termina no fim do texto e o branco
+   abaixo dela não devolve o cursor: clicar ali e digitar não fazia
+   nada, porque o clique caía fora do editor. */
+.sheet{
+  position:relative;
+  max-width:var(--coluna);
+  margin:0 auto;
+  min-height:100%;
+}
+
+/* Numeração editorial exclusiva do Modo Poeta. Cada número é
+   posicionado pela linha correspondente no overlay, então um verso
+   longo que quebre visualmente não desalinha os versos seguintes. */
+.numeros-linha{
+  display:none;
+  position:absolute; z-index:2; inset:0 auto 0 0;
+  width:calc(var(--pad-lado) - .38rem);
+  color:var(--apagado); pointer-events:none; user-select:none;
+  font-family:var(--ui); font-size:.58rem; line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+body[data-poeta="1"] .numeros-linha{ display:block; }
+.numero-linha{
+  position:absolute; right:0; transform:translateY(.42em);
+  min-width:1.6rem; text-align:right; opacity:.7;
+}
+.numero-linha.atual{ color:var(--caret); opacity:1; font-weight:700; }
+.linha-fonte:empty::after{ content:"\200b"; }
+
+/* O overlay define o tamanho; a textarea se estica sobre ele.
+   Ambos compartilham exatamente a mesma caixa e a mesma métrica —
+   é isso que mantém o texto e o cursor perfeitamente alinhados. */
+.overlay,#editor{
+  font-family:var(--doc);
+  font-size:var(--tam);
+  line-height:var(--altura);
+  font-weight:400;
+  letter-spacing:0;
+  padding:var(--pad-topo) var(--pad-lado) var(--pad-base);
+  white-space:pre-wrap;
+  overflow-wrap:break-word;
+  word-break:normal;
+  tab-size:4;
+}
+.overlay{
+  min-height:100%;
+  color:var(--tinta);
+  pointer-events:none;
+  user-select:none;
+}
+#editor{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  margin:0; border:0; outline:0; resize:none;
+  overflow:hidden;
+  background:transparent;
+  color:transparent;
+  caret-color:var(--caret);
+}
+#editor::selection{ background:var(--selecao); color:transparent; }
+
+/* Ortografia: apenas o sublinhado ondulado do dicionário pt-BR do
+   próprio navegador, desenhado sobre a textarea — continua visível
+   mesmo com o texto transparente. */
+#editor[spellcheck="false"]{ text-decoration:none; }
+
+/* Reforço próprio: erros clássicos do português que passam batido. */
+.erro{
+  text-decoration:underline wavy var(--c-erro);
+  text-decoration-thickness:1px;
+  text-underline-offset:3px;
+}
+
+/* Revisão de estilo: clichê, muleta, redundância. Um traço
+   pontilhado âmbar, sem janela nem sugestão por cima do texto. */
+.estilo{
+  text-decoration:underline dotted var(--c-estilo);
+  text-decoration-thickness:1.5px;
+  text-underline-offset:3px;
+}
+.erro.estilo{ text-decoration:underline wavy var(--c-erro); }
+
+/* ══════════ Modo Foco ══════════
+   Tudo recua; só o trecho ativo permanece nítido. Como o recuo é
+   uma classe do próprio pedaço de texto (e não uma tag por fora),
+   o realce de Markdown continua de pé enquanto o foco está ligado. */
+.dim{ color:var(--apagado) !important; transition:color 130ms linear; }
+.dim.erro,.dim.estilo{ text-decoration-color:var(--apagado); }
+
+/* ══════════ Realce de Markdown ══════════
+   Os sinais (#, *, [ ]) recuam; o conteúdo fica com a tinta cheia. */
+.t-h    { font-weight:700; }
+.t-forte{ font-weight:700; }
+.t-enf  { font-style:italic; }
+.t-risco{ color:var(--apagado); text-decoration:line-through; }
+.t-link { color:var(--c-link); }
+.t-url  { color:var(--c-url); }
+.t-cod  { color:var(--c-codigo); }
+.t-cit  { color:var(--tinta); }
+.t-lista{ color:var(--marca); }
+.t-hr   { color:var(--marca); }
+/* declarado depois de tudo: o sinal do Markdown sempre recua */
+.mk{ color:var(--marca); }
+
+/* ══════════ Realce de classes gramaticais ══════════
+   Uma classe por vez ganha cor; o resto do texto recua. */
+.g-subst{ color:var(--g-subst) !important; }
+.g-verbo{ color:var(--g-verbo) !important; }
+.g-adj  { color:var(--g-adj)   !important; }
+.g-adv  { color:var(--g-adv)   !important; }
+.g-conj { color:var(--g-conj)  !important; }
+body[data-sintaxe="1"] .overlay{ color:color-mix(in srgb, var(--tinta) 40%, var(--papel)); }
+body[data-sintaxe="1"] .t-cit{ color:inherit; }
+/* No trecho em foco, palavras comuns mantêm contraste máximo mesmo
+   quando a ortografia ou as classes gramaticais estão ligadas. */
+body[data-foco="1"] .overlay{ color:var(--tinta-foco); }
+body[data-foco="1"] .t-cit{ color:var(--tinta-foco); }
+/* o recuo do foco vence o realce gramatical */
+.dim.g-subst,.dim.g-verbo,.dim.g-adj,.dim.g-adv,.dim.g-conj{ color:var(--apagado) !important; }
+
+/* marcador invisível usado pelo modo máquina de escrever */
+.caret-mark{ display:inline-block; width:0; height:1em; vertical-align:baseline; }
+
+/* ══════════ Visualização limpa ══════════ */
+.preview{
+  max-width:var(--coluna); margin:0 auto;
+  padding:var(--pad-topo) var(--pad-lado) var(--pad-base);
+  font-family:var(--doc);
+  font-size:var(--tam); line-height:var(--altura);
+  color:var(--tinta);
+}
+.preview.poeta{
+  padding-left:0;
+}
+.verso-preview{
+  display:grid;
+  /* a faixa dos números não encolhe abaixo do que cabe em três
+     dígitos, mesmo quando a margem do celular aperta */
+  grid-template-columns:max(var(--pad-lado), 1.7rem) minmax(0, 1fr);
+  min-height:var(--altura);
+}
+.numero-preview{
+  align-self:baseline;
+  padding-right:.38rem;
+  color:var(--apagado);
+  font-family:var(--ui); font-size:.58rem; line-height:1;
+  font-variant-numeric:tabular-nums;
+  text-align:right; user-select:none;
+}
+.conteudo-preview{ min-width:0; }
+.conteudo-preview > :first-child{ margin-top:0; }
+.conteudo-preview > :last-child{ margin-bottom:0; }
+.conteudo-preview > p{ display:inline; }
+.verso-preview.vazio{ min-height:var(--altura); }
+/* Aqui não há cursor para alinhar: os títulos podem enfim crescer. */
+.preview h1,.preview h2,.preview h3,.preview h4{
+  line-height:1.25; margin:2em 0 .7em; font-weight:700;
+}
+.preview h1{ font-size:1.6em; margin-top:0; }
+.preview h2{ font-size:1.3em; }
+.preview h3{ font-size:1.1em; }
+.preview p{ margin:0 0 1.25em; }
+.preview strong{ font-weight:700; }
+.preview em{ font-style:italic; }
+[data-fonte="quattro"] .preview em{ font-style:normal; color:var(--c-enfase); }
+.preview del{ color:var(--apagado); }
+.preview a{ color:var(--c-link); text-decoration:underline; text-underline-offset:3px; }
+.preview code{
+  color:var(--c-codigo); font-size:.92em;
+  padding:.08em .32em; border-radius:4px;
+  background:color-mix(in srgb, var(--c-codigo) 11%, transparent);
+}
+.preview pre{
+  padding:1em 1.15em; border-radius:9px; overflow-x:auto;
+  background:color-mix(in srgb, var(--tinta) 5%, transparent);
+}
+.preview pre code{ background:none; padding:0; }
+.preview blockquote{
+  margin:0 0 1.25em; padding:.1em 0 .1em 1.15em;
+  border-left:2px solid var(--marca);
+  color:color-mix(in srgb, var(--tinta) 78%, var(--papel));
+}
+.preview ul,.preview ol{ margin:0 0 1.25em; padding-left:1.4em; }
+.preview li{ margin:.3em 0; }
+.preview li::marker{ color:var(--marca); }
+.preview hr{ margin:2.4em 0; border:0; border-top:1px solid var(--linha); }
+.preview img{ max-width:100%; border-radius:8px; }
+.preview table{ width:100%; border-collapse:collapse; margin:0 0 1.25em; font-size:.92em; }
+.preview th,.preview td{ padding:.45em .7em; border:1px solid var(--linha); text-align:left; }
+.preview th{ font-weight:700; }
+
+/* ══════════ painel da revisão de estilo ══════════ */
+.revisao{
+  position:sticky; bottom:0; z-index:35;
+  max-height:min(38vh, 22rem); overflow-y:auto;
+  background:var(--papel);
+  border-top:1px solid var(--linha);
+}
+.revisao-inner{
+  max-width:var(--coluna); margin:0 auto;
+  padding:.7rem var(--pad-lado) .9rem;
+  display:flex; flex-direction:column; gap:.1rem;
+}
+.ponto{
+  display:flex; align-items:baseline; gap:.7rem;
+  width:100%; padding:.42rem .5rem;
+  border:0; border-radius:7px; background:transparent;
+  text-align:left; cursor:pointer;
+  font-size:.78rem; line-height:1.5; color:var(--tinta);
+}
+.ponto:hover{ background:color-mix(in srgb, var(--tinta) 6%, transparent); }
+.ponto-palavra{
+  flex:none; max-width:11rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-family:var(--doc); color:var(--c-estilo);
+}
+.ponto-texto{ color:color-mix(in srgb, var(--tinta) 72%, var(--papel)); }
+.revisao-vazio{
+  padding:.5rem; font-size:.78rem; color:var(--apagado);
+}
+
+/* ══════════ rodapé ══════════ */
+.stats{
+  position:sticky; bottom:0; z-index:30;
+  background:color-mix(in srgb, var(--papel) 88%, transparent);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  transition:opacity var(--transicao);
+}
+body[data-chrome="oculto"] .stats{ opacity:0; pointer-events:none; }
+.stats-inner{
+  max-width:var(--coluna); margin:0 auto;
+  padding:.5rem var(--pad-lado) .65rem;
+  display:flex; align-items:center; gap:.46rem;
+  font-size:.77rem; letter-spacing:.02em;
+  color:var(--apagado);
+}
+.stats b{ color:var(--tinta); font-weight:600; font-variant-numeric:tabular-nums; }
+.stats button.stat{
+  appearance:none; border:0; background:transparent; padding:0;
+  font:inherit; letter-spacing:inherit; color:inherit; cursor:pointer;
+}
+#stCont:hover b{ color:var(--caret); }
+.alerta{ color:var(--c-estilo); }
+.alerta:hover{ text-decoration:underline; text-underline-offset:2px; }
+/* A dica de ortografia é um botão: clicar troca a palavra errada
+   pela certa, ali mesmo, sem tirar o cursor do lugar. */
+.dica{
+  max-width:26rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  color:var(--c-erro);
+  cursor:pointer;
+}
+.dica:hover{ text-decoration:underline; text-underline-offset:2px; }
+.dica kbd{
+  margin-left:.4rem; opacity:.6; font:inherit; font-size:.92em;
+}
+.quieto{ opacity:.72; }
+.sep{ opacity:.45; }
+
+/* ══════════ aviso passageiro ══════════ */
+.toast{
+  position:fixed; left:50%; bottom:3.2rem; z-index:90;
+  transform:translate(-50%,10px);
+  padding:.5rem .9rem; border-radius:9px;
+  background:var(--tinta); color:var(--papel);
+  font-size:.75rem; letter-spacing:.01em;
+  opacity:0; pointer-events:none;
+  transition:opacity 200ms, transform 200ms;
+}
+.toast.vivo{ opacity:.94; transform:translate(-50%,0); }
+
+/* ══════════ arrastar e soltar ══════════ */
+body.soltando::after{
+  content:"Solte o arquivo para abrir";
+  position:fixed; inset:1rem; z-index:80;
+  display:grid; place-items:center;
+  border:1.5px dashed var(--caret); border-radius:14px;
+  background:color-mix(in srgb, var(--papel) 82%, transparent);
+  color:var(--caret); font-family:var(--ui); font-size:.9rem;
+}
+
+/* ══════════ Celular e tablet estreito ══════════ */
+@media (max-width:720px){
+  :root{
+    --pad-lado:1rem;
+    --pad-topo:7vh;
+    --pad-base:22vh;
+  }
+
+  /* Duas linhas impedem que os comandos sejam espremidos ou saiam
+     da tela. A primeira cuida dos arquivos; a segunda, da escrita. */
+  .bar{
+    padding-top:env(safe-area-inset-top);
+    /* backdrop-filter cria um bloco de referência para elementos fixed
+       em alguns navegadores móveis e encolhia o menu até a largura do botão. */
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+    background:color-mix(in srgb, var(--papel) 97%, transparent);
+  }
+  .bar-inner{
+    /* no celular a barra ocupa a tela inteira: o limite de 55rem da mesa
+       deixaria uma faixa vazia de cada lado */
+    width:100%; max-width:none; padding:.35rem .55rem .4rem;
+    /* Duas linhas, e duas mesmo: em cima o DOCUMENTO (novo, abrir) e o
+       APLICATIVO (configurações, guia); embaixo, a escrita inteira. Com os
+       nove controles de escrita numa fila só e mais dois no fim, a segunda
+       linha quebrava e sobrava um botão órfão encostado na direita. */
+    display:grid; grid-template-columns:1fr auto; gap:.25rem .35rem;
+  }
+  .bar-inner > .grupo--arquivo{
+    grid-column:1; grid-row:1; justify-content:flex-start; gap:.15rem;
+  }
+  .bar-inner > .grupo--app{
+    grid-column:2; grid-row:1; justify-content:flex-end; gap:.15rem;
+  }
+  .bar-inner > .grupo--escrita{
+    grid-column:1 / -1; grid-row:2;
+    width:100%; justify-content:space-between; gap:0;
+    /* onde nem assim couber, a linha quebra: nenhum comando some
+       para fora da tela. */
+    flex-wrap:wrap; row-gap:.15rem;
+  }
+
+  /* 42px oferece um alvo confortável para o dedo sem tornar a barra
+     excessivamente alta em telas pequenas. */
+  .ico,.tog,.menu-btn{ min-width:42px; height:42px; }
+  .ico.com-rotulo{ height:42px; padding:0 .55rem; font-size:.75rem; }
+  .tog,.menu-btn{ padding:0 .38rem; font-size:.72rem; }
+  .ico svg{ width:19px; height:19px; }
+
+  /* O painel passa a usar a largura disponível e nunca fica cortado
+     pelas bordas ou pelo teclado virtual. */
+  .menu-pop{
+    position:fixed !important;
+    /* --barra-h é medida em app.js: o painel acompanha a barra mesmo
+       quando ela quebra em duas linhas. */
+    top:calc(var(--barra-h, 5.85rem) + .3rem);
+    left:.55rem !important; right:.55rem !important;
+    width:calc(100vw - 1.1rem) !important;
+    min-width:0; max-width:none;
+    max-height:calc(100dvh - var(--barra-h, 5.85rem)
+                    - env(safe-area-inset-bottom) - 1.6rem);
+    overflow-y:auto; overscroll-behavior:contain;
+    border-radius:12px;
+  }
+  .menu-pop button{
+    min-height:44px; padding:.65rem .7rem .65rem 1.8rem;
+    align-items:center; font-size:.86rem;
+  }
+  .menu-pop button[aria-checked="true"]::before{ left:.65rem; top:.72rem; }
+  .linha-corpo{ padding:.35rem; }
+  .linha-corpo button{ min-height:42px; }
+
+  .overlay,#editor,.preview{
+    /* O mínimo de 16px evita que o iOS amplie a página ao tocar no editor. */
+    font-size:max(var(--tam), 16px);
+    padding-left:var(--pad-lado); padding-right:var(--pad-lado);
+  }
+  /* No Modo Poeta a margem esquerda abre um pouco: é ali que ficam os
+     números dos versos, que de outro modo sairiam cortados. */
+  body[data-poeta="1"]{ --pad-lado:1.9rem; }
+  body[data-maquina="1"]{ --pad-topo:36dvh; --pad-base:42dvh; }
+
+  .stats{ padding-bottom:env(safe-area-inset-bottom); }
+  .stats-inner{
+    min-height:42px; padding:.45rem var(--pad-lado);
+    gap:.32rem; font-size:.68rem;
+  }
+  .dica{ max-width:42vw; }
+
+  .revisao{ max-height:52dvh; padding-bottom:env(safe-area-inset-bottom); }
+  .revisao-inner{ padding:.55rem var(--pad-lado) .7rem; }
+  .ponto{ min-height:44px; padding:.55rem .35rem; }
+  .ponto-palavra{ max-width:36vw; }
+
+  .toast{
+    bottom:calc(3.25rem + env(safe-area-inset-bottom));
+    max-width:calc(100vw - 2rem); text-align:center;
+  }
+}
+
+/* Telas pequenas: a letra recua um passo e o texto respira menos no
+   topo. Vem depois do bloco acima para não brigar com ele. */
+@media (max-width:640px){
+  :root{ --tam:17px; --pad-topo:6vh; --pad-base:24vh; }
+  .menu-pop button{ font-size:.84rem; }
+  .menu-pop button i,.menu-pop button kbd{ font-size:.72rem; }
+
+  /* "Modo Poeta" vira "Poeta" e "Visualizar" vira "Vis": os rótulos
+     encurtam antes de a barra precisar quebrar em duas linhas. */
+  .so-largo{ display:none; }
+
+  /* O tempo de leitura sai inteiro — antes ficava o "min de leitura"
+     sem o número na frente. */
+  #stLeitura,.stats-inner > .sep{ display:none; }
+}
+
+/* Tablet: a coluna de 46rem quase encosta nas bordas de uma tela de
+   768px. Ela passa a ceder antes disso, e barra, texto e rodapé
+   continuam centrados sobre a mesma medida. */
+@media (min-width:721px) and (max-width:1100px){
+  :root{ --coluna:min(46rem, 100vw - 4rem); --pad-lado:1.8rem; }
+}
+
+/* Faixa estreita de mesa: os rótulos longos encurtam ("Visualizar" vira
+   "Vis", "Modo Poeta" vira "Poeta") antes que a fila encoste nas pontas.
+   Abaixo de 721px a barra já se divide em duas linhas. */
+@media (min-width:721px) and (max-width:860px){
+  .so-largo{ display:none; }
+}
+
+
+/* Tudo o que é conduzido pelo dedo — inclusive o tablet largo, que
+   não entra na faixa de 720px e continua com o desenho de mesa.
+   Aqui o que muda é o alvo, não o layout. */
+@media (pointer:coarse){
+  .ico,.tog,.menu-btn{ min-height:40px; }
+  .ico{ min-width:40px; }
+  .menu-pop button{ min-height:42px; align-items:center; }
+  .linha-corpo button{ min-height:40px; }
+  .ponto{ min-height:42px; }
+  .stats button.stat{ padding-block:.4rem; }
+
+  /* 16px é o limiar abaixo do qual o iOS amplia a página ao focar
+     o editor — e a ampliação desalinharia o cursor. */
+  .overlay,#editor,.preview{ font-size:max(var(--tam), 16px); }
+
+  /* A régua vira alvo de dedo: pega maior, trilho mais alto e sem
+     rolagem da página enquanto se arrasta o marcador. */
+  .regua{ flex-basis:44px; }
+  .regua-inner{ height:44px; }
+  .regua-trilho{ height:30px; touch-action:none; }
+  .regua-cursor{ width:22px; height:22px; bottom:-9px; touch-action:none; }
+  .regua-campo,.regua-acoes button{ height:32px; }
+  .regua-campo input{ font-size:.72rem; }
+}
+
+/* Celular deitado: sobra pouca altura, então as margens verticais
+   encolhem e os painéis param de comer a tela inteira. */
+@media (orientation:landscape) and (max-height:520px){
+  :root{ --pad-topo:4vh; --pad-base:16vh; }
+  body[data-maquina="1"]{ --pad-topo:30dvh; --pad-base:36dvh; }
+  .revisao{ max-height:62dvh; }
+  .menu-pop{ max-height:calc(100dvh - 4.5rem) !important; }
+}
+
+/* Recorte da câmera na lateral, com o aparelho deitado. */
+@media (orientation:landscape){
+  .bar,.regua,.scroller,.revisao,.stats{
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+  }
+}
+
+/* Celulares não disparam mousemove durante a digitação. A barra deve
+   continuar acessível, em vez de desaparecer sem uma forma óbvia de voltar. */
+@media (hover:none) and (pointer:coarse){
+  body[data-chrome="oculto"] .bar,
+  body[data-chrome="oculto"] .stats{
+    opacity:1; transform:none; pointer-events:auto;
+  }
+}
+
+@media (max-width:360px){
+  .bar-inner{ padding-left:.35rem; padding-right:.35rem; }
+  .tog,.menu-btn{ min-width:38px; padding:0 .25rem; font-size:.68rem; }
+  .ico{ min-width:38px; }
+  .ico.com-rotulo{ padding:0 .4rem; gap:.25rem; }
+}
+
+/* ══════════ impressão / PDF ══════════ */
+.print-only{ display:none; }
+@media print{
+  .bar,.stats,.scroller,.toast,.revisao,.regua{ display:none !important; }
+  html,body{ margin:0 !important; padding:0 !important; }
+  body{ display:block; background:#fff; color:#000; }
+  .print-only{
+    display:block;
+    padding:2.4cm 2.2cm;
+    box-sizing:border-box;
+    -webkit-box-decoration-break:clone; box-decoration-break:clone;
+    font:12pt/1.65 Georgia,"Times New Roman",serif; color:#000;
+  }
+  .print-only h1,.print-only h2,.print-only h3{
+    font-family:Helvetica,Arial,sans-serif; line-height:1.25;
+    page-break-after:avoid;
+  }
+  .print-only h2{ font-size:15pt; } .print-only h3{ font-size:12.5pt; }
+  .print-only h1{
+    font:400 22pt/1.2 Georgia,"Times New Roman",serif; margin:0 0 24pt;
+  }
+  .print-only h1::after{
+    content:""; display:block; width:34pt; height:.5pt; background:#bbb; margin-top:10pt;
+  }
+  .print-only p,.print-only li{ orphans:3; widows:3; }
+  .print-only blockquote{
+    margin-left:0; padding-left:12pt; border-left:2pt solid #999; color:#444;
+  }
+  .print-only pre{
+    padding:8pt; background:#f4f4f4; font:10pt/1.45 monospace;
+    page-break-inside:avoid; white-space:pre-wrap;
+  }
+  .print-only table{ border-collapse:collapse; width:100%; }
+  .print-only th,.print-only td{ border:.5pt solid #999; padding:4pt; text-align:left; }
+  .print-only a{ color:#000; }
+
+  /* Identificação editorial somente depois do último conteúdo. */
+  .print-only .assinatura{
+    margin-top:2.4cm;
+    display:flex; flex-direction:column; align-items:center; gap:4pt;
+    page-break-inside:avoid; break-inside:avoid;
+    font-family:Helvetica,Arial,sans-serif; font-size:9pt;
+    line-height:1.55; color:#777; text-align:center;
+  }
+  .print-only .assinatura-fio{
+    width:34pt; height:.5pt; background:#bbb; margin-bottom:15pt;
+  }
+  .print-only .assinatura-obra{
+    font:italic 11.5pt/1.4 Georgia,"Times New Roman",serif; color:#333;
+  }
+  .print-only .assinatura-data{
+    font-size:7.6pt; letter-spacing:1.4pt; text-transform:uppercase; color:#9a9a9a;
+  }
+  .print-only .assinatura-marca{ margin-top:7pt; letter-spacing:.3pt; }
+  .print-only .assinatura-marca a{
+    color:#777; text-decoration:none;
+    display:inline-flex; align-items:center; gap:.45em;
+  }
+  .print-only .assinatura .folha{ flex:none; vertical-align:middle; }
+
+  /* Margem zero impede que o navegador injete data, título e URL.
+     O espaçamento editorial passa a pertencer ao documento acima. */
+  @page{ size:A4; margin:0; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{ transition-duration:1ms !important; animation-duration:1ms !important; }
+}
+
+/* O realce nativo de toque (aquele retângulo azul translúcido que o Chrome no
+   Android pinta sobre o elemento tocado) só suja a interface: cada peça daqui
+   já tem o próprio estado :active. touch-action:manipulation ainda tira o
+   atraso de 300ms herdado do duplo-toque para dar zoom, então o :active
+   responde na hora. Mesmo tratamento do style.css da raiz. */
+html{-webkit-tap-highlight-color:transparent}
+a,button,label,summary,[role="button"],input,select,textarea{
+  -webkit-tap-highlight-color:transparent;
+}
+a,button,label,summary,[role="button"]{touch-action:manipulation}
+
+/* ═══ engrenagem: pasta do Obsidian ═══════════════════════════
+   O pop segue o desenho dos outros menus; o que muda e que aqui
+   ha texto corrido, e nao so uma lista de escolhas. */
+.pop-config{ min-width:19rem; }
+.pop-config .pop-texto,
+.pop-config .pop-dica{
+  margin:.1rem .55rem .45rem; font-size:.72rem; line-height:1.5;
+  color:var(--apagado); font-family:var(--ui);
+}
+.pop-config .pop-dica{ margin-top:.4rem; }
+.pop-config .pop-estado{
+  margin:.1rem .55rem .45rem; padding-left:1rem; position:relative;
+  font-size:.74rem; line-height:1.5; color:var(--tinta);
+  font-family:var(--ui); word-break:break-word;
+}
+.pop-config .pop-estado::before{
+  content:"○"; position:absolute; left:0; top:0;
+  font-size:.7rem; color:var(--apagado);
+}
+.pop-config .pop-estado[data-estado="ligada"]::before{ content:"✓"; color:var(--caret); }
+.pop-config .pop-estado[data-estado="espera"]::before{ content:"!"; color:var(--caret); }
+.pop-config .pop-estado[data-estado="sem-suporte"]::before{ content:"×"; }
+.pop-config button{ padding-left:.55rem; }
+/* .menu-pop button e display:flex, e flex ganha do display:none que o
+   atributo hidden carrega: sem esta linha os botoes de uma pasta ligada
+   apareciam antes de existir pasta nenhuma. */
+.pop-config [hidden]{ display:none; }
+.pop-config button[aria-checked="true"]{ padding-left:1.55rem; }
+
+/* No telefone o pop já vira uma faixa da largura da tela (o bloco de 720px
+   acima): a largura mínima do painel de configurações sairia dela e o texto
+   escaparia pela direita num aparelho de 320px. */
+@media (max-width:720px){
+  .pop-config{ min-width:0; }
+  .pop-config button{ padding-left:.7rem; }
+  .pop-config button[aria-checked="true"]{ padding-left:1.8rem; }
+  .pop-config .pop-texto,
+  .pop-config .pop-dica,
+  .pop-config .pop-estado{ font-size:.8rem; }
+}
+
+/* ═══ folha: o pop-up modal ═══════════════════════════════════
+   É o mesmo pop-up de busca dos outros apps da casa (.grb-cmd no
+   grb-app-shell.css): fundo desfocado que cobre a tela, painel
+   opaco centrado, o chip "esc" no canto e a entrada subindo dez
+   pixels. O Escritor não carrega aquele arquivo — tem tabela de
+   cores própria (--papel/--tinta, três temas) —, então a peça é
+   redesenhada aqui com os tokens daqui. O que se copia é o
+   DESENHO, não o CSS: assim o pop muda de cor junto com o papel
+   escolhido, em vez de trazer o cinza do site para dentro.
+
+   Substitui o confirm() do navegador, que aparecia como uma
+   caixa do sistema com o endereço do site no cabeçalho. */
+.folha{
+  position:fixed; inset:0; z-index:120;
+  display:grid; place-items:center;
+  padding:1.1rem;
+  background:color-mix(in srgb, var(--papel) 40%, rgba(14,16,20,.55));
+  -webkit-backdrop-filter:blur(10px) saturate(140%);
+  backdrop-filter:blur(10px) saturate(140%);
+  animation:folha-vem .22s cubic-bezier(.4,0,.2,1) both;
+}
+.folha[hidden]{ display:none; }
+@keyframes folha-vem{ from{ opacity:0; } }
+
+.folha-painel{
+  width:min(28rem,100%); max-height:85svh;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:var(--papel); color:var(--tinta);
+  border:1px solid var(--linha); border-radius:16px;
+  box-shadow:0 1px 2px var(--sombra), 0 30px 64px -30px var(--sombra);
+  animation:folha-sobe .34s cubic-bezier(.32,.72,.31,1) both;
+}
+.folha-larga{ width:min(32rem,100%); }
+@keyframes folha-sobe{ from{ opacity:0; transform:translateY(10px) scale(.98); } }
+
+.folha-topo{
+  display:flex; align-items:center; gap:.7rem;
+  padding:.95rem 1.15rem; border-bottom:1px solid var(--linha);
+}
+.folha-titulo{
+  margin:0; flex:1; min-width:0;
+  font-family:var(--ui); font-size:.95rem; font-weight:600; letter-spacing:-.01em;
+}
+/* O mesmo chip dos outros pop-ups: 11px em monoespacada de sistema,
+   sem fundo, aro fino, raio de 4px. */
+.folha-topo kbd{
+  flex:none; padding:2px 6px; background:transparent;
+  border:1px solid var(--linha); border-radius:4px;
+  font:400 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--apagado);
+}
+.folha-versao{
+  flex:none; padding:2px 7px;
+  border:1px solid var(--linha); border-radius:1099px;
+  font:400 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--apagado);
+}
+
+.folha-corpo{
+  padding:1.05rem 1.15rem; overflow-y:auto; overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb, var(--tinta) 20%, transparent) transparent;
+}
+.folha-corpo p{
+  margin:0 0 .7rem; font-family:var(--ui);
+  font-size:.84rem; line-height:1.6; color:var(--tinta);
+}
+.folha-corpo p:last-child{ margin-bottom:0; }
+.folha-corpo .fraco{ color:var(--apagado); font-size:.78rem; }
+.folha-corpo a{ color:var(--caret); text-decoration:underline; text-underline-offset:3px; }
+
+/* Link do repositório: uma linha inteira clicável, com o octocat à
+   esquerda e a seta à direita — o mesmo peso visual de um item do
+   menu, para não parecer um botão de ação primária. */
+/* `.folha-corpo a` já sublinha os links do texto corrido, e vence este bloco
+   por ter um tipo a mais no seletor: o cartão do repositório precisa do
+   mesmo peso para tirar o traço, senão o nome e o "abrir" saem sublinhados
+   dentro de uma caixa que já é a área clicável inteira. */
+.folha-corpo a.folha-link{ text-decoration:none; }
+.folha-link{
+  display:flex; align-items:center; gap:.6rem;
+  margin:.9rem 0 0; padding:.6rem .7rem;
+  border:1px solid var(--linha); border-radius:9px;
+  font-family:var(--ui); font-size:.8rem; color:var(--tinta);
+  text-decoration:none;
+  transition:background var(--transicao), border-color var(--transicao), color var(--transicao);
+}
+.folha-link:hover{
+  color:var(--caret); border-color:color-mix(in srgb, var(--caret) 40%, var(--linha));
+  background:color-mix(in srgb, var(--caret) 8%, transparent);
+}
+.folha-link svg{ width:16px; height:16px; flex:none; fill:currentColor; }
+.folha-link b{ font-weight:500; }
+.folha-link small{
+  margin-left:auto; font-size:.7rem; color:var(--apagado);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.folha-link:hover small{ color:inherit; opacity:.7; }
+
+.folha-pe{
+  display:flex; justify-content:flex-end; gap:.5rem;
+  padding:.8rem 1.15rem; border-top:1px solid var(--linha);
+}
+.folha-pe button{
+  padding:.45rem .85rem;
+  border:1px solid var(--linha); border-radius:8px;
+  background:transparent; color:var(--tinta);
+  font-family:var(--ui); font-size:.8rem; cursor:pointer;
+  transition:background var(--transicao), border-color var(--transicao), color var(--transicao);
+}
+.folha-pe button:hover{ background:color-mix(in srgb, var(--tinta) 7%, transparent); }
+/* A ação que descarta o texto não fica vermelha: o vermelho aqui é a cor
+   do erro de ortografia, e usá-la no botão faria o guia parecer um perigo.
+   Ela ganha peso pelo preenchimento, e o texto do corpo é que avisa. */
+.folha-pe .principal{
+  border-color:transparent; background:var(--tinta); color:var(--papel);
+  font-weight:500;
+}
+.folha-pe .principal:hover{ background:var(--tinta-foco); }
+.folha-pe button:focus-visible{
+  outline:2px solid var(--caret); outline-offset:2px;
+}
+
+@media (max-width:720px){
+  .folha{ padding:.8rem; place-items:end center; }
+  .folha-painel,.folha-larga{ width:100%; }
+  .folha-pe button{ flex:1; padding:.6rem .85rem; }
+}
+/* Com a folha aberta a página atrás não rola: o desfoque do fundo entrega
+   o movimento e o painel parece deslizar sozinho. */
+.folha-aberta{ overflow:hidden; }
+
+/* ══ Dentro do Caderno ══════════════════════════════════════
+   [[ligações]], #etiquetas e a lista que o [[ abre. */
+.t-tag{ color:var(--c-link); }
+.preview a.wikilink{ text-decoration:none; border-bottom:1px solid color-mix(in srgb, var(--c-link) 40%, transparent); }
+.preview a.wikilink:hover{ border-bottom-color:var(--c-link); }
+.preview .tag-md{ color:var(--c-link); cursor:pointer; }
+.embutido #btnLigacoes svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.4; stroke-linecap:round; vertical-align:-4px; }
+.embutido #btnLigacoes span{ margin-left:4px; }
+.sugestoes{
+  position:fixed; left:0; top:0; z-index:60;
+  display:flex; flex-direction:column; min-width:240px; max-width:min(380px, calc(100vw - 16px));
+  max-height:min(320px, 50vh); overflow:auto; padding:4px;
+  background:var(--papel); color:var(--tinta);
+  border:1px solid var(--linha); border-radius:10px;
+  box-shadow:0 18px 40px -16px var(--sombra), 0 2px 6px var(--sombra);
+  font:500 14px/1.3 "iA Quattro", system-ui, sans-serif;
+}
+.sugestoes[hidden]{ display:none; }
+.sugestoes button{
+  display:flex; justify-content:space-between; align-items:baseline; gap:14px;
+  padding:8px 10px; border-radius:7px; text-align:left; color:inherit; background:none; border:0; cursor:pointer; font:inherit;
+}
+.sugestoes button span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sugestoes button i{ font-style:normal; font-size:12px; color:var(--marca); flex:none; }
+.sugestoes button.on,.sugestoes button:hover{ background:var(--selecao); }

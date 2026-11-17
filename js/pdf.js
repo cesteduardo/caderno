@@ -137,6 +137,7 @@ const PdfEngine = {
     const t = this.tocAt(n);
     $('#rdChap').textContent = t ? t.l : '';
     savePos({ page: n, y: +y.toFixed(3) }, this.n > 1 ? (n - 1) / (this.n - 1) : 1, `p. ${n} de ${this.n}`);
+    trFollow();
   },
   scrollTo(n, y = 0){
     const pg = this.pageEl(Math.max(1, Math.min(this.n, n)));
@@ -150,14 +151,23 @@ const PdfEngine = {
   gotoPct(p){ this.scrollTo(1 + Math.round(p * (this.n - 1))); },
   gotoHl(x){ this.scrollTo(x.page, Math.max(0, (x.y || 0) - .05)); setTimeout(() => this.blink(x.id), 600); },
   blink(id){ document.querySelectorAll(`.hl-layer [data-h="${id}"]`).forEach(m => { m.classList.remove('blink'); void m.offsetWidth; m.classList.add('blink'); }); },
-  next(){}, prev(){}, link(){},
+  next(){ this.scrollTo((this.cur || 1) + 1); }, prev(){ this.scrollTo((this.cur || 1) - 1); }, link(){},
+  /* Texto da página atual (para traduzir), em pedaços de frases */
+  visibleBlocks(){
+    const t = (this.texts[this.cur || 1] || '').trim();
+    if (!t) return [];
+    const out = []; let cur = '';
+    for (const s of t.match(/[^.!?]+[.!?]*\s*/g) || [t]){ if ((cur + s).length > 700 && cur){ out.push(cur.trim()); cur = ''; } cur += s; }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  },
 
   /* destaques */
   paintPage(n){
     const pg = this.pageEl(n), layer = pg && pg.querySelector('.hl-layer');
     if (!layer) return;
     layer.replaceChildren(...hlOf(this.b.id).filter(x => x.page === n).flatMap(x => x.rects.map(r =>
-      h('i', { class: 'pr c-' + x.color + (x.note ? ' has-note' : ''), 'data-h': x.id, style: { left: r[0] * 100 + '%', top: r[1] * 100 + '%', width: r[2] * 100 + '%', height: r[3] * 100 + '%' } }))));
+      h('i', { class: 'pr c-' + x.color + ' s-' + (x.style || 'marca') + (x.note ? ' has-note' : ''), 'data-h': x.id, style: { left: r[0] * 100 + '%', top: r[1] * 100 + '%', width: r[2] * 100 + '%', height: r[3] * 100 + '%' } }))));
   },
   repaint(){ for (const [n, st] of this.live) if (st === 'on') this.paintPage(n); },
   hitHl(e){
@@ -183,7 +193,10 @@ const PdfEngine = {
     if (!rects.length) return;
     const n = +pg.dataset.n;
     const all = r.getClientRects(), last = all[all.length - 1] || r.getBoundingClientRect();
-    selbar.show(last, selActions({ text, make: color => { const x = newHl({ page: n, rects, y: rects[0][1], text, color }); this.paintPage(n); return x; } }));
+    const meets = (p, q) => p[0] < q[0] + q[2] && q[0] < p[0] + p[2] && p[1] < q[1] + q[3] && q[1] < p[1] + p[3];
+    const overlaps = hlOf(this.b.id).filter(x => x.page === n && x.rects.some(q => rects.some(p => meets(p, q))));
+    selbar.show(last, selActions({ text, overlaps, erase: () => removeHls(overlaps),
+      make: (color, style) => { const x = newHl({ page: n, rects, y: rects[0][1], text, color, style }); this.paintPage(n); return x; } }));
   },
 
   async search(q, emit){

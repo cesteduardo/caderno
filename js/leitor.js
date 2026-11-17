@@ -12,7 +12,7 @@
 
 /* ---------- Ajustes de leitura ---------- */
 const RS_KEY = 'caderno-leitor';
-const RS = { font: 'serif', size: 19, lh: 1.6, margin: 'm', just: true, theme: 'papel', awake: true };
+const RS = { font: 'serif', size: 19, lh: 1.6, margin: 'm', just: true, theme: 'papel', awake: true, layout: 'pagina', measure: 'm', trTo: 'pt-BR', trOnline: true };
 try { Object.assign(RS, JSON.parse(localStorage.getItem(RS_KEY) || '{}')); } catch (e) {}
 const saveRS = () => { try { localStorage.setItem(RS_KEY, JSON.stringify(RS)); } catch (e) {} };
 const THEMES = [
@@ -138,8 +138,9 @@ function buildReader(){
       h('button', { class: 'rd-btn', type: 'button', 'aria-label': 'Voltar à biblioteca', text: '←', onclick: () => popLayer() }),
       h('div', { class: 'rd-title' }, h('b', { id: 'rdTitle' }), h('span', { id: 'rdChap' })),
       h('button', { class: 'rd-btn', type: 'button', text: 'Sumário', onclick: () => panel('toc') }),
-      h('button', { class: 'rd-btn', type: 'button', text: 'Notas', onclick: () => panel('hl') }),
-      h('button', { class: 'rd-btn', type: 'button', text: 'Buscar', onclick: () => panel('busca') }),
+      h('button', { class: 'rd-btn', type: 'button', text: 'Marcações', onclick: () => panel('hl') }),
+      h('button', { class: 'rd-btn rd-wide', type: 'button', text: 'Traduzir', onclick: () => panel('tr') }),
+      h('button', { class: 'rd-btn rd-wide', type: 'button', text: 'Buscar', onclick: () => panel('busca') }),
       h('button', { class: 'rd-btn', type: 'button', text: 'Aa', 'aria-label': 'Ajustes de leitura', onclick: () => panel('aa') })),
     h('div', { class: 'rd-stage', id: 'rdStage' }),
     h('footer', { class: 'rd-bot' },
@@ -158,6 +159,8 @@ function applyRS(){
   el.style.setProperty('--rd-lh', RS.lh);
   el.style.setProperty('--rd-mx', { s: '14px', m: '26px', l: '48px' }[RS.margin] || '26px');
   el.dataset.font = RS.font;
+  el.dataset.layout = RS.layout;
+  el.style.setProperty('--rd-measure', Math.round(RS.size * ({ s: 28, m: 35, l: 44 }[RS.measure] || 35)) + 'px');
   el.dataset.just = RS.just ? '1' : '0';
   const tc = getComputedStyle(el).getPropertyValue('--rd-bg').trim();
   document.querySelector('meta[name="theme-color"]').content = tc || '#ffffff';
@@ -226,11 +229,11 @@ function panel(tab){
   if (!p.hidden && p.dataset.tab === tab){ popLayer(); return; }
   const wasOpen = !p.hidden;
   p.dataset.tab = tab;
-  const tabs = [['toc', 'Sumário'], ['hl', 'Notas'], ['busca', 'Buscar'], ['aa', 'Ajustes']];
+  const tabs = [['toc', 'Sumário'], ['hl', 'Marcações'], ['tr', 'Traduzir'], ['busca', 'Buscar'], ['aa', 'Ajustes']];
   p.replaceChildren(
     h('div', { class: 'rp-tabs' }, tabs.map(([k, l]) => h('button', { type: 'button', class: k === tab ? 'on' : '', text: l, onclick: () => { p.hidden = true; panelSwap(k); } })),
       h('button', { class: 'x', type: 'button', text: '×', 'aria-label': 'Fechar', onclick: () => popLayer() })),
-    h('div', { class: 'rp-body' }, ({ toc: panelToc, hl: panelHl, busca: panelSearch, aa: panelAa })[tab]()));
+    h('div', { class: 'rp-body' }, ({ toc: panelToc, hl: panelHl, tr: panelTr, busca: panelSearch, aa: panelAa })[tab]()));
   p.hidden = false;
   if (!wasOpen) pushLayer(() => { p.hidden = true; });
 }
@@ -244,24 +247,83 @@ function panelToc(){
     h('button', { type: 'button', onclick: () => { popLayer(); RD.eng.gotoToc(t); } }, h('span', { text: t.l }), t.p ? h('i', { text: t.p }) : null))));
 }
 
+let hlFilter = '';
 function panelHl(){
-  const list = hlOf(RD.book.id).sort((a, b) => RD.book.type === 'PDF' ? (a.page - b.page) || (a.y || 0) - (b.y || 0) : (a.s - b.s) || (a.a - b.a));
-  const notes = live('notes').filter(n => n.src && n.src.t === 'livro' && n.src.id === RD.book.id);
+  const b = RD.book;
+  const all = hlOf(b.id).sort((x, y) => b.type === 'PDF' ? (x.page - y.page) || (x.y || 0) - (y.y || 0) : (x.s - y.s) || (x.a - y.a));
+  const list = hlFilter ? all.filter(x => x.color === hlFilter) : all;
+  const notes = live('notes').filter(n => n.src && n.src.t === 'livro' && n.src.id === b.id).sort((x, y) => (y.u || 0) - (x.u || 0));
+  const count = c => all.filter(x => x.color === c).length;
   return h('div', {},
     h('div', { class: 'rp-actions' },
-      h('button', { class: 'btn small', type: 'button', text: '+ Nota do livro', onclick: () => { popLayer(); bookNote(); } }),
-      list.length ? h('button', { class: 'btn ghost small', type: 'button', text: 'Exportar .md', onclick: () => exportBookMd(RD.book) }) : null),
-    notes.map(n => h('div', { class: 'rp-note' }, h('b', { text: n.title || 'Nota' }), h('p', { text: n.body }))),
-    list.length ? h('ol', { class: 'rp-list hls' }, list.map(x => h('li', { class: 'c-' + x.color },
+      h('button', { class: 'btn small', type: 'button', text: '+ Nota do livro', onclick: () => bookNote() }),
+      all.length ? h('button', { class: 'btn ghost small', type: 'button', text: 'Fichamento', title: 'Uma nota com todas as marcações, para escrever em cima', onclick: () => fichamento(b) }) : null,
+      all.length ? h('button', { class: 'btn ghost small', type: 'button', text: 'Exportar .md', onclick: () => exportBookMd(b) }) : null),
+    notes.length ? h('ol', { class: 'rp-list rp-notes' }, notes.map(n => h('li', {}, h('button', { type: 'button', onclick: () => openNote(n.id) },
+      h('span', {}, h('b', { text: noteTitle(n) }), h('br'), h('small', { text: snippet(noteRest(n), 90) })), h('i', { text: fmtDay(n.u || n.created) }))))) : null,
+    all.length ? h('div', { class: 'rp-filter' },
+      h('button', { type: 'button', class: 'cf-all' + (!hlFilter ? ' on' : ''), text: `Todas ${all.length}`, onclick: () => { hlFilter = ''; panelSwap('hl'); } }),
+      HL_COLORS.filter(c => count(c.id)).map(c => h('button', { type: 'button', class: 'cf-n dot-' + c.id + (hlFilter === c.id ? ' on' : ''), title: hlColorName(c.id), onclick: () => { hlFilter = hlFilter === c.id ? '' : c.id; panelSwap('hl'); } }, h('i'), String(count(c.id)))),
+      h('button', { type: 'button', class: 'cf-clear', text: 'Remover…', onclick: () => clearMarks(b, list) })) : null,
+    list.length ? h('ol', { class: 'rp-list hls' }, list.map(x => h('li', { class: 'c-' + x.color + ' s-' + (x.style || 'marca') },
       h('button', { type: 'button', class: 'hl-go', onclick: () => { popLayer(); RD.eng.gotoHl(x); } },
         h('span', { class: 'hl-txt', text: clip(x.text, 280) }),
+        x.tr ? h('span', { class: 'hl-tr', text: x.tr }) : null,
         x.note ? h('span', { class: 'hl-note', text: x.note }) : null,
-        h('i', { text: x.page ? 'p. ' + x.page : '' })),
+        h('i', { text: [hlColorName(x.color), hlStyleName(x.style), x.page ? 'p. ' + x.page : ''].filter(Boolean).join(' · ') })),
       h('div', { class: 'hl-acts' },
-        h('button', { type: 'button', text: 'Nota', onclick: () => editNote(x.note, v => { x.note = v; putI('hl', x); RD.eng.repaint(); panelSwap('hl'); }) }),
+        h('button', { type: 'button', text: x.note ? 'Editar nota' : 'Nota', onclick: () => editNote(x.note, v => { x.note = v; putI('hl', x); RD.eng.repaint(); panelSwap('hl'); }) }),
         h('button', { type: 'button', text: 'Cartão', onclick: () => cardFromHl(x) }),
-        h('button', { type: 'button', class: 'danger', text: 'Apagar', onclick: () => { delI('hl', x.id); RD.eng.repaint(); panelSwap('hl'); } }))))) :
-      h('p', { class: 'muted pad', text: 'Selecione um trecho do texto para destacar. No celular: toque e segure numa palavra e arraste as alças.' }));
+        h('button', { type: 'button', class: 'danger', text: 'Remover', onclick: () => removeHls([x]) }))))) :
+      h('p', { class: 'muted pad', text: all.length ? 'Nenhuma marcação nesta cor.' : 'Selecione um trecho do texto para marcar. No celular: toque e segure numa palavra e arraste as alças.' }));
+}
+/* Remover várias de uma vez: da cor escolhida, do capítulo ou do livro */
+function clearMarks(b, shown){
+  const all = hlOf(b.id);
+  const opts = [];
+  if (hlFilter) opts.push([`As ${shown.length} em ${hlColorName(hlFilter).toLowerCase()}`, shown]);
+  if (b.type !== 'PDF' && RD.eng && RD.eng.sec != null){
+    const here = all.filter(x => x.s === RD.eng.sec);
+    if (here.length) opts.push([`As ${here.length} deste capítulo`, here]);
+  } else if (b.type === 'PDF' && RD.eng.cur){
+    const here = all.filter(x => x.page === RD.eng.cur);
+    if (here.length) opts.push([`As ${here.length} desta página`, here]);
+  }
+  opts.push([`Todas as ${all.length} do livro`, all]);
+  let pick = 0;
+  const box = h('div', { class: 'form' }, opts.map(([l], i) => h('label', { class: 'radio' }, h('input', { type: 'radio', name: 'clr', checked: i === 0, onchange: () => { pick = i; } }), l)),
+    h('p', { class: 'muted small', text: 'Dá para desfazer logo em seguida, no aviso que aparece embaixo.' }));
+  modal('Remover marcações', box, [{ label: 'Cancelar' }, { label: 'Remover', danger: true, onclick: () => { whenClosed(() => removeHls(opts[pick][1])); } }]);
+}
+
+/* Traduzir a página que está na tela */
+function panelTr(){
+  const to = RS.trTo || 'pt-BR';
+  const out = h('div', { class: 'tr-page' }, h('p', { class: 'muted pad', text: 'Traduzindo a página…' }));
+  const sel = h('select', { 'aria-label': 'Traduzir para', onchange: e => { RS.trTo = e.target.value; saveRS(); panelSwap('tr'); } },
+    TR_LANGS.map(([c, n]) => h('option', { value: c, selected: c === to, text: n })));
+  const nav = (dir) => async () => { await (dir > 0 ? RD.eng.next() : RD.eng.prev()); panelSwap('tr'); };
+  const blocks = RD.eng.visibleBlocks ? RD.eng.visibleBlocks() : [];
+  (async () => {
+    if (!blocks.length){ out.replaceChildren(h('p', { class: 'muted pad', text: 'Não achei texto nesta página. Se for um PDF escaneado, ele não tem texto para traduzir.' })); return; }
+    try {
+      const r = await translateMany(blocks, to);
+      out.replaceChildren(
+        h('p', { class: 'muted small pad-x', text: r.via === 'mesma' ? `O texto já está em ${trLangName(to)}.` : `${trLangName(r.from)} → ${trLangName(to)} · ${r.via}` }),
+        ...blocks.map((b0, i) => h('div', { class: 'tr-pair' },
+          h('p', { class: 'tr-o', text: b0 }),
+          h('p', { class: 'tr-t', text: r.out[i] }))));
+    } catch (e) {
+      out.replaceChildren(h('p', { class: 'muted pad', text: e.message && !/fetch|network/i.test(e.message) ? e.message : 'Sem internet, e este navegador não tem tradutor no aparelho.' }));
+    }
+  })();
+  return h('div', {},
+    h('div', { class: 'rp-actions tr-bar' },
+      sel,
+      RD.eng.paged || RD.book.type === 'PDF' ? h('span', { class: 'tr-nav' },
+        h('button', { class: 'btn ghost small', type: 'button', text: '‹', 'aria-label': 'Página anterior', onclick: nav(-1) }),
+        h('button', { class: 'btn ghost small', type: 'button', text: '›', 'aria-label': 'Próxima página', onclick: nav(1) })) : null),
+    out);
 }
 
 function panelSearch(){
@@ -311,51 +373,90 @@ function panelAa(){
     pdf ? null : seg([['s', 'Estreitas'], ['m', 'Médias'], ['l', 'Largas']], RS.margin, v => { RS.margin = v; }),
     pdf ? null : h('h3', { text: 'Alinhamento' }),
     pdf ? null : seg([[true, 'Justificado'], [false, 'À esquerda']], RS.just, v => { RS.just = v; }),
+    pdf ? null : h('h3', { text: 'Página' }),
+    pdf ? null : seg([['pagina', 'Uma página'], ['dupla', 'Duas lado a lado'], ['rolar', 'Rolagem']], RS.layout, v => { RS.layout = v; }),
+    pdf ? null : RS.layout === 'dupla' ? h('p', { class: 'muted small aa-tip', text: 'Duas páginas só aparecem em tela larga (a partir de uns 900 px). No celular continua uma.' }) : null,
+    pdf || RS.layout === 'dupla' ? null : h('h3', { text: 'Largura da linha' }),
+    pdf || RS.layout === 'dupla' ? null : seg([['s', 'Estreita'], ['m', 'Média'], ['l', 'Larga']], RS.measure, v => { RS.measure = v; }),
     h('h3', { text: 'Tela' }),
     seg([[true, 'Sempre acesa'], [false, 'Normal']], RS.awake, v => { RS.awake = v; wantAwake(v); }),
+    h('h3', { text: 'Tradução' }),
+    h('div', { class: 'aa-row' }, h('span', { text: 'Para' }),
+      h('select', { 'aria-label': 'Traduzir para', onchange: e => { RS.trTo = e.target.value; saveRS(); } }, TR_LANGS.map(([c, n]) => h('option', { value: c, selected: c === RS.trTo, text: n })))),
+    seg([[true, 'Online quando precisar'], [false, 'Só no aparelho']], RS.trOnline, v => { RS.trOnline = v; }),
+    h('p', { class: 'muted small aa-tip', text: ('Translator' in self ? 'Este navegador traduz no aparelho: o par de idiomas baixa uma vez e funciona sem internet. ' : 'Este navegador não traduz no aparelho. ') + 'Online, o trecho vai para o Google Tradutor.' }),
+    h('h3', { text: 'O que cada cor quer dizer' }),
+    h('div', { class: 'hl-names' }, HL_COLORS.map(c => h('label', { class: 'hl-name' }, h('i', { class: 'dot-' + c.id }),
+      h('input', { type: 'text', value: ((E.prefs && E.prefs.hlNames) || {})[c.id] || '', placeholder: c.name, maxlength: 28, 'aria-label': 'Nome para ' + c.name,
+        onchange: e => { E.prefs.hlNames = { ...(E.prefs.hlNames || {}), [c.id]: e.target.value.trim() }; if (!e.target.value.trim()) delete E.prefs.hlNames[c.id]; saveE(); } })))),
     RS.theme === 'sol' || RS.theme === 'eink' ? h('p', { class: 'muted small aa-tip', text: 'Ao sol: brilho no máximo e, se puder, película fosca. Nenhum programa muda o vidro da tela; o que dá para fazer daqui é tirar todo cinza, engrossar a letra e deixar o fundo branco puro, que é o que mais rende contra o reflexo.' }) : null);
 }
 
-/* ---------- Selecionar e destacar ---------- */
+/* ---------- Selecionar e marcar ----------
+   Barra em duas linhas: cores (um toque marca com a caneta) e estilo;
+   embaixo nota, cartão, traduzir, copiar e, se o trecho já tem
+   marcações, Remover. */
 function selActions(base){
-  // base: { text, make(color) → hl } — cria o destaque e devolve
+  const done = () => { selbar.hide(); getSelection().removeAllRanges(); };
+  const mk = c => { PEN.color = c; savePen(); return base.make(c, PEN.style); };
   return [
-    ...colorDots(null, c => { base.make(c); selbar.hide(); getSelection().removeAllRanges(); }),
-    { label: 'Nota', onclick: () => { const x = base.make('am'); selbar.hide(); getSelection().removeAllRanges(); editNote('', v => { x.note = v; putI('hl', x); RD.eng && RD.eng.repaint(); }); } },
-    { label: 'Cartão', onclick: () => { const x = base.make('am'); selbar.hide(); getSelection().removeAllRanges(); cardFromHl(x); } },
+    ...colorDots(null, c => { mk(c); done(); }),
+    styleBtn(PEN.style, () => selbar.show(selbar.rect, styleRow(PEN.style, st => { PEN.style = st; savePen(); mk(PEN.color); done(); }, () => selbar.show(selbar.rect, selActions(base))))),
+    { br: 1 },
+    { label: 'Nota', onclick: () => { const x = mk(PEN.color); done(); editNote('', v => { x.note = v; putI('hl', x); RD.eng && RD.eng.repaint(); }); } },
+    { label: 'Cartão', onclick: () => { const x = mk(PEN.color); done(); cardFromHl(x); } },
+    { label: 'Traduzir', onclick: () => translateCard(base.text, { rect: selbar.rect, save: tr => { const x = mk(PEN.color); x.tr = tr; putI('hl', x); RD.eng && RD.eng.repaint(); getSelection().removeAllRanges(); } }) },
     { label: 'Copiar', onclick: () => { navigator.clipboard?.writeText(base.text); selbar.hide(); toast('Copiado.'); } },
+    base.overlaps && base.overlaps.length ? { label: 'Remover', cls: 'danger', title: 'Remover as marcações deste trecho', onclick: () => { done(); base.erase(); } } : null,
   ];
 }
 function hlActions(x){
+  const redo = () => RD.eng && RD.eng.repaint();
   return [
-    ...colorDots(x.color, c => { x.color = c; putI('hl', x); RD.eng.repaint(); selbar.hide(); }),
-    { label: x.note ? 'Ver nota' : 'Nota', onclick: () => { selbar.hide(); editNote(x.note, v => { x.note = v; putI('hl', x); RD.eng.repaint(); }); } },
+    ...colorDots(x.color, c => { x.color = c; PEN.color = c; savePen(); putI('hl', x); redo(); selbar.hide(); }),
+    styleBtn(x.style, () => selbar.show(selbar.rect, styleRow(x.style, st => { x.style = st; PEN.style = st; savePen(); putI('hl', x); redo(); selbar.hide(); }, () => selbar.show(selbar.rect, hlActions(x))))),
+    { br: 1 },
+    { label: x.note ? 'Ver nota' : 'Nota', onclick: () => { selbar.hide(); editNote(x.note, v => { x.note = v; putI('hl', x); redo(); }); } },
     { label: 'Cartão', onclick: () => { selbar.hide(); cardFromHl(x); } },
-    { label: 'Apagar', cls: 'danger', onclick: () => { selbar.hide(); delI('hl', x.id); RD.eng.repaint(); } },
+    { label: 'Traduzir', onclick: () => translateCard(x.text, { rect: selbar.rect, saved: !!x.tr, save: tr => { x.tr = tr; putI('hl', x); redo(); } }) },
+    { label: 'Copiar', onclick: () => { navigator.clipboard?.writeText(x.text); selbar.hide(); toast('Copiado.'); } },
+    { label: 'Remover', cls: 'danger', onclick: () => { selbar.hide(); removeHls([x]); } },
   ];
 }
 function newHl(fields){
-  return putI('hl', { id: uid() + uid(), book: RD.book.id, created: Date.now(), note: '', ...fields });
+  return putI('hl', { id: uid() + uid(), book: RD.book.id, created: Date.now(), note: '', style: PEN.style, ...fields });
 }
 function cardFromHl(x){
   const b = getI('books', x.book);
-  openCardEditor({ kind: 'cloze', text: x.text, deck: b ? b.title : 'Leituras', src: { t: 'hl', id: x.id, book: x.book, label: (b ? b.title : '') + (x.page ? ', p. ' + x.page : '') }, hint: x.note });
+  openCardEditor({ kind: 'cloze', text: x.text, deck: b ? b.title : 'Leituras', src: { t: 'hl', id: x.id, book: x.book, label: (b ? b.title : '') + (x.page ? ', p. ' + x.page : '') }, hint: x.note || x.tr });
 }
+/* Nota do livro: abre no Escritor, ligada ao livro */
 function bookNote(){
-  const t = h('input', { type: 'text', placeholder: 'Título (opcional)', 'aria-label': 'Título' });
-  const ta = h('textarea', { class: 'note-ta', rows: 7, placeholder: 'Ideia, resumo de capítulo, pergunta para a próxima aula…' });
-  modal('Nota sobre ' + clip(RD.book.title, 40), h('div', { class: 'form' }, t, ta), [
-    { label: 'Cancelar' },
-    { label: 'Salvar', primary: true, onclick: () => { if (!ta.value.trim()) return false; putI('notes', { id: uid() + uid(), title: t.value.trim(), body: ta.value.trim(), created: Date.now(), src: { t: 'livro', id: RD.book.id, label: RD.book.title } }); toast('Nota salva.'); } },
-  ]);
+  const b = RD.book;
+  newNote(`# Notas: ${b.title}\n\n[[${b.title}]]${b.author ? ' · ' + b.author : ''}\n\n`, { t: 'livro', id: b.id, label: b.title });
+}
+function fichamento(b){
+  const list = hlOf(b.id).sort((x, y) => b.type === 'PDF' ? x.page - y.page : (x.s - y.s) || (x.a - y.a));
+  let md = `# Fichamento: ${b.title}\n\n[[${b.title}]]${b.author ? ' · ' + b.author : ''} #fichamento\n\n`;
+  let chap = null;
+  for (const x of list){
+    if (b.type !== 'PDF' && b.toc){ let t = null; for (const c of b.toc) if (c.s < x.s || (c.s === x.s && c.c <= x.a)) t = c; if (t && t !== chap){ chap = t; md += `## ${t.l}\n\n`; } }
+    md += hlMd(x) + '\n';
+  }
+  newNote(md, { t: 'livro', id: b.id, label: b.title });
 }
 function exportBookMd(b){
-  const list = hlOf(b.id).sort((x, y) => b.type === 'PDF' ? (x.page - y.page) : (x.s - y.s) || (x.a - y.a));
   const notes = live('notes').filter(n => n.src && n.src.id === b.id);
-  let md = `# ${b.title}\n\n` + (b.author ? `Autor: [[${b.author}]]\n\n` : '');
-  if (notes.length) md += '## Notas\n\n' + notes.map(n => (n.title ? `### ${n.title}\n\n` : '') + n.body + '\n').join('\n') + '\n';
-  md += '## Destaques\n\n' + list.map(x => `> ${x.text.replace(/\n+/g, ' ')}` + (x.page ? ` (p. ${x.page})` : '') + (x.note ? `\n\n${x.note}` : '') + '\n').join('\n');
+  let md = marksMdOf('livro', b) || `# ${b.title}\n\n`;
+  if (notes.length) md += '\n## Notas\n\n' + notes.map(n => `### ${noteTitle(n)}\n\n${noteRest(n)}\n`).join('\n');
   download(fileSafe(b.title) + '.md', md);
+}
+
+/* Com a aba Traduzir aberta, virar a página traduz a nova */
+function trFollow(){
+  const p = $('#rdPanel');
+  if (!p || p.hidden || p.dataset.tab !== 'tr') return;
+  clearTimeout(trFollow.t); trFollow.t = setTimeout(() => { if (!p.hidden && p.dataset.tab === 'tr') panelSwap('tr'); }, 500);
 }
 
 /* ---------- toques, gestos e teclado (comuns) ---------- */
@@ -388,8 +489,8 @@ function stageInput(stage, eng){
 document.addEventListener('keydown', e => {
   if (!RD.eng || !$('#modal').hidden || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
   if (!$('#rdPanel').hidden) return;
-  if (['ArrowRight', 'PageDown', ' '].includes(e.key) && RD.eng.paged){ e.preventDefault(); RD.eng.next(); }
-  else if (['ArrowLeft', 'PageUp'].includes(e.key) && RD.eng.paged){ e.preventDefault(); RD.eng.prev(); }
+  if (['ArrowRight', 'PageDown', ' '].includes(e.key) && (RD.eng.paged || (RD.eng.scroll && e.key !== 'ArrowRight'))){ e.preventDefault(); RD.eng.next(); }
+  else if (['ArrowLeft', 'PageUp'].includes(e.key) && (RD.eng.paged || (RD.eng.scroll && e.key !== 'ArrowLeft'))){ e.preventDefault(); RD.eng.prev(); }
 });
 let selT;
 document.addEventListener('selectionchange', () => {
@@ -402,7 +503,9 @@ document.addEventListener('selectionchange', () => {
    Motor de texto corrido (EPUB, TXT)
    ===================================================================== */
 const FlowEngine = {
-  paged: true,
+  /* Uma página (padrão), duas lado a lado (tela larga) ou rolagem */
+  get scroll(){ return RS.layout === 'rolar'; },
+  get paged(){ return !this.scroll; },
   async open(b){
     this.b = b;
     this.c = await DB.get('cont:' + b.id);
@@ -413,9 +516,14 @@ const FlowEngine = {
     for (const n of this.c.lens) this.before.push(this.before[this.before.length - 1] + n);
     this.total = this.before[this.before.length - 1] || 1;
     const stage = $('#rdStage');
-    stage.replaceChildren(h('div', { class: 'rd-page', id: 'rdPage' }, h('div', { class: 'rd-sec', id: 'rdSec' })));
+    stage.replaceChildren(h('div', { class: 'rd-page', id: 'rdPage' },
+      h('button', { class: 'rd-chnav up', id: 'rdPrevCh', type: 'button', text: '↑ Capítulo anterior', onclick: () => this.prevSec() }),
+      h('div', { class: 'rd-sec', id: 'rdSec' }),
+      h('button', { class: 'rd-chnav down', id: 'rdNextCh', type: 'button', text: 'Próximo capítulo ↓', onclick: () => this.nextSec() })));
     stage.className = 'rd-stage flow';
     stageInput(stage, this);
+    let st;
+    $('#rdPage').addEventListener('scroll', () => { if (!this.scroll) return; if (!selbar.el.classList.contains('card-mode')) selbar.hide(); clearTimeout(st); st = setTimeout(() => this.track(), 140); }, { passive: true });
     this.ro = new ResizeObserver(() => { clearTimeout(this.rt); this.rt = setTimeout(() => this.relayout(), 150); });
     this.ro.observe(stage);
     const p = b.pos || { s: 0, c: 0 };
@@ -433,14 +541,70 @@ const FlowEngine = {
     const imgs = [...el.querySelectorAll('img')];
     if (imgs.length) await Promise.race([Promise.all(imgs.map(im => im.decode ? im.decode().catch(() => {}) : null)), new Promise(r => setTimeout(r, 1500))]);
     this.layout();
+    if (this.scroll){
+      this.scrollToChar(toEnd ? this.len : c || 0);
+      this.track();
+      return;
+    }
     this.page = toEnd ? this.pages - 1 : this.charToPage(c || 0);
     this.draw();
+  },
+  nextSec(){ if (this.sec < this.c.sections.length - 1) return this.load(this.sec + 1, 0); toast('Fim do livro.'); },
+  prevSec(){ if (this.sec > 0) return this.load(this.sec - 1, 0, true); },
+  chnav(){
+    const p = $('#rdPrevCh'), n = $('#rdNextCh');
+    if (!p || !n) return;
+    p.hidden = !this.scroll || this.sec <= 0;
+    n.hidden = !this.scroll;
+    n.textContent = this.sec < this.c.sections.length - 1 ? 'Próximo capítulo ↓' : 'Fim do livro';
+  },
+  /* Rolagem: qual caractere está no alto da tela */
+  visibleChar(){
+    const pg = $('#rdPage');
+    if (!pg || !this.tn.length) return 0;
+    const top = pg.getBoundingClientRect().top + 6;
+    const r = document.createRange();
+    const bottomOf = (n, a, b) => { r.setStart(n, a); r.setEnd(n, b); const rs = r.getClientRects(); return rs.length ? rs[rs.length - 1].bottom : -Infinity; };
+    let lo = 0, hi = this.tn.length - 1;
+    while (lo < hi){ const m = (lo + hi) >> 1, n = this.tn[m]; if (bottomOf(n, 0, n.data.length) > top) hi = m; else lo = m + 1; }
+    const n = this.tn[lo];
+    let a = 0, b = n.data.length;
+    while (a < b){ const m = (a + b) >> 1; if (bottomOf(n, m, Math.min(m + 1, n.data.length)) > top) b = m; else a = m + 1; }
+    return this.ts[lo] + Math.min(a, Math.max(0, n.data.length - 1));
+  },
+  scrollToChar(c){
+    const pg = $('#rdPage');
+    if (!pg) return;
+    if (!c || c <= 0 || !this.tn.length){ pg.scrollTop = 0; return; }
+    if (c >= this.len){ pg.scrollTop = pg.scrollHeight; return; }
+    const [node, off] = this.locate(c);
+    const r = document.createRange();
+    r.setStart(node, Math.min(off, node.data.length - 1)); r.setEnd(node, Math.min(off + 1, node.data.length));
+    const rect = r.getClientRects()[0] || r.getBoundingClientRect();
+    pg.scrollTop += rect.top - pg.getBoundingClientRect().top - 14;
+  },
+  here(){ return this.scroll ? this.visibleChar() : this.charAt(this.page || 0); },
+  track(){
+    const c = this.visibleChar(), g = this.before[this.sec] + c, chap = this.chapter(this.sec, c);
+    $('#rdChap').textContent = chap ? chap.l : '';
+    savePos({ s: this.sec, c }, g / this.total, `${Math.round(100 * g / this.total)}%`);
+    trFollow();
   },
   layout(){
     const pg = $('#rdPage'), el = $('#rdSec');
     if (!pg || !el) return;
     const W = pg.clientWidth, H = pg.clientHeight;
-    const cpv = W >= 900 ? 2 : 1, G = cpv > 1 ? 64 : 40;
+    this.chnav();
+    if (this.scroll){
+      Object.assign(el.style, { columnWidth: '', columnGap: '', height: '', width: '', transform: '' });
+      el.style.setProperty('--img-h', (H - 8) + 'px');
+      this.step = 0; this.pages = 1; this.mode = 'scroll';
+      this.index();
+      return;
+    }
+    this.mode = 'paged';
+    pg.scrollTop = 0;
+    const cpv = RS.layout === 'dupla' && W >= 900 ? 2 : 1, G = cpv > 1 ? 64 : 40;
     const colW = Math.floor((W - (cpv - 1) * G) / cpv);
     el.style.columnWidth = colW + 'px';
     el.style.columnGap = G + 'px';
@@ -454,8 +618,10 @@ const FlowEngine = {
   },
   relayout(){
     if (!$('#rdSec')) return;
-    const c = this.charAt(this.page || 0);
+    const c = this.mode === 'scroll' ? this.visibleChar() : this.charAt(this.page || 0);
     this.layout();
+    if (this.scroll){ this.scrollToChar(c); this.track(); return; }
+    $('#rdPage').scrollTop = 0;
     this.page = this.charToPage(c);
     this.draw(true);
   },
@@ -499,21 +665,28 @@ const FlowEngine = {
     $('#rdChap').textContent = chap ? chap.l : '';
     savePos({ s: this.sec, c }, g / this.total, `${Math.round(100 * g / this.total)}%`);
     if (!silent) flash();
+    trFollow();
   },
   chapter(s, c){ let last = null; for (const t of this.b.toc || []) if (t.s < s || (t.s === s && t.c <= c)) last = t; return last; },
-  tocActive(){ const t = this.chapter(this.sec, this.charAt(this.page)); return t ? (this.b.toc || []).indexOf(t) : -1; },
+  tocActive(){ const t = this.chapter(this.sec, this.here()); return t ? (this.b.toc || []).indexOf(t) : -1; },
   async next(){
     selbar.hide();
+    if (this.scroll){ const pg = $('#rdPage'); if (pg.scrollTop + pg.clientHeight >= pg.scrollHeight - 4) await this.nextSec(); else pg.scrollBy({ top: pg.clientHeight * .9 }); return; }
     if (this.page < this.pages - 1){ this.page++; this.draw(); showChrome(false); }
     else if (this.sec < this.c.sections.length - 1){ await this.load(this.sec + 1, 0); showChrome(false); }
     else toast('Fim do livro.');
   },
   async prev(){
     selbar.hide();
+    if (this.scroll){ const pg = $('#rdPage'); if (pg.scrollTop <= 2) await this.prevSec(); else pg.scrollBy({ top: -pg.clientHeight * .9 }); return; }
     if (this.page > 0){ this.page--; this.draw(); }
     else if (this.sec > 0) await this.load(this.sec - 1, 0, true);
   },
-  async goto(s, c){ if (s !== this.sec) await this.load(s, c); else { this.page = this.charToPage(c); this.draw(); } },
+  async goto(s, c){
+    if (s !== this.sec) await this.load(s, c);
+    else if (this.scroll){ this.scrollToChar(c); this.track(); }
+    else { this.page = this.charToPage(c); this.draw(); }
+  },
   gotoPct(p){
     const g = Math.round(p * this.total);
     let s = 0; while (s < this.c.lens.length - 1 && this.before[s + 1] <= g) s++;
@@ -543,12 +716,13 @@ const FlowEngine = {
     const el = $('#rdSec');
     const list = hlOf(this.b.id).filter(x => x.s === this.sec).sort((a, b) => a.a - b.a);
     for (const x of list){
-      wrapOffsets(el, x.a, x.b, () => {
+      const ms = wrapOffsets(el, x.a, x.b, () => {
         const m = document.createElement('mark');
-        m.className = 'hl c-' + x.color + (x.note ? ' has-note' : '');
+        m.className = hlClass(x);
         m.dataset.h = x.id;
         return m;
       });
+      if (ms.length) ms[ms.length - 1].classList.add('end');
     }
   },
   repaint(){
@@ -570,7 +744,70 @@ const FlowEngine = {
     pre.setStart(el, 0); pre.setEnd(r.startContainer, r.startOffset);
     const a = pre.toString().length, b = a + r.toString().length;
     const rects = r.getClientRects(), last = rects[rects.length - 1] || r.getBoundingClientRect();
-    selbar.show(last, selActions({ text, make: color => { const x = newHl({ s: this.sec, a, b, text, color }); this.repaint(); return x; } }));
+    const overlaps = hlOf(this.b.id).filter(x => x.s === this.sec && x.a < b && x.b > a);
+    selbar.show(last, selActions({ text, overlaps, erase: () => this.erase(a, b),
+      make: (color, style) => { const x = newHl({ s: this.sec, a, b, text, color, style }); this.repaint(); return x; } }));
+  },
+  /* Apaga as marcações só no trecho [a, b): o que sobra dos lados fica */
+  erase(a, b){
+    const full = $('#rdSec').textContent;
+    const textOf = (x, y) => full.slice(x, y).replace(/\s+/g, ' ').trim();
+    const hit = hlOf(this.b.id).filter(x => x.s === this.sec && x.a < b && x.b > a);
+    const keep = hit.map(x => ({ ...x })), made = [];
+    let gone = 0;
+    for (const x of hit){
+      if (x.a >= a && x.b <= b){ delI('hl', x.id); gone++; continue; }
+      if (x.a < a && x.b > b){
+        const right = { ...x, id: uid() + uid(), a: b, text: textOf(b, x.b), created: Date.now() };
+        made.push(putI('hl', right).id);
+        x.b = a;
+      } else if (x.a < a) x.b = a;
+      else x.a = b;
+      x.text = textOf(x.a, x.b);
+      if (x.text.length < 2){ delI('hl', x.id); gone++; } else putI('hl', x);
+    }
+    this.repaint();
+    toast(gone && gone === hit.length ? (gone === 1 ? 'Marcação removida.' : `${gone} marcações removidas.`) : 'Trecho desmarcado.', 'Desfazer', () => {
+      for (const id of made) delI('hl', id);
+      for (const k of keep) putI('hl', { ...k });
+      this.repaint();
+    });
+  },
+  /* Blocos de texto na tela (para traduzir a página) */
+  visibleBlocks(){
+    const el = $('#rdSec'), pg = $('#rdPage');
+    if (!el || !pg) return [];
+    const box = pg.getBoundingClientRect();
+    const sel = 'p,h1,h2,h3,h4,h5,h6,li,blockquote,pre,figcaption,dt,dd,td,th';
+    const cand = [...el.querySelectorAll(sel)].filter(b => !b.querySelector(sel));
+    const out = [];
+    for (const b of cand){
+      const rs = [...b.getClientRects()].filter(r => r.width > 1 && r.right > box.left + 2 && r.left < box.right - 2 && r.bottom > box.top + 2 && r.top < box.bottom - 2);
+      if (!rs.length) continue;
+      // só o pedaço do bloco que está nesta página
+      let t = b.textContent;
+      if (this.paged && rs.length < b.getClientRects().length){
+        const rg = document.createRange(); rg.selectNodeContents(b);
+        const tn = [], w = document.createTreeWalker(b, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) tn.push(n);
+        let first = -1, last = -1, pos = 0;
+        for (const n2 of tn){
+          for (let i = 0; i < n2.data.length; i += 24){
+            rg.setStart(n2, i); rg.setEnd(n2, Math.min(i + 1, n2.data.length));
+            const q = rg.getClientRects()[0];
+            if (q && q.left >= box.left - 2 && q.right <= box.right + 2){ if (first < 0) first = pos + i; last = pos + i; }
+          }
+          pos += n2.data.length;
+        }
+        if (first >= 0){
+          const s0 = t.lastIndexOf(' ', first) + 1, e0 = t.indexOf(' ', last + 24);
+          t = t.slice(s0, e0 < 0 ? undefined : e0);
+        }
+      }
+      t = t.replace(/\s+/g, ' ').trim();
+      if (t) out.push(t);
+    }
+    if (!out.length){ const c = this.here(); const t = el.textContent.slice(c, c + 1600).replace(/\s+/g, ' ').trim(); if (t) out.push(t); }
+    return out;
   },
 
   /* busca no livro todo */
@@ -608,6 +845,7 @@ function wrapOffsets(root, a, b, mk){
     pos += L;
     if (pos >= b) break;
   }
+  const made = [];
   for (const [node, s, e] of parts){
     let t = node;
     if (s > 0) t = t.splitText(s);
@@ -616,5 +854,7 @@ function wrapOffsets(root, a, b, mk){
     const m = mk();
     t.parentNode.insertBefore(m, t);
     m.appendChild(t);
+    made.push(m);
   }
+  return made;
 }
