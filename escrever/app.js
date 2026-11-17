@@ -49,7 +49,11 @@ const prefs = Object.assign({
   escopo: 'nenhum', maquina: false, classe: 'nenhuma',
   ortografia: true, estilo: true, tema: 'claro', fonte: 'duo',
   corpo: 18, contagem: 0, visualizando: false, poeta: false,
-  obsidianAuto: false
+  obsidianAuto: false,
+  // personalizar.js: cor de destaque, entrelinha, largura da coluna,
+  // sinais do Markdown, barra, rodapé, tipografia e meta de palavras
+  cor: 'padrao', altura: 1.75, coluna: 46, sinais: 'visiveis',
+  barraSome: true, rodape: true, tipografia: false, meta: 0
 }, lerPrefs());
 
 /* Migração da primeira versão, em que a ferramenta se chamava
@@ -827,6 +831,9 @@ function desenhar(){
   if (comFoco) [fa, fb] = regiaoAtiva(texto, cursor);
 
   apontamentos = revisar(texto);
+  // buscar e substituir (personalizar.js): onde o termo aparece
+  const achados = typeof achadosDaBusca === 'function' ? achadosDaBusca(texto) : [];
+  const achadoAtual = achados.length && typeof achadoDaVez === 'function' ? achadoDaVez() : null;
 
   const linhas = texto.split('\n');
   function montarOverlay(){
@@ -843,6 +850,11 @@ function desenhar(){
           .flatMap(a => a.faixas || [[a.ini, a.fim]])
           .filter(([a, b]) => a < fim && b > ini);
         if (faixas.length) pedacos = aplicarFaixas(pedacos, ini, faixas, 'estilo', false);
+      }
+      if (achados.length){
+        const aqui = achados.filter(([a, b]) => a < fim && b > ini);
+        if (aqui.length) pedacos = aplicarFaixas(pedacos, ini, aqui, 'achado', false);
+        if (achadoAtual && achadoAtual[0] < fim && achadoAtual[1] > ini) pedacos = aplicarFaixas(pedacos, ini, [achadoAtual], 'achado-atual', false);
       }
       if (comFoco) pedacos = aplicarFaixas(pedacos, ini, [[fa, fb]], 'dim', true);
       const posicaoMarca = alvoRevisao !== null
@@ -1461,7 +1473,7 @@ const ROTULO_CLASSE = {
   nenhuma:'Realce', todas:'Classes', 'g-subst':'Substantivos',
   'g-verbo':'Verbos', 'g-adj':'Adjetivos', 'g-adv':'Advérbios', 'g-conj':'Conectivos'
 };
-const COR_TEMA = { claro:'#ffffff', sepia:'#f6f0e4', escuro:'#191a1c' };
+const COR_TEMA = { claro:'#ffffff', papel:'#fbf8f1', sepia:'#f6f0e4', nevoa:'#eef1f4', escuro:'#191a1c', noite:'#0f1520', grafite:'#2a2b2f', contraste:'#000000' };
 const CORPO_MIN = 14, CORPO_MAX = 28;
 
 function aplicarPrefs(){
@@ -1501,6 +1513,7 @@ function aplicarPrefs(){
   // O corretor nativo do navegador é a fonte do sublinhado vermelho.
   editor.setAttribute('spellcheck', prefs.ortografia ? 'true' : 'false');
 
+  if (typeof aplicarExtras === 'function') aplicarExtras();
   salvarPrefs();
 }
 
@@ -2037,7 +2050,7 @@ function obsPintar(estado, texto){
   $('#obsEsquecer').hidden = !temPasta;
   $('#obsDica').hidden = !ligada;
   $('#obsAuto').setAttribute('aria-checked', String(!!prefs.obsidianAuto));
-  $('#btnConfig').classList.toggle('ativo', ligada);
+  // (a engrenagem virou a gaveta Personalizar)
 }
 
 function obsDescrever(){

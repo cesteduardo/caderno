@@ -155,6 +155,7 @@ function buildReader(){
 function applyRS(){
   const el = RD.el;
   el.dataset.theme = RS.theme;
+  document.body.dataset.rdtheme = RS.theme;
   el.style.setProperty('--rd-size', (RS.size + (RS.theme === 'sol' ? 1 : 0)) + 'px');
   el.style.setProperty('--rd-lh', RS.lh);
   el.style.setProperty('--rd-mx', { s: '14px', m: '26px', l: '48px' }[RS.margin] || '26px');
@@ -192,6 +193,7 @@ function closeReader(){
   try { RD.eng && RD.eng.close(); } catch (e) {}
   if (RD.book){ RD.book.last = Date.now(); putI('books', RD.book); }
   RD.el.hidden = true; RD.el.replaceChildren();
+  delete document.body.dataset.rdtheme;
   RD.book = null; RD.eng = null;
   document.body.classList.remove('reading');
   selbar.hide();
@@ -229,7 +231,7 @@ function panel(tab){
   if (!p.hidden && p.dataset.tab === tab){ popLayer(); return; }
   const wasOpen = !p.hidden;
   p.dataset.tab = tab;
-  const tabs = [['toc', 'Sumário'], ['hl', 'Marcações'], ['tr', 'Traduzir'], ['busca', 'Buscar'], ['aa', 'Ajustes']];
+  const tabs = [['toc', 'Sumário'], ['hl', 'Marcações'], ['tr', 'Traduzir'], ['busca', 'Buscar'], ['aa', 'Aa']];
   p.replaceChildren(
     h('div', { class: 'rp-tabs' }, tabs.map(([k, l]) => h('button', { type: 'button', class: k === tab ? 'on' : '', text: l, onclick: () => { p.hidden = true; panelSwap(k); } })),
       h('button', { class: 'x', type: 'button', text: '×', 'aria-label': 'Fechar', onclick: () => popLayer() })),
@@ -270,7 +272,7 @@ function panelHl(){
         h('span', { class: 'hl-txt', text: clip(x.text, 280) }),
         x.tr ? h('span', { class: 'hl-tr', text: x.tr }) : null,
         x.note ? h('span', { class: 'hl-note', text: x.note }) : null,
-        h('i', { text: [hlColorName(x.color), hlStyleName(x.style), x.page ? 'p. ' + x.page : ''].filter(Boolean).join(' · ') })),
+        h('i', {}, h('span', { class: 'sty-mini s-' + (x.style || 'marca'), text: 'ab' }), [hlColorName(x.color), hlStyleName(x.style), x.page ? 'p. ' + x.page : ''].filter(Boolean).join(' · '))),
       h('div', { class: 'hl-acts' },
         h('button', { type: 'button', text: x.note ? 'Editar nota' : 'Nota', onclick: () => editNote(x.note, v => { x.note = v; putI('hl', x); RD.eng.repaint(); panelSwap('hl'); }) }),
         h('button', { type: 'button', text: 'Cartão', onclick: () => cardFromHl(x) }),

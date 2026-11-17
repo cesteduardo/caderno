@@ -43,7 +43,7 @@ input[type=search]:focus,textarea:focus{border-color:#cfcfcb;box-shadow:0 0 0 4p
 textarea{resize:vertical;line-height:1.5}
 .form{display:grid;gap:12px}
 .form label{display:grid;gap:6px;font-size:13px;font-weight:500;color:var(--ink-2)}
-.form label input,.form label select{width:100%}
+.form label input:not([type=radio]):not([type=checkbox]),.form label select{width:100%}
 .form-row{display:grid;grid-template-columns:1fr auto;gap:12px}
 .row-btns{display:flex;gap:8px;flex-wrap:wrap}
 
@@ -124,6 +124,7 @@ mark.hl.s-risco{text-decoration:line-through 2px var(--hc)}
 mark.hl.end.has-note::after,mark.hl.end.has-tr::after{content:"";display:inline-block;width:6px;height:6px;margin:0 1px 0 2px;border-radius:50%;vertical-align:.55em;background:var(--hc)}
 mark.hl.end.has-tr:not(.has-note)::after{background:none;box-shadow:inset 0 0 0 1.5px var(--hc)}
 .sty-ab.s-marca{background:var(--hb)}
+.selbar .sty-ab.s-marca{background:var(--hc);color:#111}
 .sty-ab.s-sub{text-decoration:underline 2.5px var(--hc);text-underline-offset:3px}
 .sty-ab.s-ond{text-decoration:underline wavy 1.5px var(--hc);text-underline-offset:4px}
 .sty-ab.s-risco{text-decoration:line-through 2px var(--hc)}
@@ -175,7 +176,13 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .reader[data-theme="noite"]{--rd-bg:#121212;--rd-ink:#d8d4cc;--rd-mute:#7c786f;--rd-line:rgba(255,255,255,.09);--rd-ui:rgba(18,18,18,.94);color-scheme:dark}
 .reader[data-theme="eink"]{--rd-bg:#ffffff;--rd-ink:#000;--rd-mute:#444;--rd-line:#000;--rd-ui:#fff}
 .reader[data-theme="sol"]{--rd-bg:#ffffff;--rd-ink:#000;--rd-mute:#222;--rd-line:#000;--rd-ui:#fff}
-.reader[data-theme="noite"] mark.hl.s-marca{background:color-mix(in srgb,var(--hb) 70%,transparent)}
+.reader[data-theme="noite"] .c-am{--hc:#f5c518;--hb:rgba(245,197,24,.30)}
+.reader[data-theme="noite"] .c-vd{--hc:#4ade80;--hb:rgba(74,222,128,.24)}
+.reader[data-theme="noite"] .c-az{--hc:#60a5fa;--hb:rgba(96,165,250,.28)}
+.reader[data-theme="noite"] .c-rs{--hc:#f472b6;--hb:rgba(244,114,182,.26)}
+.reader[data-theme="noite"] .c-lj{--hc:#fb923c;--hb:rgba(251,146,60,.28)}
+.reader[data-theme="noite"] .c-rx{--hc:#a78bfa;--hb:rgba(167,139,250,.28)}
+.reader[data-theme="noite"] mark.hl.s-marca{color:#f3efe6}
 /* e-ink e sol: sem cor (tela em tons de cinza), sem animação */
 .reader[data-theme="eink"] *,.reader[data-theme="sol"] *{transition:none!important;animation:none!important}
 /* sem cor na tela: o estilo é o que distingue; marca-texto vira cinza */
@@ -251,7 +258,6 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .toc li.on>button{font-weight:600}
 .toc li.d1>button{padding-left:34px}.toc li.d2>button{padding-left:50px}.toc li.d3>button{padding-left:66px}
 .hls li{border-left:4px solid var(--hc,transparent);margin:6px 12px;border-radius:4px;background:color-mix(in srgb,var(--rd-line) 50%,transparent)}
-.hls li.s-sub,.hls li.s-ond,.hls li.s-risco{border-left-style:dashed}
 .hls .hl-go{display:grid!important;gap:4px;padding:12px 14px!important}
 .hl-txt{font-size:14px}
 .hl-note{font-size:13.5px;color:var(--ink-2);padding-left:10px;border-left:2px solid var(--line)}
@@ -270,7 +276,10 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .rp-search{padding:6px 14px 10px}
 .reader input[type=search]{background:transparent;color:var(--rd-ink);border-color:var(--rd-line)}
 .hits mark{background:rgba(255,170,0,.4);border-radius:2px}
-.aa{padding:4px 18px 20px;display:grid;gap:8px}
+.aa{padding:4px 18px 20px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.aa .seg{display:flex;width:100%}
+.aa .seg button{flex:1 1 auto;padding:7px 10px}
+.aa-row select{flex:0 1 60%;min-width:0}
 .aa h3{font-size:12.5px;font-weight:600;color:var(--rd-mute);margin-top:12px;text-transform:none}
 .aa .seg{background:var(--rd-line)}
 .aa .seg button{color:var(--rd-ink)}
@@ -471,7 +480,6 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .nsrc:hover{text-decoration:underline;text-underline-offset:3px}
 .nlist{display:grid;gap:10px}
 .nitem{display:grid;gap:8px;padding:14px 14px 6px 18px;border-radius:var(--r-md);background:#fff;border-left:4px solid var(--hc,var(--line))}
-.nitem.s-sub,.nitem.s-ond,.nitem.s-risco{border-left-style:dashed}
 .nq{font-size:15.5px;line-height:1.55;font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Noto Serif",Georgia,serif}
 .nbody{white-space:pre-wrap;font-size:15px;color:var(--ink-2)}
 .nitem .hl-acts{padding:0;margin-left:-8px}
@@ -558,11 +566,13 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .tr-o{font-size:13px;color:var(--rd-mute);margin-bottom:6px}
 .tr-t{font-size:15.5px;line-height:1.55;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif}
 .reader select{background:var(--rd-bg);color:var(--rd-ink);border-color:var(--rd-line)}
-.hl-names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.hl-names{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .hl-name{display:flex;align-items:center;gap:8px}
 .hl-name i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--hc)}
 .hl-name input{flex:1;min-width:0;padding:7px 10px;font-size:13px;background:transparent;color:var(--rd-ink);border-color:var(--rd-line)}
-.form .radio{display:flex;align-items:center;gap:10px;font-size:15px;padding:6px 0}
+.form .radio{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:500;color:var(--ink);padding:12px 14px;border-radius:var(--r-sm);background:var(--surface);cursor:pointer}
+.form .radio input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--ink)}
+.form .radio:has(input:checked){box-shadow:inset 0 0 0 1.5px var(--ink)}
 
 /* =====================================================================
    ESCREVER: o Escritor por cima de tudo, com o painel de ligações
@@ -643,3 +653,17 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .rp-list,.nlist,.wp-hls,.qs-list{list-style:none}
 /* o × do painel do leitor fica visível mesmo com as abas rolando */
 .rp-tabs .x{position:sticky;right:0;background:var(--rd-bg);box-shadow:-10px 0 10px var(--rd-bg)}
+
+/* aviso legível sobre o leitor escuro */
+body[data-rdtheme="noite"] .toast{background:#ece8df;color:#111}
+body[data-rdtheme="noite"] .toast button{color:#111}
+/* seletores da barra de notas na mesma altura das pílulas */
+.notes-bar select{height:40px;padding:0 34px 0 14px;border-radius:999px;font-size:13.5px;background-color:var(--surface);border-color:transparent}
+/* estilo da marcação nas listas: amostra pequena antes do texto do rodapé */
+.sty-mini{display:inline-block;font-family:"Iowan Old Style",Georgia,serif;font-size:13px;line-height:1;padding:0 2px;margin-right:6px;border-radius:2px;color:var(--ink)}
+.sty-mini.s-marca{background:var(--hb)}
+.sty-mini.s-sub{text-decoration:underline 2px var(--hc);text-underline-offset:2px}
+.sty-mini.s-ond{text-decoration:underline wavy 1.5px var(--hc);text-underline-offset:3px}
+.sty-mini.s-risco{text-decoration:line-through 2px var(--hc)}
+.reader .sty-mini{color:var(--rd-ink)}
+.reader[data-theme="noite"] .hl-layer i.s-marca{mix-blend-mode:screen}

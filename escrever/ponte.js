@@ -29,12 +29,12 @@ if (PONTE) (() => {
   const novo = $('#btnNovo');
   novo.title = 'Nova nota (Ctrl+Alt+N)';
   novo.setAttribute('aria-label', 'Nova nota');
-  novo.querySelector('span').textContent = 'Nova nota';
+  novo.innerHTML = 'Nova nota<kbd>Ctrl+Alt+N</kbd>';
   novo.onclick = () => { ponteFlush(); PONTE.nova(); };
 
   const abrir = $('#btnAbrir');
   abrir.title = 'Trazer um arquivo .md ou .txt como nota nova';
-  abrir.querySelector('span').textContent = 'Importar';
+  abrir.textContent = 'Importar arquivo como nota…';
   abrirArquivo = (file) => {
     const leitor = new FileReader();
     leitor.onload = () => { ponteFlush(); PONTE.importar(String(leitor.result).replace(/\r\n?/g, '\n'), file.name); };

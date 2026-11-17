@@ -142,7 +142,7 @@ function markItem(it){
     x.tr ? h('p', { class: 'hl-tr', text: x.tr }) : null,
     x.note ? h('p', { class: 'hl-note', text: x.note }) : null,
     h('div', { class: 'hl-acts' },
-      h('span', { class: 'muted small', text: [hlColorName(x.color), it.s.sub, fmtDay(it.at)].filter(Boolean).join(' · ') }),
+      h('span', { class: 'muted small' }, h('span', { class: 'sty-mini s-' + (x.style || 'marca'), text: 'ab' }), [hlColorName(x.color), it.s.sub, fmtDay(it.at)].filter(Boolean).join(' · ')),
       h('button', { type: 'button', text: 'Abrir', onclick: () => openSource({ t: 'hl', id: x.id, book: x.book }) }),
       h('button', { type: 'button', text: x.note ? 'Editar nota' : 'Nota', onclick: () => editNote(x.note, v => { x.note = v; putI('hl', x); renderNotes(); }) }),
       h('button', { type: 'button', text: 'Cartão', onclick: () => x.lesson ? lessonCard(getI('lessons', x.lesson) || { name: '', course: '' }, x) : cardFromHl(x) }),
