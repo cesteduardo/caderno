@@ -74,8 +74,8 @@ const ATALHOS = [
   ['Personalizar', 'Ctrl+,'], ['Sumário', 'Ctrl+Shift+O'], ['Buscar', 'Ctrl+F'], ['Substituir', 'Ctrl+H'],
   ['Modo Foco', 'Ctrl+D'], ['Máquina de escrever', 'Ctrl+T'], ['Classes gramaticais', 'Ctrl+G'],
   ['Ortografia', 'Ctrl+P'], ['Revisão de estilo', 'Ctrl+R'], ['Corrigir a palavra', 'Ctrl+;'],
-  ['Visualizar', 'Ctrl+E'], ['Tela cheia', 'Ctrl+Shift+F'], ['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'], ['Link', 'Ctrl+K'],
-  ['Salvar ou baixar', 'Ctrl+S'], ['Notas', 'Ctrl+O'], ['Nova nota', 'Ctrl+Alt+N'], ['Grifar', 'Ctrl+Shift+H'],
+  ['Visualizar', 'Ctrl+E'], ['Tela cheia', 'Ctrl+Shift+F'], ['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'], ['Ligação [[nota]]', 'Ctrl+K'],
+  ['Salvar ou baixar', 'Ctrl+S'], ['Notas', 'Ctrl+O'], ['Nova nota', 'Ctrl+Alt+N'], ['Realçar', 'Ctrl+Shift+H'], ['Comentário', 'Ctrl+/'],
 ];
 
 const PADRAO = {
@@ -526,6 +526,7 @@ let secaoAtual = 'estilos';
 function irSecao(id){
   if (!secoes.some(x => x.dataset.secao === id)) return;
   secaoAtual = id;
+  if (id === 'amostra' && typeof pintarAmostra === 'function') pintarAmostra();
   secoes.forEach(x => x.classList.toggle('atual', x.dataset.secao === id));
   marcar(id);
   rolagem.scrollTop = 0;
@@ -952,7 +953,7 @@ function criarPilula(trilha, achar){
 const marcado = (sel) => (t) => t.querySelector(sel);
 painel.querySelectorAll('.aj-seg, .aj-fichas, .aj-mini').forEach(t => criarPilula(t, marcado('[role=radio][aria-checked="true"]')));
 criarPilula($('#ajNav'), marcado('[aria-current="true"]'));
-function medirPilulas(semAnim){ for (const p of PILULAS) if (p.trilha.offsetParent && !p.trilha.closest('.menu-pop')) p.medir(semAnim); }
+function medirPilulas(semAnim){ for (const p of PILULAS) if (p.trilha.offsetParent) p.medir(semAnim); }
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => medirPilulas(true)).catch(() => {});
 
 /* Nos menus da barra a pílula só existe onde as opções correm da
@@ -961,21 +962,6 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => medi
 criarPilula($('#menuMais .mp-abas'), marcado('[aria-selected="true"]'));
 $('#btnAtalhos').onclick = () => abrirAjustes('atalhos');
 
-/* ── celular: a amostra rola junto com os ajustes ─────────────
-   Na tela estreita ela sai da coluna lateral e vira o começo da
-   rolagem, grande; ao alargar a janela, volta para o lado. */
-{
-  const amostra = painel.querySelector('.aj-amostra');
-  const meio = painel.querySelector('.aj-meio');
-  const conteudo = $('#ajConteudo');
-  const estreita = matchMedia('(max-width: 720px)');
-  const posicionar = () => {
-    if (estreita.matches){ if (amostra.parentElement !== conteudo) conteudo.prepend(amostra); }
-    else if (amostra.parentElement !== meio) meio.append(amostra);
-  };
-  if (estreita.addEventListener) estreita.addEventListener('change', posicionar); else estreita.addListener(posicionar);
-  posicionar();
-}
 
 // a primeira seção (no fim do arquivo: as pílulas já existem)
 irSecao('estilos');

@@ -16,21 +16,29 @@ Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o apli
 ## O que há de novo na 2.0
 
 ### Notas, sem barra lateral
-O botão **Notas** (ou `Ctrl+O`) abre um pop-up no meio da tela com todas as suas notas em cartões: título, começo do texto, quando foi mexida e quantas palavras tem. Dá para procurar, abrir com `Enter`, criar uma **Nova nota** (`Ctrl+Alt+N`) e apagar, com **Desfazer** por alguns segundos. Não existe barra lateral: a ideia é a folha inteira para escrever, e o arquivo de verdade morar no Obsidian.
+O botão **Notas** (ou `Ctrl+O`) abre um pop-up no meio da tela com todas as suas notas em cartões: título, começo do texto, quando foi mexida, quantas palavras tem e quantas outras notas a citam. Dá para procurar, abrir com `Enter`, criar uma **Nova nota** (`Ctrl+Alt+N`) e apagar, com **Desfazer** por alguns segundos. Não existe barra lateral: a ideia é a folha inteira para escrever, e o arquivo de verdade morar no Obsidian.
+
+**Ligações entre notas.** `[[Título]]` liga uma nota a outra, como no Obsidian. Escrever `[[` (ou `Ctrl+K`) abre a lista das suas notas; `Ctrl+clique` na ligação, ou um clique nela no Visualizar, abre a nota citada, e cria uma nova com aquele título se ela ainda não existir.
 
 Quem vinha da 1.x não perde nada: o documento único de antes vira a primeira nota na primeira abertura.
 
-### Botão direito: o caderno de estudos
-Clicar com o botão direito no texto abre um menu ao lado do mouse:
+### Botão direito, no modelo do Obsidian
+Clicar com o botão direito no texto abre um menu ao lado do mouse, com submenus que abrem ao passar o ponteiro (ou com a seta para a direita):
 
-- **Recortar, Copiar, Colar** e **Selecionar tudo**. O Colar também traz imagens da área de transferência.
-- **Formatar:** negrito, itálico, riscado, código e link.
-- **Estudo:**
-  - **Grifar** (`==texto==`, o mesmo grifo do Obsidian, `Ctrl+Shift+H`);
-  - **Nota de rodapé** (a chamada `[^1]` fica no cursor e o texto da nota vai para o fim);
-  - **Comentário oculto** (`%%assim%%`, fica no arquivo e some na leitura e na exportação);
-  - **Tarefa** e **Imagem**.
-- **Parágrafo:** título, subtítulo, citação, lista e lista numerada. Funcionam em várias linhas de uma vez e desfazem se você aplicar de novo.
+| Item | O que faz |
+| --- | --- |
+| **Adicionar link** | ligação interna `[[nota]]` (`Ctrl+K`) |
+| **Adicionar link externo** | `[texto](url)` |
+| **Formatar ▸** | negrito, itálico, riscado, **Realce ▸** (padrão, vermelho, laranja, amarelo, verde, azul, roxo), código, equação, comentário (`Ctrl+/`), limpar formatação |
+| **Parágrafo ▸** | lista de marcadores, numerada e de tarefas; Título 1 a 6 e Texto; citação |
+| **Inserir ▸** | nota de rodapé, tabela, destaque (callout), régua horizontal, imagem, bloco de código, equação em bloco |
+| **Cortar, Copiar, Colar** | o Colar também traz imagens |
+| **Colar como texto simples** | `Ctrl+Shift+V` |
+| **Selecionar tudo** | `Ctrl+A` |
+
+E o que depende de onde está o cursor: sobre uma ligação, **Abrir**; sobre um link, **Abrir link**, **Editar link** e **Copiar URL**; sobre uma nota de rodapé, **Ir para a nota** e **Excluir nota e referência**; sobre uma palavra da lista de erros, **Trocar por** a forma certa.
+
+O realce colorido é gravado como no Obsidian, com um emoji logo depois do `==` (`==🟥texto==`), para o arquivo continuar legível em qualquer editor. No Visualizar ele aparece na cor certa, o destaque (`> [!note]`) vira uma caixa e as equações saem em itálico matemático.
 
 No celular, o toque longo continua mostrando o menu do sistema, que já sabe selecionar.
 
@@ -44,15 +52,15 @@ Tudo abre como pop-up central, deitado para os lados:
 - **Realce:** a revisão (ortografia e estilo) numa coluna e as classes gramaticais na outra, cada uma com a bolinha da sua cor.
 - **Documento:** quatro abas (**Arquivo, Exportar, Ferramentas, Ajuda**) com uma grade de ícones.
 
-Nos menus nada acende sozinho: só o que está sob o ponteiro ou sob as setas do teclado. A pílula que desliza fica só onde as opções correm da esquerda para a direita, como nos seletores e nas abas.
+Todo pop-up tem um **×** para fechar (além do `Esc` e do clique fora), e toda busca fica no meio, logo abaixo do título. Nos menus nada acende sozinho: só o que está sob o ponteiro ou sob as setas do teclado, sempre com o mesmo véu de cor. A pílula que desliza fica só onde as opções correm da esquerda para a direita, como nos seletores e nas abas.
 
 ### Personalizar
-O painel **Aa** (`Ctrl+,`) ganhou uma fileira de ícones centrada no alto, como nas Preferências do macOS: Estilos, Aparência, Texto, Escrita, Revisão, Tela e meta, Obsidian e Atalhos. Cada ícone mostra a sua seção, com mais espaço; a busca no alto junta as seções e mostra tudo o que bate. A **amostra** à direita muda na hora com cada ajuste.
+O painel **Aa** (`Ctrl+,`) segue o desenho de ajustes do RefBox: título no centro, × no canto, a busca centralizada e uma fileira de ícones (Estilos, Aparência, Texto, Escrita, Revisão, Tela e meta, Obsidian, Atalhos e **Amostra**). Cada ícone mostra a sua seção, com bastante espaço; a busca junta as seções e mostra tudo o que bate. A **Amostra** é uma aba inteira: um trecho grande, escrito com tudo o que você escolheu.
 
 A seção **Obsidian** virou um módulo de verdade: estado da pasta, escolher, salvar agora, esquecer, salvar sozinho enquanto escreve e um passo a passo de como funciona.
 
-### Ícones do GNOME e letra Inter
-Os ícones dos menus e do Personalizar vêm do **Adwaita**, o tema de ícones do GNOME, nas versões *symbolic*. A interface inteira usa a **Inter**. As cores dos quadradinhos do Personalizar continuam as mesmas.
+### Um pacote de ícones só, e a letra Inter
+Todos os ícones (barra, menus, Personalizar, botão direito) vêm do **Lucide**, um pacote aberto de ícones de traço, com o mesmo traço e as mesmas pontas em todo lugar. A interface inteira usa a **Inter**. As cores dos quadradinhos do Personalizar continuam as mesmas.
 
 ### Correções
 - **Modo Foco:** a linha anterior piscava ao passar para a próxima. O destaque só era redesenhado quando a tecla subia; agora anda no mesmo instante que o cursor.
@@ -96,8 +104,10 @@ No Mac, troque `Ctrl` por `⌘`, `Alt` por `⌥` e `Shift` por `⇧`. O próprio
 | `Ctrl+O` | notas |
 | `Ctrl+Alt+N` | nova nota |
 | `Ctrl+,` | personalizar |
-| `Ctrl+B` / `Ctrl+I` / `Ctrl+K` | negrito, itálico, link |
-| `Ctrl+Shift+H` | grifar |
+| `Ctrl+B` / `Ctrl+I` | negrito, itálico |
+| `Ctrl+K` | ligação para outra nota `[[…]]` |
+| `Ctrl+Shift+H` | realçar (grifo) |
+| `Ctrl+/` | comentário oculto |
 | `Ctrl+E` | visualizar / voltar a escrever |
 | `Ctrl+D` | modo foco |
 | `Ctrl+T` | máquina de escrever |
@@ -134,7 +144,7 @@ As três fontes da iA (**Duo**, **Mono** e **Quattro**) são livres (Apache 2.0,
 | **Quattro** | mesma largura | 3,6% mais larga | ênfase marcada pela cor |
 | **Serifa** e **Inter** | não usa | não usa | ênfase e títulos pela cor |
 
-A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. Os ícones são do **Adwaita**, do projeto GNOME (GNU LGPL v3 ou CC BY-SA 3.0), em `icones.js`. As licenças estão em `fontes/LICENSE.md` e `fontes/LICENSE-INTER.md`.
+A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. Os ícones são do **Lucide** (licença ISC, [lucide.dev](https://lucide.dev)), em `icones.js`. As licenças estão em `fontes/LICENSE.md` e `fontes/LICENSE-INTER.md`.
 
 ---
 
@@ -146,8 +156,8 @@ A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. O
 | `style.css` | fontes, papéis, cores, interface, impressão |
 | `app.js` | pedaços, foco, gramática, ortografia, estilo, Markdown, exportação, guia, menus |
 | `personalizar.js` | o painel Aa, estilos, sumário, buscar e substituir, pílulas |
-| `estudo.js` | notas, botão direito, imagens coladas |
-| `icones.js` | os ícones Adwaita |
+| `estudo.js` | notas e ligações, botão direito, imagens coladas |
+| `icones.js` | os ícones Lucide |
 | `ponte.js` | a ligação com o [Caderno](https://cesteduardo.github.io/caderno/) (só age lá dentro) |
 | `fontes/` | iA Writer e Inter em `woff2`, com as licenças |
 

@@ -152,13 +152,41 @@ function speak(text, lang){
 /* Cartão de tradução na barra de seleção */
 function translateCard(text, opts = {}){
   const to = RS.trTo || 'pt-BR';
+  const fixo = () => !!RS.trcFixo;
+  const pino = h('button', { class: 'trc-pino', type: 'button', title: 'Voltar a abrir junto do trecho', 'aria-label': 'Soltar a posição', text: 'Soltar',
+    hidden: !fixo(), onmousedown: e => e.preventDefault(), onclick: () => { RS.trcFixo = null; saveRS(); pino.hidden = true; selbar.place(selbar.rect); } });
   const body = h('div', { class: 'trc' },
-    h('div', { class: 'trc-head' },
+    h('div', { class: 'trc-head', title: 'Arraste para levar a tradução aonde for melhor' },
+      h('span', { class: 'trc-alca', 'aria-hidden': 'true' }),
       h('span', { class: 'trc-lang', text: 'Traduzindo…' }),
+      pino,
       h('button', { class: 'x', type: 'button', 'aria-label': 'Fechar', text: '×', onmousedown: e => e.preventDefault(), onclick: () => selbar.hide() })),
     h('p', { class: 'trc-out', text: '…' }),
     h('div', { class: 'trc-acts' }));
   selbar.card(opts.rect, body);
+  /* Arrastar pelo topo: a tradução fica onde você a deixar, e as
+     próximas abrem no mesmo lugar (até tocar em Soltar). */
+  const cab = body.querySelector('.trc-head');
+  cab.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest('button')) return;
+    e.preventDefault();
+    const el = selbar.el, r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    el.classList.add('arrastando');
+    cab.setPointerCapture(e.pointerId);
+    let pos = null;
+    const mover = (ev) => {
+      pos = { x: Math.max(8, Math.min(innerWidth - r.width - 8, ev.clientX - dx)), y: Math.max(8, Math.min(innerHeight - 80, ev.clientY - dy)) };
+      el.style.transform = `translate(${Math.round(pos.x)}px,${Math.round(pos.y)}px)`;
+    };
+    const soltar = () => {
+      cab.removeEventListener('pointermove', mover);
+      el.classList.remove('arrastando');
+      if (pos){ RS.trcFixo = pos; saveRS(); pino.hidden = false; }
+    };
+    cab.addEventListener('pointermove', mover);
+    cab.addEventListener('pointerup', soltar, { once: true });
+    cab.addEventListener('pointercancel', soltar, { once: true });
+  });
   translateOne(text, to).then(r => {
     if (!body.isConnected) return;
     body.querySelector('.trc-lang').textContent = r.via === 'mesma' ? `Já está em ${trLangName(to)}` : `${trLangName(r.from)} → ${trLangName(to)} · ${r.via}`;

@@ -12,8 +12,8 @@
 'use strict';
 
 if (PONTE) (() => {
-  const SVG_VOLTAR = '<svg viewBox="0 0 20 20"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg>';
-  const SVG_LIGA = '<svg viewBox="0 0 20 20"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-.9.9M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l.9-.9"/></svg>';
+  const SVG_VOLTAR = ICO.voltar;
+  const SVG_LIGA = ICO.ligacoes;
 
   /* ── barra ─────────────────────────────────────────────── */
   const grupoArq = $('.grupo--arquivo');

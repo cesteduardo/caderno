@@ -11,6 +11,65 @@
    ===================================================================== */
 'use strict';
 
+/* ---------- Texto do PDF ----------
+   O pdf.js entrega pedaços soltos. Antes eles eram colados com espaço,
+   o que deixava "infor- mação" no meio das frases e juntava a página
+   inteira num bloco só. Aqui os pedaços viram linhas (pela altura na
+   página e pelo fim de linha que o pdf.js marca), as linhas viram
+   parágrafos (pela distância entre elas) e a palavra partida no fim da
+   linha volta a ser uma. Busca e tradução ficam muito melhores. */
+function textoDaPagina(tc){
+  const linhas = [];
+  let atual = null;
+  for (const it of tc.items){
+    if (it.str == null) continue;
+    const y = it.transform ? it.transform[5] : 0, alt = Math.abs(it.height || (it.transform ? it.transform[3] : 10)) || 10;
+    if (!atual || Math.abs(y - atual.y) > alt * .5){ atual = { y, alt, t: '' }; linhas.push(atual); }
+    const t = it.str;
+    atual.t += (atual.t ? ' ' : '') + t;
+    if (it.hasEOL){ atual = null; }
+  }
+  const limpas = linhas.map(l => ({ ...l, t: l.t.replace(/\s+/g, ' ').replace(/ ([,.;:!?)\]»”])/g, '$1').trim() })).filter(l => l.t);
+  if (!limpas.length) return { texto: '', paras: [] };
+  const gaps = [];
+  for (let i = 1; i < limpas.length; i++){ const g = Math.abs(limpas[i - 1].y - limpas[i].y); if (g > 0) gaps.push(g); }
+  gaps.sort((a, b) => a - b);
+  const normal = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 12;
+  const paras = [];
+  let par = limpas[0].t;
+  for (let i = 1; i < limpas.length; i++){
+    const ant = limpas[i - 1], l = limpas[i];
+    const gap = Math.abs(ant.y - l.y);
+    const quebra = gap > normal * 1.55 || (/[.:!?]["”»)]?$/.test(ant.t) && ant.t.length < 45);
+    if (quebra){ paras.push(par); par = l.t; continue; }
+    // "infor-" + "mação" vira "informação"; hífen de verdade ("guarda-chuva") fica
+    if (/[A-Za-zÀ-ÿ]-$/.test(par) && /^[a-zà-ÿ]/.test(l.t)) par = par.slice(0, -1) + l.t;
+    else par += ' ' + l.t;
+  }
+  paras.push(par);
+  return { texto: paras.join(' '), paras };
+}
+
+/* ---------- OCR (PDF escaneado) ----------
+   Página sem camada de texto é foto de papel: não dá para selecionar,
+   buscar nem traduzir. O Tesseract (no próprio aparelho, sem mandar a
+   página para ninguém) lê a imagem e devolve as palavras com a posição
+   de cada uma; elas viram uma camada de texto invisível por cima da
+   página, igual à de um PDF digital. O resultado fica guardado, então
+   cada página é lida uma vez só. Na primeira vez o navegador baixa o
+   leitor e o idioma (alguns MB). */
+const OCR_JS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+let ocrMotor = null;
+function ocrTrabalhador(){
+  if (ocrMotor) return ocrMotor;
+  ocrMotor = (async () => {
+    if (!self.Tesseract) await new Promise((ok, erro) => { const sc = document.createElement('script'); sc.src = OCR_JS; sc.onload = ok; sc.onerror = () => erro(new Error('sem internet para baixar o leitor de OCR')); document.head.append(sc); });
+    return Tesseract.createWorker(RS.ocrLang || 'por+eng');
+  })();
+  ocrMotor.catch(() => { ocrMotor = null; });
+  return ocrMotor;
+}
+
 const PdfEngine = {
   paged: false,
   async open(b){
@@ -24,6 +83,8 @@ const PdfEngine = {
     this.zoom = b.zoom || 1;
     this.sizes = {};
     this.texts = {};
+    this.paras = {};
+    this.avisouOcr = 0;
     this.live = new Map();
     this.queue = Promise.resolve();
     const p1 = await this.doc.getPage(1);
@@ -117,12 +178,75 @@ const PdfEngine = {
     pg.append(cv, hl, tl);
     this.live.set(n, 'on');
     this.paintPage(n);
+    let temTexto = false;
     try {
       const tc = await page.getTextContent();
-      this.texts[n] ||= tc.items.map(i => i.str || '').join(' ').replace(/\s+/g, ' ');
-      if (this.live.get(n) === 'on') await pdfjsLib.renderTextLayer({ textContentSource: tc, container: tl, viewport: vp, textDivs: [] }).promise;
+      const tx = textoDaPagina(tc);
+      temTexto = tx.texto.length > 20;
+      if (temTexto){ this.texts[n] ||= tx.texto; this.paras[n] ||= tx.paras; }
+      if (this.live.get(n) === 'on' && temTexto) await pdfjsLib.renderTextLayer({ textContentSource: tc, container: tl, viewport: vp, textDivs: [] }).promise;
     } catch (e) {}
     page.cleanup();
+    if (!temTexto && this.live.get(n) === 'on') this.semTexto(n, cv);
+  },
+
+  /* página sem texto: usa o OCR já guardado, lê sozinho (se pedido) ou oferece o botão */
+  async semTexto(n, cv){
+    const pg = this.pageEl(n);
+    if (!pg) return;
+    pg.classList.add('sem-texto');
+    const salvo = await DB.get('ocr:' + this.b.id + ':' + n);
+    if (salvo && salvo.palavras){ this.camadaOcr(n, salvo); return; }
+    if (RS.ocrAuto){ this.ocr(n, cv); return; }
+    if (pg.querySelector('.ocr-bt')) return;
+    pg.append(h('button', { class: 'ocr-bt', type: 'button', onclick: (e) => { e.stopPropagation(); this.ocr(n, pg.querySelector('canvas')); } },
+      h('b', { text: 'Reconhecer o texto' }), h('span', { text: 'Página escaneada: o OCR deixa selecionar, buscar e traduzir' })));
+    if (!this.avisouOcr){ this.avisouOcr = 1; toast('Este PDF é escaneado. Toque em “Reconhecer o texto” na página, ou ligue o OCR automático em Aa.'); }
+  },
+  async ocr(n, cv){
+    const pg = this.pageEl(n);
+    if (!pg || !cv || pg.classList.contains('lendo')) return;
+    pg.classList.add('lendo');
+    pg.querySelector('.ocr-bt')?.remove();
+    const aviso = h('div', { class: 'ocr-lendo', text: 'Lendo a página…' });
+    pg.append(aviso);
+    try {
+      const w = await ocrTrabalhador();
+      const { data } = await w.recognize(cv);
+      const W = cv.width, H = cv.height;
+      const palavras = (data.words || []).filter(p => p.text && p.text.trim() && p.confidence > 35)
+        .map(p => [p.text, +(p.bbox.x0 / W).toFixed(4), +(p.bbox.y0 / H).toFixed(4), +((p.bbox.x1 - p.bbox.x0) / W).toFixed(4), +((p.bbox.y1 - p.bbox.y0) / H).toFixed(4)]);
+      const paras = (data.paragraphs || []).map(q => q.text.replace(/-\n(?=[a-zà-ÿ])/g, '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const salvo = { palavras, paras, texto: paras.join(' ') };
+      await DB.set('ocr:' + this.b.id + ':' + n, salvo);
+      this.camadaOcr(n, salvo);
+      if (!palavras.length) toast('Não achei texto nesta página.');
+    } catch (e) {
+      toast('Não deu para reconhecer: ' + (e.message || e));
+      pg.classList.remove('lendo');
+      this.semTexto(n, cv);
+    } finally { aviso.remove(); pg.classList.remove('lendo'); }
+  },
+  /* as palavras lidas viram uma camada de texto invisível, do tamanho de cada uma */
+  camadaOcr(n, salvo){
+    const pg = this.pageEl(n);
+    if (!pg) return;
+    this.texts[n] = salvo.texto || '';
+    this.paras[n] = salvo.paras || [];
+    pg.classList.add('com-ocr');
+    pg.querySelector('.textLayer')?.remove();
+    const tl = h('div', { class: 'textLayer ocr-layer' });
+    const H = pg.offsetHeight;
+    for (const [t, x, y, w, hh] of salvo.palavras){
+      const sp = h('span', { text: t, style: { left: x * 100 + '%', top: y * 100 + '%', width: w * 100 + '%', height: hh * 100 + '%', fontSize: Math.max(6, hh * H * .92) + 'px' } });
+      tl.append(sp, document.createTextNode(' '));
+    }
+    pg.append(tl);
+    requestAnimationFrame(() => tl.querySelectorAll('span').forEach(sp => {
+      const k = sp.offsetWidth / Math.max(1, sp.scrollWidth);
+      if (k < .98 || k > 1.02) sp.style.transform = `scaleX(${k.toFixed(3)})`;
+    }));
+    trFollow();
   },
 
   track(){
@@ -154,11 +278,16 @@ const PdfEngine = {
   next(){ this.scrollTo((this.cur || 1) + 1); }, prev(){ this.scrollTo((this.cur || 1) - 1); }, link(){},
   /* Texto da página atual (para traduzir), em pedaços de frases */
   visibleBlocks(){
-    const t = (this.texts[this.cur || 1] || '').trim();
-    if (!t) return [];
-    const out = []; let cur = '';
-    for (const s of t.match(/[^.!?]+[.!?]*\s*/g) || [t]){ if ((cur + s).length > 700 && cur){ out.push(cur.trim()); cur = ''; } cur += s; }
-    if (cur.trim()) out.push(cur.trim());
+    const paras = this.paras[this.cur || 1];
+    const base = paras && paras.length ? paras : [(this.texts[this.cur || 1] || '').trim()].filter(Boolean);
+    // parágrafo inteiro dá contexto ao tradutor; só os muito longos se dividem, por frase
+    const out = [];
+    for (const t of base){
+      if (t.length <= 1400){ out.push(t); continue; }
+      let cur = '';
+      for (const f of t.match(/[^.!?]+[.!?]*\s*/g) || [t]){ if ((cur + f).length > 1200 && cur){ out.push(cur.trim()); cur = ''; } cur += f; }
+      if (cur.trim()) out.push(cur.trim());
+    }
     return out;
   },
 
@@ -204,7 +333,11 @@ const PdfEngine = {
     for (let n = 1; n <= this.n; n++){
       if (!this.doc) return;
       if (this.texts[n] == null){
-        try { const p = await this.doc.getPage(n); const tc = await p.getTextContent(); this.texts[n] = tc.items.map(i => i.str || '').join(' ').replace(/\s+/g, ' '); p.cleanup(); }
+        try {
+          const p = await this.doc.getPage(n); const tx = textoDaPagina(await p.getTextContent()); p.cleanup();
+          if (tx.texto) { this.texts[n] = tx.texto; this.paras[n] = tx.paras; }
+          else { const o = await DB.get('ocr:' + this.b.id + ':' + n); this.texts[n] = (o && o.texto) || ''; }
+        }
         catch (e) { this.texts[n] = ''; }
       }
       const txt = this.texts[n], low = norm(txt);

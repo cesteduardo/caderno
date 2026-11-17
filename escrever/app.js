@@ -434,6 +434,10 @@ function dividir(pedacos, re, montar){
 
 /* Marcações em linha. Os sinais do Markdown continuam visíveis,
    apenas recuados — o texto nunca muda de tamanho. */
+/* As cores do realce vão no próprio texto, com um emoji quadrado logo
+   depois do ==, para o arquivo continuar legível em qualquer editor. */
+const COR_GRIFO = { '🟥': 'vermelho', '🟧': 'laranja', '🟨': 'amarelo', '🟩': 'verde', '🟦': 'azul', '🟪': 'roxo' };
+
 const REGRAS_INLINE = [
   // código entre crases — protegido de todo o resto
   [/(`+)([^`]+)\1/g, (m) => [pd(m[1],'mk t-cod'), pd(m[2],'t-cod'), pd(m[1],'mk t-cod')]],
@@ -441,8 +445,10 @@ const REGRAS_INLINE = [
   [/\[\[([^\[\]\n]+)\]\]/g, (m) => [pd('[[','mk'), pd(m[1],'t-link t-wiki'), pd(']]','mk')]],
   // #etiqueta
   [/(^|[\s(])(#[A-Za-zÀ-ÖØ-öø-ÿ0-9_\/-]*[A-Za-zÀ-ÖØ-öø-ÿ_][A-Za-zÀ-ÖØ-öø-ÿ0-9_\/-]*)/g, (m) => [pd(m[1]), pd(m[2],'t-tag')]],
-  // ==grifo== (o mesmo do Obsidian)
-  [/==(?=\S)([^=\n]*?\S)==/g, (m) => [pd('==','mk'), pd(m[1],'t-grifo'), pd('==','mk')]],
+  // ==grifo== (o do Obsidian); ==🟥grifo== escolhe a cor, como no Obsidian 1.x
+  [/==([🟥🟧🟨🟩🟦🟪]?)(?=\S)([^=\n]*?\S)==/gu, (m) => [pd('==','mk'), ...(m[1] ? [pd(m[1],'mk t-grifo-cor')] : []), pd(m[2],'t-grifo ' + (COR_GRIFO[m[1]] ? 'gr-' + COR_GRIFO[m[1]] : '')), pd('==','mk')]],
+  // $equação$
+  [/\$(?=[^\s$])([^$\n]*?[^\s$])\$(?!\d)/g, (m) => [pd('$','mk t-math'), pd(m[1],'t-math'), pd('$','mk t-math')]],
   // %%comentário%%: fica no arquivo, some na leitura e na exportação
   [/%%([^%\n]*)%%/g, (m) => [pd('%%','mk t-coment'), pd(m[1],'t-coment'), pd('%%','mk t-coment')]],
   // [^1]: chamada de nota de rodapé
@@ -1096,7 +1102,8 @@ function paraHTML(md, raiz = true){
       const n = numeroDaNota(id);
       return n ? guardar(`<sup class="nr" id="nr-ref-${n}"><a href="#nr-${n}">${n}</a></sup>`) : `[^${id}]`;
     });
-    s = s.replace(/==(?=\S)([^=\n]*?\S)==/g, '<mark>$1</mark>');
+    s = s.replace(/==([🟥🟧🟨🟩🟦🟪]?)(?=\S)([^=\n]*?\S)==/gu, (_, e, t) => `<mark${COR_GRIFO[e] ? ` class="m-${COR_GRIFO[e]}"` : ''}>${t}</mark>`);
+    s = s.replace(/\$(?=[^\s$])([^$\n]*?[^\s$])\$(?!\d)/g, (_, t) => guardar(`<span class="math">${t}</span>`));
     s = s.replace(/\[\[([^\[\]\n|]+)(?:\|([^\[\]\n]+))?\]\]/g,
       (_, alvo, rot) => guardar(`<a href="#" class="wikilink" data-nota="${alvo.replace(/"/g,'&quot;')}">${rot || alvo}</a>`));
     s = s.replace(/(^|[\s(])#([A-Za-zÀ-ÖØ-öø-ÿ0-9_\/-]*[A-Za-zÀ-ÖØ-öø-ÿ_][A-Za-zÀ-ÖØ-öø-ÿ0-9_\/-]*)/g,
@@ -1131,6 +1138,16 @@ function paraHTML(md, raiz = true){
 
     if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(l)){ out.push('<hr>'); i++; continue; }
 
+    // $$ equação em bloco $$
+    if (/^\s*\$\$\s*$/.test(l)){
+      const corpoEq = [];
+      i++;
+      while (i < linhas.length && !/^\s*\$\$\s*$/.test(linhas[i])) corpoEq.push(linhas[i++]);
+      i++;
+      out.push(`<div class="math math-bloco">${escapar(corpoEq.join('\n'))}</div>`);
+      continue;
+    }
+
     if ((m = l.match(/^\s*(#{1,6})\s+(.*?)\s*#*\s*$/))){
       const n = m[1].length;
       out.push(`<h${n}>${inline(m[2])}</h${n}>`);
@@ -1155,6 +1172,14 @@ function paraHTML(md, raiz = true){
     if (/^\s*>/.test(l)){
       const bloco = [];
       while (i < linhas.length && /^\s*>/.test(linhas[i])) bloco.push(linhas[i++].replace(/^\s*>\s?/,''));
+      // > [!note] Título: um destaque (callout), como no Obsidian
+      const cab = bloco[0].match(/^\[!(\w+)\][+-]?\s*(.*)$/);
+      if (cab){
+        const tipo = cab[1].toLowerCase();
+        const NOMES = { note: 'Nota', tip: 'Dica', info: 'Informação', warning: 'Atenção', danger: 'Perigo', quote: 'Citação', example: 'Exemplo', question: 'Pergunta', success: 'Feito', abstract: 'Resumo', todo: 'Tarefa', bug: 'Erro', important: 'Importante', caution: 'Cuidado' };
+        out.push(`<div class="callout callout-${escapar(tipo)}"><p class="callout-titulo">${inline(cab[2] || NOMES[tipo] || cab[1])}</p>${paraHTML(bloco.slice(1).join('\n'), false)}</div>`);
+        continue;
+      }
       out.push(`<blockquote>${paraHTML(bloco.join('\n'), false)}</blockquote>`);
       continue;
     }
@@ -1330,6 +1355,15 @@ blockquote{margin:0 0 1.25em;padding-left:1.15em;border-left:2px solid #d3d6dc;c
 ul,ol{padding-left:1.4em}li{margin:.3em 0}
 hr{border:0;border-top:1px solid #e9ebef;margin:2.4em 0}
 mark{background:#fff1a8;color:inherit;padding:0 .12em;border-radius:3px}
+mark.m-vermelho{background:#ffd0cc}mark.m-laranja{background:#ffe0bf}mark.m-verde{background:#d3f2d6}
+mark.m-azul{background:#d4e6ff}mark.m-roxo{background:#e9dcff}
+.math{font-family:"Cambria Math","STIX Two Math",Georgia,serif;font-style:italic}
+.math-bloco{display:block;text-align:center;margin:1.2em 0;font-size:1.1em}
+.callout{margin:0 0 1.25em;padding:.8em 1em;border-radius:10px;background:#f1f5ff;border-left:3px solid #4d7cfe}
+.callout-titulo{margin:0 0 .3em;font-weight:600}
+.callout-warning,.callout-caution{background:#fff6e5;border-color:#f0a020}
+.callout-danger,.callout-bug{background:#ffefee;border-color:#e5484d}
+.callout-tip,.callout-success{background:#ecfaef;border-color:#2fa24a}
 sup.nr a{text-decoration:none;font-size:.75em}
 .notas-rodape{margin-top:3em;font-size:.88em;color:#4a4f57}
 .notas-rodape hr{width:4rem;margin:0 0 1em}
@@ -1357,7 +1391,7 @@ async function exportar(tipo){
 
   if (tipo === 'md')  return baixar(`${nome}.md`,  md, 'text/markdown;charset=utf-8');
   if (tipo === 'txt') return baixar(`${nome}.txt`,
-    md.replace(/%%[^%\n]*%%/g,'').replace(/==([^=\n]+)==/g,'$1').replace(/^#{1,6}\s+/gm,'').replace(/(\*\*|__|~~|[*_`])/g,'')
+    md.replace(/%%[^%\n]*%%/g,'').replace(/==[🟥🟧🟨🟩🟦🟪]?([^=\n]+)==/gu,'$1').replace(/^#{1,6}\s+/gm,'').replace(/(\*\*|__|~~|[*_`])/g,'')
       .replace(/^\s*>\s?/gm,'').replace(/\[([^\]]*)\]\([^)]*\)/g,'$1'),
     'text/plain;charset=utf-8');
 
@@ -1546,7 +1580,7 @@ function abrirSobre(){
           OCTOCAT + '<b>cesteduardo/escritor</b><small>abrir ↗</small></a>' +
         '<p class="fraco" style="margin-top:.9rem">' +
           'As fontes do texto são as iA Writer (Duo, Mono e Quattro), sob licença Apache 2.0; ' +
-          'a da interface é a Inter (OFL) e os ícones são do Adwaita, do GNOME (LGPL ou CC BY-SA). ' +
+          'a da interface é a Inter (OFL) e os ícones são do Lucide (ISC). ' +
           'Feito por GR Brands.</p>' +
       '</div>' +
       '<div class="folha-pe">' +
@@ -1576,12 +1610,7 @@ const CORPO_MIN = 14, CORPO_MAX = 28;
 /* Ícones da barra: traço de 1,5 num quadro de 20, cantos redondos,
    no espírito dos SF Symbols. O rótulo vem ao lado e some no celular,
    onde o ícone sozinho já diz o que é. */
-const ICONE = {
-  foco:     '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 7.2V5.5a2 2 0 0 1 2-2h1.7M12.8 3.5h1.7a2 2 0 0 1 2 2v1.7M16.5 12.8v1.7a2 2 0 0 1-2 2h-1.7M7.2 16.5H5.5a2 2 0 0 1-2-2v-1.7"/><circle cx="10" cy="10" r="2.3"/></svg>',
-  realce:   '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.4 3.6 4 4-6.5 6.5-4-4Z"/><path d="m5.9 10.1-1.6 3.6 2 2 3.6-1.6"/><path d="M11.5 16.5h5"/></svg>',
-  ver:      '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.4 10s2.9-5.2 7.6-5.2 7.6 5.2 7.6 5.2-2.9 5.2-7.6 5.2S2.4 10 2.4 10Z"/><circle cx="10" cy="10" r="2.4"/></svg>',
-  escrever: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.7 4.3 3 3-8.5 8.5-3.8.8.8-3.8Z"/><path d="m11.2 5.8 3 3"/></svg>',
-};
+const ICONE = { foco: ICO.foco, realce: ICO.realce, ver: ICO.ver, escrever: ICO.escrever };
 const rotuloBarra = (icone, texto) => ICONE[icone] + '<span class="rot">' + texto + '</span>';
 
 function aplicarPrefs(){
@@ -2133,14 +2162,21 @@ document.addEventListener('keydown', (e) => {
 
   if (k === 'b'){ e.preventDefault(); return envolver('**'); }
   if (k === 'i'){ e.preventDefault(); return envolver('_'); }
-  if (k === 'k'){
+  /* Ctrl+K: ligação interna [[nota]], como no Obsidian. A lista de notas
+     abre sozinha (o [[ dispara as sugestões). O link externo fica no
+     botão direito. */
+  if (k === 'k' && !e.shiftKey){
     e.preventDefault();
     const { selectionStart:a, selectionEnd:b, value:v } = editor;
-    const sel = v.slice(a, b) || 'texto';
-    editor.setRangeText(`[${sel}](url)`, a, b, 'end');
-    editor.setSelectionRange(a + sel.length + 3, a + sel.length + 6);
-    return aoDigitar();
+    const sel = v.slice(a, b);
+    inserirComoEdicao(a, b, '[[' + sel);
+    const fim = editor.selectionStart;
+    inserirComoEdicao(fim, fim, ']]');
+    editor.setSelectionRange(fim, fim);
+    editor.dispatchEvent(new Event('input'));
+    return;
   }
+  if (k === '/'){ e.preventDefault(); return envolver('%%'); }
   /* Com uma pasta do Obsidian ligada, Ctrl+S salva NELA: e o que o gesto
      quer dizer quando existe um lugar para salvar. Sem pasta, continua
      baixando o .md como sempre. */
@@ -2584,6 +2620,8 @@ O Escritor guarda várias notas. O botão **Notas**, no canto esquerdo da barra 
 
 No menu **⋯ Documento**, a aba **Arquivo** também abre arquivos \`.md\` e \`.txt\` do computador, cada um como uma nota nova. Arrastar um desses arquivos para a folha faz o mesmo.
 
+**Ligações**: \`[[Título]]\` liga uma nota a outra. Ao escrever \`[[\` aparece a lista das suas notas; \`Ctrl+clique\` na ligação abre a nota citada (ou cria uma nova com aquele título).
+
 As notas ficam neste navegador. Para guardar de verdade, ligue uma pasta do Obsidian (cada nota vira um arquivo) ou use **Exportar**.
 
 ## Escrever e formatar
@@ -2599,14 +2637,17 @@ Escreva normalmente na folha. Para formatar, use Markdown ou os atalhos:
 
 Os sinais ficam visíveis durante a edição para você continuar no controle do texto. Use **Visualizar** quando quiser ver o resultado limpo e formatado.
 
-## Botão direito: o caderno de estudos
+## Botão direito, como no Obsidian
 
-Clique com o botão direito no texto para formatar sem decorar atalhos. Além de recortar, copiar e colar, o menu tem:
+Clique com o botão direito no texto para formatar sem decorar atalhos. Os submenus abrem ao passar o mouse:
 
-- **Grifar**: \`==texto==\` pinta o fundo de amarelo, como um marca-texto (\`Ctrl+Shift+H\`).
-- **Nota de rodapé**: a chamada \`[^1]\` fica onde está o cursor e o texto da nota vai para o fim. No **Visualizar**, as notas aparecem numeradas embaixo.
-- **Comentário oculto**: \`%%assim%%\` fica no arquivo, mas some na leitura e na exportação.
-- **Tarefa**, **título**, **subtítulo**, **citação** e **listas**, em uma linha ou em várias de uma vez.
+- **Adicionar link** (\`Ctrl+K\`) liga a outra nota com \`[[Título]]\`; **Adicionar link externo** cria \`[texto](url)\`.
+- **Formatar**: negrito, itálico, riscado, **Realce** em sete cores (\`==🟨texto==\`), código, equação, comentário oculto (\`%%assim%%\`, \`Ctrl+/\`) e limpar formatação.
+- **Parágrafo**: listas (de marcadores, numerada, de tarefas), Título 1 a 6 e citação.
+- **Inserir**: nota de rodapé (a chamada \`[^1]\` fica no cursor e o texto vai para o fim), tabela, destaque (\`> [!note]\`), régua, imagem, bloco de código e equação em bloco.
+- E ainda cortar, copiar, colar, colar como texto simples e selecionar tudo.
+
+Em cima de uma ligação, de um link, de uma nota de rodapé ou de uma palavra com erro, o menu ganha as ações daquele lugar.
 
 ## Imagens
 
@@ -2647,7 +2688,7 @@ Em cima ficam **Notas**, **Foco** (o visor), **Realce** (o marca-texto), **Visua
 
 ## Personalizar — Aa
 
-O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. No alto, uma fileira de ícones leva a cada seção. Ele muda a aparência e o jeito de escrever, nunca o conteúdo, e a amostra ao lado mostra cada mudança na hora:
+O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. No alto, uma fileira de ícones leva a cada seção; a última, **Amostra**, mostra um trecho escrito com tudo o que você escolheu. Ele muda a aparência e o jeito de escrever, nunca o conteúdo:
 
 - **Estilos prontos** trocam tudo de uma vez: Livro, Noturno, Concentração, Revisão e outros. Você também pode salvar a sua combinação com um nome.
 - **Aparência**: oito papéis e o Automático, que segue o claro ou escuro do sistema; a cor de destaque, inclusive uma escolhida por você; a cor dos títulos e os sinais do Markdown.

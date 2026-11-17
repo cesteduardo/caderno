@@ -12,7 +12,7 @@
 
 /* ---------- Ajustes de leitura ---------- */
 const RS_KEY = 'caderno-leitor';
-const RS = { font: 'serif', size: 19, lh: 1.6, margin: 'm', just: true, theme: 'papel', awake: true, layout: 'pagina', measure: 'm', trTo: 'pt-BR', trOnline: true };
+const RS = { font: 'serif', size: 19, lh: 1.6, margin: 'm', just: true, theme: 'papel', awake: true, layout: 'pagina', measure: 'm', trTo: 'pt-BR', trOnline: true, trDock: false, trPos: null };
 try { Object.assign(RS, JSON.parse(localStorage.getItem(RS_KEY) || '{}')); } catch (e) {}
 const saveRS = () => { try { localStorage.setItem(RS_KEY, JSON.stringify(RS)); } catch (e) {} };
 const THEMES = [
@@ -147,6 +147,7 @@ function buildReader(){
       h('input', { type: 'range', id: 'rdRange', min: 0, max: 1000, value: 0, 'aria-label': 'Posição no livro' }),
       h('span', { id: 'rdPos' })),
     h('aside', { class: 'rd-panel', id: 'rdPanel', hidden: true }),
+    h('div', { class: 'rd-veu', 'aria-hidden': 'true', onclick: () => popLayer() }),
     h('div', { class: 'rd-flash', id: 'rdFlash' }));
   $('#rdRange').addEventListener('change', e => RD.eng.gotoPct(e.target.value / 1000));
   $('#rdRange').addEventListener('input', e => { $('#rdPos').textContent = Math.round(e.target.value / 10) + '%'; });
@@ -192,7 +193,7 @@ async function openBook(id){
 function closeReader(){
   try { RD.eng && RD.eng.close(); } catch (e) {}
   if (RD.book){ RD.book.last = Date.now(); putI('books', RD.book); }
-  RD.el.hidden = true; RD.el.replaceChildren();
+  RD.el.hidden = true; RD.el.replaceChildren(); RD.el.classList.remove('dividido');
   delete document.body.dataset.rdtheme;
   RD.book = null; RD.eng = null;
   document.body.classList.remove('reading');
@@ -225,21 +226,74 @@ function flash(){
   f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
 }
 
-/* ---------- Painel lateral: sumário, notas, busca, ajustes ---------- */
+/* ---------- Painéis do leitor ----------
+   Sumário, Marcações, Buscar e Aa abrem no meio da tela, sobre um véu,
+   como os pop-ups do Escritor. O Traduzir é diferente: o texto precisa
+   continuar à vista, então ele vira uma janela solta que se arrasta pelo
+   título para onde for melhor, ou ocupa metade da tela (Dividir tela),
+   com o livro na outra metade. */
+const TABS_RD = [['toc', 'Sumário'], ['hl', 'Marcações'], ['tr', 'Traduzir'], ['busca', 'Buscar'], ['aa', 'Aa']];
 function panel(tab){
   const p = $('#rdPanel');
   if (!p.hidden && p.dataset.tab === tab){ popLayer(); return; }
   const wasOpen = !p.hidden;
   p.dataset.tab = tab;
-  const tabs = [['toc', 'Sumário'], ['hl', 'Marcações'], ['tr', 'Traduzir'], ['busca', 'Buscar'], ['aa', 'Aa']];
-  p.replaceChildren(
-    h('div', { class: 'rp-tabs' }, tabs.map(([k, l]) => h('button', { type: 'button', class: k === tab ? 'on' : '', text: l, onclick: () => { p.hidden = true; panelSwap(k); } })),
-      h('button', { class: 'x', type: 'button', text: '×', 'aria-label': 'Fechar', onclick: () => popLayer() })),
-    h('div', { class: 'rp-body' }, ({ toc: panelToc, hl: panelHl, tr: panelTr, busca: panelSearch, aa: panelAa })[tab]()));
+  const tr = tab === 'tr';
+  const head = h('div', { class: 'rp-head' },
+    h('div', { class: 'rp-tabs', role: 'tablist' }, TABS_RD.map(([k, l]) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === tab), class: k === tab ? 'on' : '', text: l, onclick: () => { p.hidden = true; panelSwap(k); } }))),
+    tr ? h('button', { class: 'rp-dock', type: 'button', title: RS.trDock ? 'Voltar a janela solta' : 'Dividir a tela com o livro', 'aria-pressed': String(!!RS.trDock), text: RS.trDock ? 'Soltar' : 'Dividir tela',
+      onclick: () => { RS.trDock = !RS.trDock; saveRS(); trModo(); panelSwap('tr'); } }) : null,
+    h('button', { class: 'x', type: 'button', text: '×', 'aria-label': 'Fechar', onclick: () => popLayer() }));
+  p.replaceChildren(head, h('div', { class: 'rp-body' }, ({ toc: panelToc, hl: panelHl, tr: panelTr, busca: panelSearch, aa: panelAa })[tab]()));
   p.hidden = false;
-  if (!wasOpen) pushLayer(() => { p.hidden = true; });
+  trModo();
+  if (tr && !RS.trDock) arrastavel(p, head, pos => { RS.trPos = pos; saveRS(); });
+  if (!wasOpen) pushLayer(() => { p.hidden = true; trModo(); });
 }
 function panelSwap(k){ const p = $('#rdPanel'); p.hidden = false; p.dataset.tab = ''; panel(k); }
+
+/* Solta, dividida ou fechada: o leitor se ajeita e refaz as páginas */
+function trModo(){
+  const p = $('#rdPanel'), el = RD.el;
+  if (!p || !el) return;
+  const aberto = !p.hidden && p.dataset.tab === 'tr';
+  const dividido = aberto && !!RS.trDock;
+  p.classList.toggle('flutua', aberto && !dividido);
+  p.classList.toggle('doca', dividido);
+  if (aberto && !dividido){
+    const pos = RS.trPos;
+    if (pos){ p.style.left = Math.max(8, Math.min(innerWidth - 320, pos.x)) + 'px'; p.style.top = Math.max(8, Math.min(innerHeight - 160, pos.y)) + 'px'; }
+    else { p.style.left = ''; p.style.top = ''; }
+  } else { p.style.left = ''; p.style.top = ''; }
+  if (el.classList.contains('dividido') !== dividido){
+    el.classList.toggle('dividido', dividido);
+    if (RD.eng) setTimeout(() => RD.eng.relayout(), 60);
+  }
+}
+/* Arrastar uma janela pelo cabeçalho (mouse, dedo ou caneta) */
+function arrastavel(el, alca, aoSoltar){
+  alca.onpointerdown = (e) => {
+    if (e.button !== 0 || e.target.closest('button,select,input')) return;
+    e.preventDefault();
+    const r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    el.classList.add('arrastando');
+    alca.setPointerCapture(e.pointerId);
+    const mover = (ev) => {
+      const x = Math.max(8, Math.min(innerWidth - r.width - 8, ev.clientX - dx));
+      const y = Math.max(8, Math.min(innerHeight - 60, ev.clientY - dy));
+      el.style.left = x + 'px'; el.style.top = y + 'px';
+    };
+    const soltar = () => {
+      alca.removeEventListener('pointermove', mover);
+      el.classList.remove('arrastando');
+      const q = el.getBoundingClientRect();
+      aoSoltar && aoSoltar({ x: Math.round(q.left), y: Math.round(q.top) });
+    };
+    alca.addEventListener('pointermove', mover);
+    alca.addEventListener('pointerup', soltar, { once: true });
+    alca.addEventListener('pointercancel', soltar, { once: true });
+  };
+}
 
 function panelToc(){
   const toc = RD.book.toc || [];
@@ -382,6 +436,13 @@ function panelAa(){
     pdf || RS.layout === 'dupla' ? null : seg([['s', 'Estreita'], ['m', 'Média'], ['l', 'Larga']], RS.measure, v => { RS.measure = v; }),
     h('h3', { text: 'Tela' }),
     seg([[true, 'Sempre acesa'], [false, 'Normal']], RS.awake, v => { RS.awake = v; wantAwake(v); }),
+    pdf ? h('h3', { text: 'Páginas escaneadas (OCR)' }) : null,
+    pdf ? seg([[true, 'Ler sozinho'], [false, 'Só quando eu pedir']], !!RS.ocrAuto, v => { RS.ocrAuto = v; }) : null,
+    pdf ? h('div', { class: 'aa-row' }, h('span', { text: 'Idioma do livro' }),
+      h('select', { 'aria-label': 'Idioma para o OCR', onchange: e => { RS.ocrLang = e.target.value; saveRS(); toast('Vale para as próximas páginas lidas.'); } },
+        [['por+eng', 'Português e inglês'], ['por', 'Português'], ['eng', 'Inglês'], ['spa', 'Espanhol'], ['fra', 'Francês'], ['ita', 'Italiano'], ['deu', 'Alemão'], ['lat', 'Latim']]
+          .map(([c, n]) => h('option', { value: c, selected: c === (RS.ocrLang || 'por+eng'), text: n })))) : null,
+    pdf ? h('p', { class: 'muted small aa-tip', text: 'O OCR lê a imagem da página aqui no aparelho, sem enviar para ninguém, e guarda o resultado: cada página é lida uma vez. Na primeira vez baixa o leitor e o idioma (alguns MB).' }) : null,
     h('h3', { text: 'Tradução' }),
     h('div', { class: 'aa-row' }, h('span', { text: 'Para' }),
       h('select', { 'aria-label': 'Traduzir para', onchange: e => { RS.trTo = e.target.value; saveRS(); } }, TR_LANGS.map(([c, n]) => h('option', { value: c, selected: c === RS.trTo, text: n })))),
@@ -665,7 +726,11 @@ const FlowEngine = {
     const g = this.before[this.sec] + c;
     const chap = this.chapter(this.sec, c);
     $('#rdChap').textContent = chap ? chap.l : '';
-    savePos({ s: this.sec, c }, g / this.total, `${Math.round(100 * g / this.total)}%`);
+    // quem estuda quer saber quanto falta: no capítulo (páginas) e no livro (minutos)
+    const falta = this.pages - this.page - 1;
+    const min = Math.round((this.total - g) / 1100);
+    const rot = `${Math.round(100 * g / this.total)}%` + (falta > 0 ? ` · ${falta} pág. no capítulo` : ' · fim do capítulo') + (min > 1 ? ` · ~${min < 90 ? min + ' min' : Math.round(min / 60) + ' h'} para acabar` : '');
+    savePos({ s: this.sec, c }, g / this.total, rot);
     if (!silent) flash();
     trFollow();
   },

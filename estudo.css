@@ -60,12 +60,17 @@ body.reading{overflow:hidden}
 body.reading .nav{display:none}
 
 /* ---------- janela ---------- */
-.modal{position:fixed;inset:0;z-index:100;background:rgba(10,10,10,.32);display:grid;place-items:center;padding:16px;animation:fade .2s var(--ease)}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(12,14,20,.3);-webkit-backdrop-filter:blur(8px) saturate(140%);backdrop-filter:blur(8px) saturate(140%);display:grid;place-items:center;padding:16px;animation:fade .2s var(--ease)}
 .modal[hidden]{display:none}
-.modal-box{background:var(--bg);border-radius:var(--r-lg);width:min(520px,100%);max-height:min(86vh,860px);display:flex;flex-direction:column;box-shadow:0 30px 80px -30px rgba(0,0,0,.45);animation:rise .3s var(--ease)}
-.modal-box.wide{width:min(720px,100%)}
-.modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 18px 8px 24px}
-.modal-head h2{font-size:19px;font-weight:600;letter-spacing:-.03em}
+/* Janelas no desenho do Escritor: no meio da tela, largas, cantos de 22px,
+   título centrado e o × redondo no canto. */
+.modal-box{background:var(--bg);border-radius:22px;width:min(560px,100%);max-height:min(88vh,880px);display:flex;flex-direction:column;box-shadow:0 0 0 .5px rgba(0,0,0,.1),0 10px 28px -8px rgba(0,0,0,.18),0 36px 90px -28px rgba(0,0,0,.34);animation:rise .32s cubic-bezier(.32,.72,0,1)}
+.modal-box.wide{width:min(860px,100%)}
+.modal-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:18px 16px 10px}
+.modal-head h2{grid-column:2;font-size:17px;font-weight:600;letter-spacing:-.02em;text-align:center}
+.modal-head .x{grid-column:3;justify-self:end;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--surface);font-size:18px;line-height:1}
+.modal-body input[type=search]{display:block;margin:0 auto 10px;width:min(30rem,100%);text-align:center}
+.modal-body input[type=search]:focus{text-align:left}
 .modal-body{padding:8px 24px 18px;overflow:auto}
 .modal-body>p{color:var(--ink-2)}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:12px 18px 18px;border-top:1px solid var(--line)}
@@ -244,13 +249,37 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 @keyframes einkflash{0%{opacity:1}50%{opacity:0;background:#fff}100%{opacity:0}}
 
 /* painel lateral */
-.rd-panel{position:absolute;z-index:6;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--rd-bg);color:var(--rd-ink);border-left:1px solid var(--rd-line);display:flex;flex-direction:column;box-shadow:-24px 0 60px -30px rgba(0,0,0,.4);padding-top:env(safe-area-inset-top);animation:slidein .25s var(--ease)}
+.rd-panel{position:absolute;z-index:7;inset:0;margin:auto;width:min(640px,calc(100% - 32px));height:fit-content;max-height:min(80vh,760px);background:var(--rd-bg);color:var(--rd-ink);border-radius:22px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 0 .5px var(--rd-line),0 10px 28px -8px rgba(0,0,0,.2),0 36px 90px -28px rgba(0,0,0,.4);animation:rp-entra .3s cubic-bezier(.32,.72,0,1)}
 .rd-panel[hidden]{display:none}
+@keyframes rp-entra{from{opacity:0;transform:scale(.965)}}
 @keyframes slidein{from{transform:translateX(30px);opacity:0}}
-.rp-tabs{display:flex;align-items:center;gap:2px;padding:10px 10px 8px;border-bottom:1px solid var(--rd-line);overflow-x:auto;scrollbar-width:none}
-.rp-tabs button:not(.x){font-size:13.5px;font-weight:500;padding:8px 12px;border-radius:999px;color:var(--rd-mute)}
-.rp-tabs button.on{background:var(--rd-line);color:var(--rd-ink)}
-.rp-tabs .x{margin-left:auto;color:var(--rd-mute)}
+/* o véu atrás dos pop-ups (não atrás do Traduzir: o texto tem de ficar à vista) */
+.rd-veu{display:none;position:absolute;inset:0;z-index:6;background:rgba(12,14,20,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:fade .2s var(--ease)}
+.rd-panel:not([hidden]):not(.flutua):not(.doca) + .rd-veu{display:block}
+.rp-head{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 56px 10px;border-bottom:1px solid var(--rd-line)}
+.rp-tabs{display:flex;align-items:center;gap:2px;padding:3px;border-radius:12px;background:var(--rd-line);overflow-x:auto;scrollbar-width:none;max-width:100%}
+.rp-tabs button{flex:none;font-size:13.5px;font-weight:500;padding:7px 13px;border-radius:9px;color:var(--rd-mute);transition:color .2s,background .2s}
+.rp-tabs button:hover{color:var(--rd-ink)}
+.rp-tabs button.on{background:var(--rd-bg);color:var(--rd-ink);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.rp-head .x{position:absolute;right:12px;top:50%;margin-top:-16px;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--rd-line);color:var(--rd-ink);font-size:18px;line-height:1}
+.rp-dock{flex:none;font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:999px;background:var(--rd-line);color:var(--rd-ink)}
+.rp-dock[aria-pressed="true"]{background:var(--rd-ink);color:var(--rd-bg)}
+/* Traduzir solto: janela que se arrasta pelo cabeçalho */
+.rd-panel.flutua{inset:auto;left:auto;right:24px;top:72px;margin:0;width:min(440px,calc(100% - 16px));max-height:min(70vh,640px);box-shadow:0 0 0 .5px var(--rd-line),0 24px 60px -20px rgba(0,0,0,.45)}
+.rd-panel.flutua .rp-head{cursor:grab;touch-action:none;padding:10px 52px 10px 12px;justify-content:flex-start;flex-wrap:wrap}
+.rd-panel.flutua .rp-head::before{content:"";position:absolute;left:50%;top:5px;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:var(--rd-line)}
+.rd-panel.arrastando{transition:none;opacity:.94}
+.rd-panel.arrastando .rp-head{cursor:grabbing}
+/* Dividir a tela: o livro numa metade, a tradução na outra */
+.reader.dividido .rd-stage{right:50%}
+.rd-panel.doca{inset:calc(52px + env(safe-area-inset-top)) 0 calc(46px + env(safe-area-inset-bottom)) 50%;margin:0;width:auto;height:auto;max-height:none;border-radius:0;box-shadow:inset 1px 0 0 var(--rd-line);animation:none}
+.rd-panel.doca .rp-head{justify-content:flex-start;flex-wrap:wrap;padding-left:12px}
+@media (max-width:760px){
+  .reader.dividido .rd-stage{right:0;bottom:calc(46vh + env(safe-area-inset-bottom))}
+  .rd-panel.doca{inset:auto 0 calc(46px + env(safe-area-inset-bottom)) 0;height:calc(46vh - 46px);box-shadow:inset 0 1px 0 var(--rd-line)}
+  .rd-panel.flutua{right:8px;left:8px;width:auto;top:auto;bottom:calc(56px + env(safe-area-inset-bottom))}
+  .rd-panel:not(.flutua):not(.doca){width:calc(100% - 20px);max-height:84vh}
+}
 .rp-body{flex:1;overflow:auto;padding:8px 0 calc(20px + env(safe-area-inset-bottom))}
 .rp-list li>button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:11px 18px;font-size:14px;line-height:1.4;color:inherit}
 .rp-list li>button:hover{background:var(--rd-line)}
@@ -273,7 +302,9 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .reader .btn.ghost{background:var(--rd-line);color:var(--rd-ink)}
 .rp-note{margin:6px 12px;padding:12px 14px;border-radius:10px;background:var(--rd-line)}
 .rp-note p{font-size:14px;white-space:pre-wrap}
-.rp-search{padding:6px 14px 10px}
+.rp-search{display:flex;justify-content:center;padding:12px 18px 10px}
+.rp-search input{width:min(30rem,100%);text-align:center}
+.rp-search input:focus{text-align:left}
 .reader input[type=search]{background:transparent;color:var(--rd-ink);border-color:var(--rd-line)}
 .hits mark{background:rgba(255,170,0,.4);border-radius:2px}
 .aa{padding:4px 18px 20px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
@@ -526,7 +557,7 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
   .resume .cover.big{width:84px}
   .rd-top .rd-btn{padding:0 9px;font-size:13px}
   .rd-top .rd-wide{display:none}
-  .rd-panel{width:100%}
+
   .tp{padding-left:0;padding-top:20px}
   .ts{top:0;left:-6px}
   .tp.marked::after{left:auto;right:0;top:6px}
@@ -659,7 +690,7 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 /* listas do app sem numeração (os ol são só semântica) */
 .rp-list,.nlist,.wp-hls,.qs-list{list-style:none}
 /* o × do painel do leitor fica visível mesmo com as abas rolando */
-.rp-tabs .x{position:sticky;right:0;background:var(--rd-bg);box-shadow:-10px 0 10px var(--rd-bg)}
+
 
 /* aviso legível sobre o leitor escuro */
 body[data-rdtheme="noite"] .toast{background:#ece8df;color:#111}
@@ -674,3 +705,24 @@ body[data-rdtheme="noite"] .toast button{color:#111}
 .sty-mini.s-risco{text-decoration:line-through 2px var(--hc)}
 .reader .sty-mini{color:var(--rd-ink)}
 .reader[data-theme="noite"] .hl-layer i.s-marca{mix-blend-mode:screen}
+
+/* ---------- cartão de tradução: arrastável, e fica onde você deixar ---------- */
+.trc-head{cursor:grab;touch-action:none;user-select:none}
+.selbar.arrastando{animation:none;opacity:.94}
+.selbar.arrastando .trc-head{cursor:grabbing}
+.trc-alca{width:6px;height:14px;margin-right:2px;border-radius:2px;background:radial-gradient(circle,rgba(255,255,255,.5) 1px,transparent 1.4px) 0 0/6px 5px}
+.trc-head .trc-lang{flex:1}
+.trc-pino{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.12);color:#fff}
+
+/* ---------- PDF escaneado: OCR ---------- */
+.pdf-pg .ocr-bt{position:absolute;z-index:4;left:50%;top:18px;transform:translateX(-50%);display:grid;gap:2px;justify-items:center;padding:10px 18px;border-radius:14px;background:rgba(20,20,22,.86);color:#fff;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 10px 30px -10px rgba(0,0,0,.5);text-align:center}
+.pdf-pg .ocr-bt b{font-size:14px;font-weight:600}
+.pdf-pg .ocr-bt span{font-size:12px;opacity:.75}
+.pdf-pg .ocr-bt:hover{background:rgba(20,20,22,.95)}
+.pdf-pg .ocr-lendo{position:absolute;z-index:4;left:50%;top:18px;transform:translateX(-50%);padding:9px 16px;border-radius:999px;background:rgba(20,20,22,.86);color:#fff;font-size:13px;font-weight:500}
+.pdf-pg .ocr-lendo::before{content:"";display:inline-block;width:10px;height:10px;margin-right:8px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;vertical-align:-1px;animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+/* ---------- EPUB: frases que não quebram feio ---------- */
+.rd-sec p,.rd-sec li,.rd-sec blockquote{text-wrap:pretty;orphans:2;widows:2}
+.rd-sec h1,.rd-sec h2,.rd-sec h3{text-wrap:balance}

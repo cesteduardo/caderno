@@ -184,6 +184,12 @@ const selbar = {
   place(rect){
     const el = this.el;
     const W = el.offsetWidth, H = el.offsetHeight, vw = innerWidth, vh = innerHeight;
+    // a tradução fixada pelo usuário abre sempre no mesmo lugar
+    const fixo = el.classList.contains('card-mode') && typeof RS !== 'undefined' && RS.trcFixo;
+    if (fixo){
+      el.style.transform = `translate(${Math.round(Math.max(8, Math.min(vw - W - 8, fixo.x)))}px,${Math.round(Math.max(8, Math.min(vh - H - 8, fixo.y)))}px)`;
+      return;
+    }
     let x = Math.max(8, Math.min(vw - W - 8, rect.left + rect.width / 2 - W / 2));
     let y = rect.bottom + 12;
     if (y + H > vh - 8) y = Math.max(8, rect.top - H - 12);

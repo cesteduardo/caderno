@@ -159,6 +159,29 @@ $('#fileImport').addEventListener('change', async e => {
   refreshView();
 });
 
+/* ---------- Trazer do Caderno antigo ----------
+   O primeiro Caderno (grbrands.com.br/caderno) guarda tudo no navegador,
+   num endereço que este app não consegue ler. A página levar.html de lá
+   lê esses dados e os devolve aqui por postMessage; o resultado se mescla
+   com o que já existe, como uma importação (nada é apagado). */
+const ORIGEM_ANTIGA = 'https://grbrands.com.br';
+function trazerDoAntigo(rot){
+  if (!rot || !Array.isArray(rot.routine) || !Array.isArray(rot.plans)){ toast('Não reconheci os dados do Caderno antigo.'); return false; }
+  state = mergeStates(state, rot); saveLocal(); save('log');
+  toast('Rotina, planos e progresso do Caderno antigo trazidos para cá.');
+  refreshView();
+  return true;
+}
+addEventListener('message', (e) => {
+  if (e.origin !== ORIGEM_ANTIGA || !e.data || e.data.tipo !== 'caderno-antigo') return;
+  trazerDoAntigo(e.data.estado);
+});
+$('#btnAntigo').addEventListener('click', () => {
+  const w = window.open(ORIGEM_ANTIGA + '/caderno/levar.html', 'caderno-antigo', 'width=480,height=560');
+  if (!w) toast('O navegador bloqueou a janela. Libere os pop-ups deste site e tente de novo.');
+  else toast('Abri o Caderno antigo numa janela: ele manda seus dados para cá sozinho.');
+});
+
 /* ---------- Diário no Escritor ---------- */
 $('#diaryOpen').addEventListener('click', () => {
   const e = entryFor(viewDay);

@@ -166,7 +166,9 @@ function pintarNotas(){
     abrir.innerHTML =
       `<b class="nota-titulo">${escapar(titulo)}</b>` +
       `<span class="nota-trecho">${trecho ? escapar(trecho) : '<i>Ainda vazia</i>'}</span>` +
-      `<span class="nota-meta"><span>${quando(n.editada)}</span><span>${contarPalavras(n.texto).toLocaleString('pt-BR')} palavras</span>${n.id === notaAtual ? '<span class="nota-aberta">aberta</span>' : ''}</span>`;
+      `<span class="nota-meta"><span>${quando(n.editada)}</span><span>${contarPalavras(n.texto).toLocaleString('pt-BR')} palavras</span>` +
+      (() => { const c = citacoesDe(n); return c ? `<span class="nota-cit" title="Notas que citam esta com [[…]]">${ico('ligacoes')}${c}</span>` : ''; })() +
+      `${n.id === notaAtual ? '<span class="nota-aberta">aberta</span>' : ''}</span>`;
     abrir.onclick = () => { fecharDialogo(dNotas); abrirNota(n.id); };
     const apagar = document.createElement('button');
     apagar.type = 'button';
@@ -409,32 +411,204 @@ window.addEventListener('drop', (e) => {
 $('#btnImagem').onclick = () => $('#imgInput').click();
 $('#imgInput').onchange = (e) => { inserirImagens(e.target.files); e.target.value = ''; };
 
-/* ══════════ 3. O botão direito ══════════ */
+/* ══════════ 3. O botão direito ══════════
+   No modelo do Obsidian: no alto o que vale para onde o cursor está
+   (um link, uma nota de rodapé, uma palavra com erro), depois os
+   links, três submenus (Formatar, Parágrafo, Inserir) e a área de
+   transferência. Os submenus abrem ao passar o mouse ou com a seta
+   para a direita; Esc fecha um nível. */
 
 const ctx = $('#ctx');
 let ultimoPonteiro = 'mouse';
 editor.addEventListener('pointerdown', (e) => { ultimoPonteiro = e.pointerType || 'mouse'; }, true);
 
+const CORES_REALCE = [['', 'Padrão', '#ffd60a'], ['🟥', 'Vermelho', '#ff6b61'], ['🟧', 'Laranja', '#ff9f43'], ['🟨', 'Amarelo', '#ffd60a'],
+                      ['🟩', 'Verde', '#4cd964'], ['🟦', 'Azul', '#5ac8fa'], ['🟪', 'Roxo', '#bf8aff']];
+
+/* ── o que está debaixo do cursor ── */
+function trechoNoCursor(re){
+  const v = editor.value, c = editor.selectionStart;
+  const ini = v.lastIndexOf('\n', c - 1) + 1;
+  let fim = v.indexOf('\n', c); if (fim < 0) fim = v.length;
+  const linha = v.slice(ini, fim);
+  for (const m of linha.matchAll(re)){
+    const a = ini + m.index, b = a + m[0].length;
+    if (c >= a && c <= b) return { m, a, b };
+  }
+  return null;
+}
+function contextuais(){
+  const itens = [];
+  const wiki = trechoNoCursor(/\[\[([^\[\]\n|]+)(?:\|[^\]\n]*)?\]\]/g);
+  const ext = trechoNoCursor(/\[([^\]\n]*)\]\(([^)\s]+)\)/g);
+  const nota = trechoNoCursor(/\[\^([^\]\s]+)\](?!:)/g);
+  if (wiki){
+    itens.push({ id: 'ir-wiki', ico: 'abrir-link', label: `Abrir “${wiki.m[1].trim()}”`, kbd: 'Ctrl+clique', acao: () => seguirLigacao(wiki.m[1].trim()) });
+  } else if (ext){
+    itens.push({ id: 'abrir-url', ico: 'abrir-link', label: 'Abrir link', acao: () => window.open(ext.m[2], '_blank', 'noopener') });
+    itens.push({ id: 'editar-url', ico: 'editar', label: 'Editar link', acao: () => { const a = ext.a + ext.m[1].length + 3; editor.setSelectionRange(a, a + ext.m[2].length); } });
+    itens.push({ id: 'copiar-url', ico: 'copiar', label: 'Copiar URL', acao: () => { navigator.clipboard?.writeText(ext.m[2]); avisar('URL copiada'); } });
+  }
+  if (nota){
+    const id = nota.m[1];
+    itens.push({ id: 'ir-nota', ico: 'ir', label: `Ir para a nota ${id}`, acao: () => {
+      const i = editor.value.search(new RegExp('^\\[\\^' + id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\]:', 'm'));
+      if (i >= 0){ editor.setSelectionRange(i, i); rolarAte(i); }
+    } });
+    itens.push({ id: 'del-nota', ico: 'apagar', label: 'Excluir nota e referência', perigo: true, acao: () => excluirNotaDeRodape(id) });
+  }
+  // palavra da lista de erros: a troca vem primeiro, como no corretor do sistema
+  atualizarDica(editor.value, editor.selectionStart);
+  if (typeof correcaoAtual !== 'undefined' && correcaoAtual){
+    const certa = comOMesmoMolde(correcaoAtual.errada, correcaoAtual.certa);
+    itens.unshift({ id: 'corrigir', ico: 'ok', label: `Trocar por “${certa}”`, kbd: 'Ctrl+;', acao: () => corrigirNoCursor() });
+  }
+  if (itens.length) itens.push('sep');
+  return itens;
+}
+function excluirNotaDeRodape(id){
+  const esc = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let v = editor.value
+    .replace(new RegExp('\\n?^\\[\\^' + esc + '\\]:[^\\n]*$', 'm'), '')
+    .replace(new RegExp('\\[\\^' + esc + '\\](?!:)', 'g'), '');
+  inserirComoEdicao(0, editor.value.length, v);
+  avisar(`Nota ${id} excluída · Ctrl+Z desfaz`);
+}
+
+/* ── o cardápio ── */
+function cardapio(){
+  const temSel = editor.selectionStart !== editor.selectionEnd;
+  return [
+    ...contextuais(),
+    { id: 'link', ico: 'link', label: 'Adicionar link', kbd: 'Ctrl+K' },
+    { id: 'link-ext', ico: 'link-externo', label: 'Adicionar link externo' },
+    'sep',
+    { ico: 'formatar', label: 'Formatar', sub: [
+      { titulo: 'Básico' },
+      { id: 'negrito', ico: 'negrito', label: 'Negrito', kbd: 'Ctrl+B' },
+      { id: 'italico', ico: 'italico', label: 'Itálico', kbd: 'Ctrl+I' },
+      { id: 'riscado', ico: 'riscado', label: 'Riscado' },
+      { ico: 'grifo', label: 'Realce', sub: CORES_REALCE.map(([e, nome, cor]) => ({ id: 'realce:' + e, cor, label: nome, kbd: e ? '' : 'Ctrl+Shift+H' })) },
+      'sep',
+      { titulo: 'Avançado' },
+      { id: 'codigo', ico: 'codigo', label: 'Código' },
+      { id: 'equacao', ico: 'equacao', label: 'Equação' },
+      { id: 'comentario', ico: 'comentario', label: 'Comentário', kbd: 'Ctrl+/' },
+      { id: 'limpar', ico: 'limpar', label: 'Limpar formatação' },
+    ] },
+    { ico: 'paragrafo', label: 'Parágrafo', sub: [
+      { titulo: 'Listas' },
+      { id: 'lista', ico: 'lista', label: 'Lista de marcadores' },
+      { id: 'lista-num', ico: 'lista-num', label: 'Lista numerada' },
+      { id: 'tarefa', ico: 'tarefa', label: 'Lista de tarefas' },
+      'sep',
+      { titulo: 'Títulos' },
+      ...[1, 2, 3, 4, 5, 6].map(n => ({ id: 'h' + n, txt: 'H' + n, label: 'Título ' + n })),
+      { id: 'texto', ico: 'paragrafo', label: 'Texto' },
+      'sep',
+      { titulo: 'Bloco' },
+      { id: 'citacao', ico: 'citacao', label: 'Citação' },
+    ] },
+    { ico: 'inserir', label: 'Inserir', sub: [
+      { titulo: 'Básico' },
+      { id: 'nota', ico: 'nota-rodape', label: 'Nota de rodapé' },
+      { id: 'tabela', ico: 'tabela', label: 'Tabela' },
+      { id: 'destaque', ico: 'destaque', label: 'Destaque' },
+      { id: 'regua', ico: 'regua', label: 'Régua horizontal' },
+      { id: 'imagem', ico: 'imagem', label: 'Imagem…' },
+      'sep',
+      { titulo: 'Avançado' },
+      { id: 'bloco-codigo', ico: 'bloco-codigo', label: 'Bloco de código' },
+      { id: 'equacao-bloco', ico: 'equacao-bloco', label: 'Equação em bloco' },
+    ] },
+    'sep',
+    { id: 'recortar', ico: 'recortar', label: 'Cortar', kbd: 'Ctrl+X', off: !temSel },
+    { id: 'copiar', ico: 'copiar', label: 'Copiar', kbd: 'Ctrl+C', off: !temSel },
+    { id: 'colar', ico: 'colar', label: 'Colar', kbd: 'Ctrl+V' },
+    { id: 'colar-texto', ico: 'colar-texto', label: 'Colar como texto simples', kbd: 'Ctrl+Shift+V' },
+    { id: 'tudo', ico: 'tudo', label: 'Selecionar tudo', kbd: 'Ctrl+A' },
+  ];
+}
+
+/* ── desenhar e abrir os painéis ── */
+let paineis = [];
+let abrirSubRelogio = 0;
+function painelCtx(itens, nivel){
+  const p = document.createElement('div');
+  p.className = 'ctx-painel';
+  p.setAttribute('role', 'menu');
+  p.dataset.nivel = nivel;
+  for (const it of itens){
+    if (it === 'sep'){ p.append(Object.assign(document.createElement('div'), { className: 'ctx-sep' })); continue; }
+    if (it.titulo){ p.append(Object.assign(document.createElement('p'), { className: 'ctx-titulo', textContent: it.titulo })); continue; }
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'menuitem');
+    b.className = 'ctx-item' + (it.perigo ? ' perigo' : '') + (it.sub ? ' tem-sub' : '');
+    if (it.off) b.disabled = true;
+    const icone = it.cor ? `<i class="ctx-cor" style="--cor:${it.cor}"></i>`
+      : it.txt ? `<i class="ctx-txt">${it.txt}</i>`
+      : `<i>${ico(it.ico)}</i>`;
+    b.innerHTML = icone + `<span>${escapar(it.label)}</span>` +
+      (it.sub ? `<i class="ctx-seta">${ico('seta')}</i>` : it.kbd ? `<kbd>${escapar(paraSO(it.kbd))}</kbd>` : '');
+    if (it.sub){
+      b.setAttribute('aria-haspopup', 'menu');
+      b._sub = it.sub;
+      b.addEventListener('pointerenter', () => { clearTimeout(abrirSubRelogio); abrirSubRelogio = setTimeout(() => abrirSub(b, nivel), 110); });
+      b.addEventListener('click', () => abrirSub(b, nivel, true));
+    } else {
+      b.addEventListener('pointerenter', () => { clearTimeout(abrirSubRelogio); abrirSubRelogio = setTimeout(() => fecharDesde(nivel + 1), 160); });
+      b.addEventListener('click', () => executar(it));
+    }
+    p.append(b);
+  }
+  return p;
+}
+function posicionar(p, x, y, ancora){
+  p.style.left = '0px'; p.style.top = '0px';
+  const r = p.getBoundingClientRect(), m = 8;
+  let px = x, py = y;
+  if (ancora){
+    px = ancora.right + 2;
+    if (px + r.width > innerWidth - m) px = ancora.left - r.width - 2;   // sem espaço à direita: abre à esquerda
+    py = ancora.top - 6;
+  }
+  px = Math.max(m, Math.min(px, innerWidth - r.width - m));
+  py = Math.max(m, Math.min(py, innerHeight - r.height - m));
+  p.style.left = px + 'px';
+  p.style.top = py + 'px';
+  p.style.setProperty('--ox', ancora ? (px < ancora.left ? '100%' : '0') : (x - px) + 'px');
+  p.style.setProperty('--oy', ancora ? '12px' : (y - py) + 'px');
+}
+function abrirSub(botao, nivel, focar){
+  fecharDesde(nivel + 1);
+  botao.classList.add('aberto');
+  const p = painelCtx(botao._sub, nivel + 1);
+  ctx.append(p);
+  paineis[nivel + 1] = p;
+  posicionar(p, 0, 0, botao.getBoundingClientRect());
+  requestAnimationFrame(() => p.classList.add('vivo'));
+  if (focar) p.querySelector('.ctx-item:not(:disabled)')?.focus({ preventScroll: true });
+}
+function fecharDesde(nivel){
+  for (let n = paineis.length - 1; n >= nivel; n--){ paineis[n]?.remove(); paineis.length = n; }
+  paineis[nivel - 1]?.querySelectorAll('.ctx-item.aberto').forEach(b => b.classList.remove('aberto'));
+}
 function fecharCtx(){
   if (ctx.hidden) return;
+  clearTimeout(abrirSubRelogio);
   ctx.hidden = true;
-  ctx.classList.remove('vivo');
+  ctx.replaceChildren();
+  paineis = [];
 }
 function abrirCtx(x, y){
+  fecharCtx();
   ctx.hidden = false;
-  const r = ctx.getBoundingClientRect();
-  const m = 8;
-  const px = Math.min(Math.max(m, x), innerWidth - r.width - m);
-  const py = y + r.height + m > innerHeight ? Math.max(m, y - r.height) : y;
-  ctx.style.left = px + 'px';
-  ctx.style.top = py + 'px';
-  ctx.style.setProperty('--ox', (x - px) + 'px');
-  ctx.style.setProperty('--oy', (y - py) + 'px');
-  // o que faz sentido agora: copiar e recortar pedem uma seleção
-  const temSel = editor.selectionStart !== editor.selectionEnd;
-  ctx.querySelector('[data-ctx="recortar"]').disabled = !temSel;
-  ctx.querySelector('[data-ctx="copiar"]').disabled = !temSel;
-  requestAnimationFrame(() => ctx.classList.add('vivo'));
+  const p = painelCtx(cardapio(), 0);
+  ctx.append(p);
+  paineis = [p];
+  posicionar(p, x, y);
+  requestAnimationFrame(() => p.classList.add('vivo'));
 }
 editor.addEventListener('contextmenu', (e) => {
   // no dedo (toque longo) fica o menu do sistema, que já sabe selecionar
@@ -445,12 +619,39 @@ editor.addEventListener('contextmenu', (e) => {
 // clicar no menu não tira o foco nem a seleção do texto
 ctx.addEventListener('pointerdown', (e) => e.preventDefault());
 document.addEventListener('pointerdown', (e) => { if (!ctx.hidden && !ctx.contains(e.target)) fecharCtx(); }, true);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !ctx.hidden){ e.preventDefault(); e.stopPropagation(); fecharCtx(); } }, true);
 window.addEventListener('blur', fecharCtx);
 window.addEventListener('resize', fecharCtx);
 scroller.addEventListener('scroll', fecharCtx, { passive: true });
 
-/* Põe (ou tira) um prefixo no começo de cada linha da seleção. */
+/* teclado: setas andam, → abre o submenu, ← volta, Enter escolhe, Esc fecha um nível */
+document.addEventListener('keydown', (e) => {
+  if (ctx.hidden) return;
+  const k = e.key;
+  if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Escape', 'Enter', ' ', 'Home', 'End'].includes(k)) return;
+  e.preventDefault(); e.stopPropagation();
+  const ativo = document.activeElement && document.activeElement.closest('.ctx-painel');
+  const nivel = ativo ? +ativo.dataset.nivel : paineis.length - 1;
+  const p = paineis[nivel];
+  const itens = [...p.querySelectorAll('.ctx-item:not(:disabled)')];
+  const i = itens.indexOf(document.activeElement);
+  if (k === 'Escape' || (k === 'ArrowLeft' && nivel > 0)){
+    if (nivel === 0) return fecharCtx();
+    fecharDesde(nivel);
+    paineis[nivel - 1].querySelector('.ctx-item.aberto, .ctx-item.tem-sub:focus')?.focus();
+    const dono = [...paineis[nivel - 1].querySelectorAll('.tem-sub')].find(b => b.classList.contains('aberto'));
+    (dono || paineis[nivel - 1].querySelector('.ctx-item'))?.focus();
+    return;
+  }
+  if (k === 'ArrowDown') return itens[(i + 1) % itens.length]?.focus();
+  if (k === 'ArrowUp') return itens[(i - 1 + itens.length) % itens.length]?.focus();
+  if (k === 'Home') return itens[0]?.focus();
+  if (k === 'End') return itens[itens.length - 1]?.focus();
+  const b = document.activeElement;
+  if (k === 'ArrowRight' && b && b._sub) return abrirSub(b, nivel, true);
+  if ((k === 'Enter' || k === ' ') && b && p.contains(b)) b.click();
+}, true);
+
+/* ── as ações ── */
 function prefixar(prefixo, outros = /^(#{1,6}\s+|>\s?|[-*+]\s+(\[[ xX]\]\s+)?|\d+[.)]\s+)/){
   const { selectionStart: a, selectionEnd: b, value: v } = editor;
   const ini = v.lastIndexOf('\n', a - 1) + 1;
@@ -458,7 +659,7 @@ function prefixar(prefixo, outros = /^(#{1,6}\s+|>\s?|[-*+]\s+(\[[ xX]\]\s+)?|\d
   let fim = v.indexOf('\n', fimSel);
   if (fim < 0) fim = v.length;
   const linhas = v.slice(ini, fim).split('\n');
-  const todas = linhas.every(l => !l.trim() || l.startsWith(prefixo));
+  const todas = prefixo && linhas.every(l => !l.trim() || l.startsWith(prefixo));
   let n = 0;
   const novo = linhas.map(l => {
     if (!l.trim()) return l;
@@ -470,8 +671,15 @@ function prefixar(prefixo, outros = /^(#{1,6}\s+|>\s?|[-*+]\s+(\[[ xX]\]\s+)?|\d
   inserirComoEdicao(ini, fim, novo);
   editor.setSelectionRange(ini, ini + novo.length);
 }
-
-/* Nota de rodapé: a chamada [^n] fica no cursor e o texto da nota no fim. */
+/* Insere um bloco inteiro em linhas próprias, com o cursor onde se escreve. */
+function inserirBloco(texto, cursorEm){
+  const { selectionStart: a, selectionEnd: b, value: v } = editor;
+  const antes = a > 0 && v[a - 1] !== '\n' ? '\n\n' : (a > 1 && v[a - 2] !== '\n' ? '\n' : '');
+  const depois = v[b] !== undefined && v[b] !== '\n' ? '\n\n' : (v[b] === '\n' && v[b + 1] !== '\n' && v[b + 1] !== undefined ? '\n' : '');
+  inserirComoEdicao(a, b, antes + texto + depois);
+  const c = a + antes.length + (cursorEm ?? texto.length);
+  editor.setSelectionRange(c, c);
+}
 function notaDeRodape(){
   const v = editor.value;
   const usados = [...v.matchAll(/\[\^(\d+)\]/g)].map(m => +m[1]);
@@ -486,10 +694,23 @@ function notaDeRodape(){
   rolarAte(c);
   avisar(`Nota ${n}: escreva o texto dela aqui no fim`);
 }
-
-async function colar(){
+/* Limpar formatação: tira os sinais de dentro da seleção (ou da linha). */
+function limparFormatacao(){
+  let { selectionStart: a, selectionEnd: b, value: v } = editor;
+  if (a === b){ a = v.lastIndexOf('\n', a - 1) + 1; b = v.indexOf('\n', b); if (b < 0) b = v.length; }
+  const t = v.slice(a, b)
+    .replace(/\[\[([^\]|\n]+)(?:\|([^\]\n]*))?\]\]/g, (_, x, r) => r || x)
+    .replace(/!?\[([^\]\n]*)\]\([^)\n]*\)/g, '$1')
+    .replace(/==[🟥🟧🟨🟩🟦🟪]?([^=\n]+)==/gu, '$1')
+    .replace(/(\*\*|__|~~|%%)(.+?)\1/g, '$2')
+    .replace(/(^|[^*\w])\*([^*\n]+)\*/g, '$1$2').replace(/(^|[^_\w])_([^_\n]+)_/g, '$1$2')
+    .replace(/`([^`\n]+)`/g, '$1').replace(/\$([^$\n]+)\$/g, '$1');
+  inserirComoEdicao(a, b, t);
+  editor.setSelectionRange(a, a + t.length);
+}
+async function colar(simples){
   try {
-    if (navigator.clipboard?.read){
+    if (!simples && navigator.clipboard?.read){
       const itens = await navigator.clipboard.read();
       for (const it of itens){
         const tipo = it.types.find(t => t.startsWith('image/'));
@@ -503,41 +724,184 @@ async function colar(){
     const t = await navigator.clipboard.readText();
     inserirComoEdicao(editor.selectionStart, editor.selectionEnd, t);
   } catch {
-    avisar(`O navegador não deixou colar daqui · use ${paraSO('Ctrl+V')}`, 3000);
+    avisar(`O navegador não deixou colar daqui · use ${paraSO(simples ? 'Ctrl+Shift+V' : 'Ctrl+V')}`, 3000);
   }
 }
-
 const ACOES_CTX = {
   recortar: () => document.execCommand('cut'),
   copiar: () => document.execCommand('copy'),
-  colar,
+  colar: () => colar(false),
+  'colar-texto': () => colar(true),
   tudo: () => editor.select(),
   negrito: () => envolver('**'),
   italico: () => envolver('_'),
   riscado: () => envolver('~~'),
   codigo: () => envolver('`'),
-  grifo: () => envolver('=='),
+  equacao: () => envolver('$'),
   comentario: () => envolver('%%'),
+  limpar: limparFormatacao,
   link: () => {
+    const { selectionStart: a, selectionEnd: b, value: v } = editor;
+    inserirComoEdicao(a, b, '[[' + v.slice(a, b));
+    const fim = editor.selectionStart;
+    inserirComoEdicao(fim, fim, ']]');
+    editor.setSelectionRange(fim, fim);
+    editor.dispatchEvent(new Event('input'));
+  },
+  'link-ext': () => {
     const { selectionStart: a, selectionEnd: b, value: v } = editor;
     const sel = v.slice(a, b) || 'texto';
     inserirComoEdicao(a, b, `[${sel}](url)`);
     editor.setSelectionRange(a + sel.length + 3, a + sel.length + 6);
   },
   nota: notaDeRodape,
-  tarefa: () => prefixar('- [ ] '),
-  h1: () => prefixar('# '),
-  h2: () => prefixar('## '),
-  citacao: () => prefixar('> '),
+  tabela: () => inserirBloco('| Coluna | Coluna |\n| --- | --- |\n|  |  |', 2),
+  destaque: () => inserirBloco('> [!note] Destaque\n> ', 22),
+  regua: () => inserirBloco('---'),
+  'bloco-codigo': () => inserirBloco('```\n\n```', 4),
+  'equacao-bloco': () => inserirBloco('$$\n\n$$', 3),
+  imagem: () => $('#imgInput').click(),
   lista: () => prefixar('- '),
   'lista-num': () => prefixar('1. '),
-  imagem: () => $('#imgInput').click(),
+  tarefa: () => prefixar('- [ ] '),
+  citacao: () => prefixar('> '),
+  texto: () => prefixar('', /^#{1,6}\s+/),
 };
-ctx.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-ctx]');
-  if (!b || b.disabled) return;
+for (let n = 1; n <= 6; n++) ACOES_CTX['h' + n] = () => prefixar('#'.repeat(n) + ' ', /^#{1,6}\s+/);
+function executar(it){
   fecharCtx();
   editor.focus({ preventScroll: true });
-  ACOES_CTX[b.dataset.ctx]?.();
+  if (it.acao) it.acao();
+  else if (it.id && it.id.startsWith('realce:')) envolver('==' + it.id.slice(7), '==');
+  else ACOES_CTX[it.id]?.();
   desenhar();
-});
+}
+
+/* ══════════ 4. Ligações entre notas ══════════
+   [[Título]] liga uma nota a outra. Fora do Caderno é aqui que a
+   ligação funciona: escrever [[ abre a lista das suas notas, e
+   Ctrl+clique (ou um clique no Visualizar) abre a nota citada, ou cria
+   uma com aquele título se ainda não existir. Dentro do Caderno quem
+   cuida disso é a ponte. */
+function notaPorTitulo(t){
+  const alvo = normal(String(t).trim());
+  return notas.find(n => normal(tituloDaNota(n.texto)) === alvo);
+}
+function seguirLigacao(titulo){
+  if (PONTE){ PONTE.ir(titulo); return; }
+  const n = notaPorTitulo(titulo);
+  if (n) abrirNota(n.id);
+  else novaNota(`# ${titulo.trim()}\n\n`, `Nota nova: “${titulo.trim()}”`);
+  if (prefs.visualizando) definirVisualizacao(false);
+}
+/* quantas notas citam esta (aparece no cartão) */
+function citacoesDe(n){
+  const t = normal(tituloDaNota(n.texto));
+  if (!t) return 0;
+  return notas.filter(o => o !== n && [...o.texto.matchAll(/\[\[([^\]|\n]+)/g)].some(m => normal(m[1].trim()) === t)).length;
+}
+
+if (!PONTE){
+  const sug = document.createElement('div');
+  sug.className = 'sugestoes';
+  sug.hidden = true;
+  sug.setAttribute('role', 'listbox');
+  document.body.append(sug);
+  let itens = [], sel = 0, ini = -1;
+  const sugFechar = () => { sug.hidden = true; itens = []; ini = -1; };
+  const sugPintar = () => sug.replaceChildren(...itens.map((it, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'option');
+    b.className = i === sel ? 'on' : '';
+    b.innerHTML = `<span>${escapar(it.t)}</span><i>${escapar(it.rot)}</i>`;
+    b.onmousedown = (e) => { e.preventDefault(); escolher(i); };
+    return b;
+  }));
+  function caretRect(){
+    const v = editor.value, c = editor.selectionStart;
+    const linha = (v.slice(0, c).match(/\n/g) || []).length;
+    let col = c - (v.lastIndexOf('\n', c - 1) + 1);
+    const span = overlay.querySelector(`.linha-fonte[data-linha="${linha}"]`);
+    if (span){
+      const w = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = w.nextNode())){
+        if (col <= n.data.length){
+          const rg = document.createRange();
+          rg.setStart(n, Math.max(0, col - 1)); rg.setEnd(n, Math.max(col, 1) <= n.data.length ? Math.max(col, 1) : col);
+          const q = [...rg.getClientRects()].pop();
+          if (q) return { left: col ? q.right : q.left, top: q.top, bottom: q.bottom };
+          break;
+        }
+        col -= n.data.length;
+      }
+      const q = span.getBoundingClientRect();
+      return { left: q.left, top: q.top, bottom: q.bottom };
+    }
+    return editor.getBoundingClientRect();
+  }
+  function sugAbrir(){
+    const c = editor.selectionStart;
+    if (c !== editor.selectionEnd || prefs.visualizando) return sugFechar();
+    const m = editor.value.slice(Math.max(0, c - 90), c).match(/\[\[([^\[\]\n|]*)$/);
+    if (!m) return sugFechar();
+    ini = c - m[1].length;
+    const q = normal(m[1].trim());
+    const atual = notas.find(n => n.id === notaAtual);
+    const vistos = new Set();
+    itens = [...notas].filter(n => n !== atual).sort((a, b) => b.editada - a.editada)
+      .map(n => ({ t: tituloDaNota(n.texto), rot: 'nota' }))
+      .filter(x => x.t && !vistos.has(normal(x.t)) && vistos.add(normal(x.t)) && (!q || normal(x.t).includes(q)))
+      .sort((a, b) => (normal(b.t).startsWith(q) ? 1 : 0) - (normal(a.t).startsWith(q) ? 1 : 0))
+      .slice(0, 8);
+    if (m[1].trim() && !vistos.has(q)) itens.push({ t: m[1].trim(), rot: 'nota nova' });
+    if (!itens.length) return sugFechar();
+    sel = 0;
+    sugPintar();
+    sug.hidden = false;
+    const r = caretRect();
+    const W = sug.offsetWidth, H = sug.offsetHeight;
+    let x = Math.max(8, Math.min(innerWidth - W - 8, r.left - 12));
+    let y = r.bottom + 6;
+    if (y + H > innerHeight - 8) y = Math.max(8, r.top - H - 6);
+    sug.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
+  }
+  function escolher(i){
+    const it = itens[i];
+    if (!it) return;
+    const c = editor.selectionStart;
+    const fecha = editor.value.slice(c, c + 2) === ']]' ? '' : ']]';
+    inserirComoEdicao(ini, c, it.t + fecha);
+    const fim = ini + it.t.length + 2;
+    editor.setSelectionRange(fim, fim);
+    sugFechar();
+  }
+  editor.addEventListener('input', sugAbrir);
+  editor.addEventListener('blur', () => setTimeout(sugFechar, 120));
+  editor.addEventListener('keydown', (e) => {
+    if (sug.hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault(); e.stopImmediatePropagation();
+      sel = (sel + (e.key === 'ArrowDown' ? 1 : itens.length - 1)) % itens.length;
+      sugPintar();
+    } else if (e.key === 'Enter' || e.key === 'Tab'){
+      e.preventDefault(); e.stopImmediatePropagation();
+      escolher(sel);
+    } else if (e.key === 'Escape'){
+      e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation();
+      sugFechar();
+    }
+  }, true);
+  scroller.addEventListener('scroll', sugFechar, { passive: true });
+
+  editor.addEventListener('click', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const w = trechoNoCursor(/\[\[([^\[\]\n|]+)(?:\|[^\]\n]*)?\]\]/g);
+    if (w){ e.preventDefault(); seguirLigacao(w.m[1].trim()); }
+  });
+  preview.addEventListener('click', (e) => {
+    const a = e.target.closest('a.wikilink');
+    if (a){ e.preventDefault(); seguirLigacao(a.dataset.nota); }
+  });
+}
