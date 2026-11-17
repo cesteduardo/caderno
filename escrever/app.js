@@ -1725,26 +1725,58 @@ $('#togPoeta').onclick = () => {
   if (!prefs.visualizando) editor.focus();
 };
 
-/* Tela cheia: some a moldura do navegador e sobra a folha.
-   Onde a API não existe (iOS), o botão nem aparece. */
-const btnTela = $('#btnTela');
-if (!document.documentElement.requestFullscreen){
-  btnTela.hidden = true;
-} else {
-  btnTela.onclick = () => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen()
-           .catch(() => avisar('O navegador não permitiu a tela cheia'));
-  };
-  // F11 e Esc mudam o estado sem passar pelo botão: seguimos o evento
-  document.addEventListener('fullscreenchange', () => {
-    const cheia = !!document.fullscreenElement;
-    document.body.dataset.tela = cheia ? '1' : '0';
-    btnTela.setAttribute('aria-pressed', String(cheia));
-    btnTela.title = cheia ? 'Sair da tela cheia' : 'Tela cheia';
-    btnTela.setAttribute('aria-label', btnTela.title);
-  });
+/* ── Tela cheia ───────────────────────────────────────────────
+   Some a moldura do navegador e sobra a folha. Funciona em três
+   caminhos, do melhor para o possível:
+   1. a API de tela cheia (computador, Android), com o prefixo webkit
+      para o Safari do iPad;
+   2. dentro do Caderno, quem vai para a tela cheia é a página de fora
+      (o iframe sozinho não pode), e o estado é lido de lá;
+   3. onde não existe API nenhuma (o Safari do iPhone), o modo imersivo:
+      a barra e o rodapé saem e fica só um botão discreto para voltar. */
+const docDaTela = (() => {
+  try { if (PONTE && window.parent !== window && window.parent.document) return window.parent.document; } catch (e) {}
+  return document;
+})();
+const elTelaCheia = () => docDaTela.fullscreenElement || docDaTela.webkitFullscreenElement || null;
+const pedirTela = (el) => (el.requestFullscreen || el.webkitRequestFullscreen || null);
+function telaAtiva(){ return !!elTelaCheia() || corpo.dataset.imersivo === '1'; }
+
+function marcarTela(){
+  const cheia = telaAtiva();
+  corpo.dataset.tela = cheia ? '1' : '0';
+  const titulo = cheia ? 'Sair da tela cheia' : 'Tela cheia';
+  for (const b of $$('#btnTela, #btnTelaBarra')){
+    b.setAttribute('aria-pressed', String(cheia));
+    b.title = titulo + (b.id === 'btnTelaBarra' ? ' (Ctrl+Shift+F)' : '');
+    b.setAttribute('aria-label', titulo);
+  }
 }
+function definirImersivo(on){
+  corpo.dataset.imersivo = on ? '1' : '0';
+  marcarTela();
+  if (on) avisar('Para sair, toque no botão do canto', 2600);
+}
+function alternarTela(){
+  if (elTelaCheia()){
+    (docDaTela.exitFullscreen || docDaTela.webkitExitFullscreen).call(docDaTela);
+    return;
+  }
+  if (corpo.dataset.imersivo === '1'){ definirImersivo(false); return; }
+  const el = docDaTela.documentElement;
+  const pedir = pedirTela(el);
+  if (!pedir){ definirImersivo(true); return; }
+  try {
+    const r = pedir.call(el, { navigationUI: 'hide' });
+    if (r && r.catch) r.catch(() => definirImersivo(true));
+  } catch (e) { definirImersivo(true); }
+}
+$('#btnTela').onclick = alternarTela;
+$('#btnTelaBarra').onclick = alternarTela;
+$('#telaSair').onclick = alternarTela;
+// F11, Esc e o gesto do sistema mudam o estado sem passar pelo botão
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) docDaTela.addEventListener(ev, marcarTela);
+marcarTela();
 
 $('#stCont').onclick = () => {
   prefs.contagem = (prefs.contagem + 1) % CONTAGENS.length;
@@ -1974,6 +2006,8 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
+  if (cmd && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f'){ e.preventDefault(); alternarTela(); return; }
+  if (e.key === 'Escape' && corpo.dataset.imersivo === '1' && !$$('.menu.aberto').length){ definirImersivo(false); return; }
   if (e.key === 'Escape'){
     if ($$('.menu.aberto').length){ $$('.menu').forEach(m => m.classList.remove('aberto')); return; }
     if ($('#revisao').open){ fecharRevisao(); renderRevisao(); return; }

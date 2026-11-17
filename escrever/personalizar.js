@@ -74,7 +74,7 @@ const ATALHOS = [
   ['Personalizar', 'Ctrl+,'], ['Sumário', 'Ctrl+Shift+O'], ['Buscar', 'Ctrl+F'], ['Substituir', 'Ctrl+H'],
   ['Modo Foco', 'Ctrl+D'], ['Máquina de escrever', 'Ctrl+T'], ['Classes gramaticais', 'Ctrl+G'],
   ['Ortografia', 'Ctrl+P'], ['Revisão de estilo', 'Ctrl+R'], ['Corrigir a palavra', 'Ctrl+;'],
-  ['Visualizar', 'Ctrl+E'], ['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'], ['Link', 'Ctrl+K'],
+  ['Visualizar', 'Ctrl+E'], ['Tela cheia', 'Ctrl+Shift+F'], ['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'], ['Link', 'Ctrl+K'],
   ['Salvar ou baixar', 'Ctrl+S'], ['Abrir', 'Ctrl+O'], ['Novo documento', 'Ctrl+Alt+N'],
 ];
 
@@ -890,7 +890,7 @@ document.addEventListener('keydown', (e) => {
     if (cmd && k === 'f' && aberto === painel){ e.preventDefault(); $('#ajBusca').focus(); $('#ajBusca').select(); return; }
     return;
   }
-  if (cmd && !e.altKey && k === 'f'){ e.preventDefault(); abrirBusca(false); return; }
+  if (cmd && !e.altKey && !e.shiftKey && k === 'f'){ e.preventDefault(); abrirBusca(false); return; }
   if (cmd && !e.altKey && k === 'h'){ e.preventDefault(); abrirBusca(true); return; }
   if (cmd && e.shiftKey && k === 'o'){ e.preventDefault(); e.stopImmediatePropagation(); abrirSumario(); return; }
   if (cmd && !e.shiftKey && !e.altKey && e.key === ','){ e.preventDefault(); abrirAjustes(); return; }

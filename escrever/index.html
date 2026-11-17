@@ -21,14 +21,14 @@
       <div class="menu" id="menuFoco">
         <button class="menu-btn com-ico" id="btnFoco" aria-haspopup="dialog" title="Modo Foco (Ctrl+D)">Foco</button>
         <dialog class="menu-pop" aria-labelledby="menuFocoT">
-          <header class="mp-topo"><h2 id="menuFocoT">Foco</h2><p>Só o trecho atual fica nítido</p></header>
+          <header class="mp-topo"><span class="mp-sq" style="--c:#34c759" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3.5 7.2V5.5a2 2 0 0 1 2-2h1.7M12.8 3.5h1.7a2 2 0 0 1 2 2v1.7M16.5 12.8v1.7a2 2 0 0 1-2 2h-1.7M7.2 16.5H5.5a2 2 0 0 1-2-2v-1.7"/><circle cx="10" cy="10" r="2.3"/></svg></span><div><h2 id="menuFocoT">Foco</h2><p>Só o trecho atual fica nítido; o resto recua</p></div></header>
           <div class="mp-lista" role="menu" aria-labelledby="menuFocoT">
-            <button role="menuitemradio" data-escopo="nenhum">Desligado<kbd>Ctrl+D</kbd></button>
-            <button role="menuitemradio" data-escopo="frase">Frase</button>
-            <button role="menuitemradio" data-escopo="paragrafo">Parágrafo</button>
-            <button role="menuitemradio" data-escopo="linha">Linha</button>
+            <button role="menuitemradio" data-escopo="nenhum"><span class="mp-txt"><span>Desligado</span><small>Todo o texto com a mesma força</small></span><kbd>Ctrl+D</kbd></button>
+            <button role="menuitemradio" data-escopo="frase"><span class="mp-txt"><span>Frase</span><small>Só a frase do cursor fica nítida</small></span></button>
+            <button role="menuitemradio" data-escopo="paragrafo"><span class="mp-txt"><span>Parágrafo</span><small>O parágrafo inteiro em destaque</small></span></button>
+            <button role="menuitemradio" data-escopo="linha"><span class="mp-txt"><span>Linha</span><small>Apenas a linha em que você está</small></span></button>
             <hr>
-            <button role="menuitemcheckbox" data-alterna="maquina">Máquina de escrever<kbd>Ctrl+T</kbd></button>
+            <button role="menuitemcheckbox" data-alterna="maquina"><span class="mp-txt"><span>Máquina de escrever</span><small>A linha do cursor fica no meio da tela</small></span><kbd>Ctrl+T</kbd></button>
           </div>
         </dialog>
       </div>
@@ -36,19 +36,19 @@
       <div class="menu" id="menuRealce">
         <button class="menu-btn com-ico" id="btnRealce" aria-haspopup="dialog" title="Ortografia, estilo e gramática">Realce</button>
         <dialog class="menu-pop" aria-labelledby="menuRealceT">
-          <header class="mp-topo"><h2 id="menuRealceT">Realce</h2><p>Ortografia, estilo e gramática</p></header>
+          <header class="mp-topo"><span class="mp-sq" style="--c:#ff9500" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m12.4 3.6 4 4-6.5 6.5-4-4Z"/><path d="m5.9 10.1-1.6 3.6 2 2 3.6-1.6"/><path d="M11.5 16.5h5"/></svg></span><div><h2 id="menuRealceT">Realce</h2><p>Ortografia, estilo e classes gramaticais</p></div></header>
           <div class="mp-lista" role="menu" aria-labelledby="menuRealceT">
-            <button role="menuitemcheckbox" data-alterna="ortografia">Ortografia<kbd>Ctrl+P</kbd></button>
-            <button role="menuitemcheckbox" data-alterna="estilo">Revisão de estilo<kbd>Ctrl+R</kbd></button>
+            <button role="menuitemcheckbox" data-alterna="ortografia"><span class="mp-txt"><span>Ortografia</span><small>Sublinha as palavras suspeitas</small></span><kbd>Ctrl+P</kbd></button>
+            <button role="menuitemcheckbox" data-alterna="estilo"><span class="mp-txt"><span>Revisão de estilo</span><small>Repetições, frases longas e vícios</small></span><kbd>Ctrl+R</kbd></button>
             <hr>
             <p class="menu-titulo">Classes gramaticais</p>
-            <button role="menuitemradio" data-classe="nenhuma">Desligado<kbd>Ctrl+G</kbd></button>
-            <button role="menuitemradio" data-classe="g-subst" title="Nomes de seres, lugares, objetos, sentimentos e ideias">Substantivos</button>
-            <button role="menuitemradio" data-classe="g-verbo" title="Ações, estados, mudanças e fenômenos">Verbos</button>
-            <button role="menuitemradio" data-classe="g-adj" title="Características ou qualidades atribuídas aos substantivos">Adjetivos</button>
-            <button role="menuitemradio" data-classe="g-adv" title="Circunstâncias de tempo, lugar, modo, intensidade, afirmação, negação ou dúvida">Advérbios</button>
-            <button role="menuitemradio" data-classe="g-conj" title="Palavras que ligam termos, orações e ideias">Conectivos</button>
-            <button role="menuitemradio" data-classe="todas">Todas as classes</button>
+            <button role="menuitemradio" data-classe="nenhuma"><i class="mp-bola mp-bola--nenhuma" aria-hidden="true"></i>Desligado<kbd>Ctrl+G</kbd></button>
+            <button role="menuitemradio" data-classe="g-subst" title="Nomes de seres, lugares, objetos, sentimentos e ideias"><i class="mp-bola mp-bola--g-subst" aria-hidden="true"></i>Substantivos</button>
+            <button role="menuitemradio" data-classe="g-verbo" title="Ações, estados, mudanças e fenômenos"><i class="mp-bola mp-bola--g-verbo" aria-hidden="true"></i>Verbos</button>
+            <button role="menuitemradio" data-classe="g-adj" title="Características ou qualidades atribuídas aos substantivos"><i class="mp-bola mp-bola--g-adj" aria-hidden="true"></i>Adjetivos</button>
+            <button role="menuitemradio" data-classe="g-adv" title="Circunstâncias de tempo, lugar, modo, intensidade, afirmação, negação ou dúvida"><i class="mp-bola mp-bola--g-adv" aria-hidden="true"></i>Advérbios</button>
+            <button role="menuitemradio" data-classe="g-conj" title="Palavras que ligam termos, orações e ideias"><i class="mp-bola mp-bola--g-conj" aria-hidden="true"></i>Conectivos</button>
+            <button role="menuitemradio" data-classe="todas"><i class="mp-bola mp-bola--todas" aria-hidden="true"></i>Todas as classes</button>
           </div>
         </dialog>
       </div>
@@ -58,12 +58,16 @@
     </div>
 
     <div class="grupo grupo--app">
+      <button class="ico btn-tela" id="btnTelaBarra" aria-pressed="false" title="Tela cheia (Ctrl+Shift+F)" aria-label="Tela cheia">
+        <svg class="tela-entrar" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 7.5v-4h4M12.5 3.5h4v4M16.5 12.5v4h-4M7.5 16.5h-4v-4"/></svg>
+        <svg class="tela-sair" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 3.5v4h-4M16.5 7.5h-4v-4M12.5 16.5v-4h4M3.5 12.5h4v4"/></svg>
+      </button>
       <div class="menu" id="menuMais">
         <button class="ico menu-btn" id="btnMais" aria-haspopup="dialog" title="Mais" aria-label="Mais opções">
           <svg viewBox="0 0 20 20"><circle cx="4.5" cy="10" r="1.1"/><circle cx="10" cy="10" r="1.1"/><circle cx="15.5" cy="10" r="1.1"/></svg>
         </button>
         <dialog class="menu-pop" aria-labelledby="menuMaisT">
-          <header class="mp-topo"><h2 id="menuMaisT">Documento</h2><p>Arquivo, exportação e ajuda</p></header>
+          <header class="mp-topo"><span class="mp-sq" style="--c:#5856d6" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M5.5 2.8h6l3.5 3.5v10a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1v-12.5a1 1 0 0 1 1-1Z"/><path d="M11.5 2.8v3.5H15M7.3 10.5h5.4M7.3 13.5h3.6"/></svg></span><div><h2 id="menuMaisT">Documento</h2><p>Arquivo, ferramentas, exportação e ajuda</p></div></header>
           <div class="mp-lista mp-lista--duas" role="menu" aria-labelledby="menuMaisT">
             <div class="mp-col">
               <p class="menu-titulo">Arquivo</p>
@@ -74,7 +78,7 @@
               <button role="menuitem" id="btnBusca">Buscar e substituir<kbd>Ctrl+F</kbd></button>
               <button role="menuitem" id="btnSumario">Sumário<kbd>Ctrl+Shift+O</kbd></button>
               <button role="menuitemcheckbox" id="togPoeta" aria-pressed="false" title="Alinhar e recuar versos">Modo Poeta</button>
-              <button role="menuitemcheckbox" id="btnTela" aria-pressed="false">Tela cheia</button>
+              <button role="menuitemcheckbox" id="btnTela" aria-pressed="false">Tela cheia<kbd>Ctrl+Shift+F</kbd></button>
               <hr>
               <p class="menu-titulo">Ajuda</p>
               <button role="menuitem" id="btnGuia">Guia do Escritor</button>
@@ -402,6 +406,11 @@
 
 <!-- área usada só na impressão / PDF -->
 <div class="print-only" id="printView"></div>
+
+<!-- sair da tela cheia no modo imersivo (onde o navegador não tem tela cheia) -->
+<button class="tela-sair-flutua" id="telaSair" type="button" aria-label="Sair da tela cheia" title="Sair da tela cheia">
+  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 3.5v4h-4M16.5 7.5h-4v-4M12.5 16.5v-4h4M3.5 12.5h4v4"/></svg>
+</button>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
