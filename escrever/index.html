@@ -160,6 +160,7 @@
       <button type="button" data-ir="escrita" style="--c:#34c759"><span class="aj-ic"><i data-ico="escrita"></i></span><span class="aj-nome">Escrita</span></button>
       <button type="button" data-ir="revisao" style="--c:#ff3b30"><span class="aj-ic"><i data-ico="revisao"></i></span><span class="aj-nome">Revisão</span></button>
       <button type="button" data-ir="tela" style="--c:#30b0c7"><span class="aj-ic"><i data-ico="tela"></i></span><span class="aj-nome">Tela e meta</span></button>
+      <button type="button" data-ir="autoria" style="--c:#a2845e"><span class="aj-ic"><i data-ico="autoria"></i></span><span class="aj-nome">Autoria</span></button>
       <button type="button" data-ir="obsidian" style="--c:#5856d6"><span class="aj-ic"><i data-ico="obsidian"></i></span><span class="aj-nome">Obsidian</span></button>
       <button type="button" data-ir="atalhos" style="--c:#8e8e93"><span class="aj-ic"><i data-ico="atalhos"></i></span><span class="aj-nome">Atalhos</span></button>
       <button type="button" data-ir="amostra" style="--c:#ff2d55"><span class="aj-ic"><i data-ico="amostra"></i></span><span class="aj-nome">Amostra</span></button>
@@ -290,6 +291,27 @@
                   <input type="number" id="numMeta" min="0" step="50" inputmode="numeric" placeholder="sem meta" aria-label="Meta de palavras">
                   <div class="aj-fichas" id="optMeta" role="radiogroup" aria-label="Metas comuns"></div>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="aj-secao" data-secao="autoria" aria-labelledby="ajs-autoria">
+            <h3 id="ajs-autoria">Autoria</h3>
+            <p class="aj-intro">Seu nome assina o texto quando você exporta, imprime ou gera o PDF, logo abaixo do título da obra. O “Feito com Escritor” continua no fim.</p>
+            <div class="aj-grupo">
+              <div class="aj-linha aj-linha--pilha" data-busca="autor autoria nome assinatura crédito creditar">
+                <label class="aj-rot" for="txtAutor"><b>Nome</b><small>Do jeito que quiser assinar: nome completo, artístico ou só as iniciais.</small></label>
+                <input class="aj-texto" type="text" id="txtAutor" maxlength="80" placeholder="Seu nome" autocomplete="name" spellcheck="false">
+              </div>
+              <div class="aj-linha aj-linha--pilha" data-busca="link site email e-mail instagram rede identificador autoria">
+                <label class="aj-rot" for="txtAutorLink"><b>Link</b><small>Opcional. Um site, um e-mail ou uma rede social: o seu nome vira um link para ele.</small></label>
+                <input class="aj-texto" type="text" id="txtAutorLink" maxlength="200" placeholder="seusite.com.br ou voce@email.com" inputmode="url" autocomplete="url" spellcheck="false">
+              </div>
+            </div>
+            <div class="aj-grupo">
+              <div class="aj-linha aj-linha--pilha" data-busca="prévia assinatura exportar autoria como fica">
+                <div class="aj-rot"><b>Como fica</b><small>O fim de cada arquivo exportado, impresso ou em PDF.</small></div>
+                <div class="aut-previa" id="autPrevia" aria-live="polite"></div>
               </div>
             </div>
           </section>

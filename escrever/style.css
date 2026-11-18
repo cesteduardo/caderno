@@ -1073,6 +1073,8 @@ body.soltando::after{
   .print-only .assinatura-obra{
     font:italic 11.5pt/1.4 Georgia,"Times New Roman",serif; color:#333;
   }
+  .print-only .assinatura-autor{ font-size:10pt; color:#333; }
+  .print-only .assinatura-autor a{ color:inherit; text-decoration:none; }
   .print-only .assinatura-data{
     font-size:7.6pt; letter-spacing:1.4pt; text-transform:uppercase; color:#9a9a9a;
   }
@@ -1755,6 +1757,30 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 }
 .aj-select option{ background:var(--papel); color:var(--tinta); }
 .aj-meta{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+/* autoria: campos na largura toda, como no iA Writer */
+.aj-texto{
+  width:100%; height:38px; padding:0 12px; border:0; border-radius:9px;
+  background:var(--aj-campo); color:var(--tinta); font-size:14px;
+  box-shadow:inset 0 0 0 1px var(--aj-fio); outline:0;
+  transition:box-shadow var(--transicao);
+}
+.aj-texto::placeholder{ color:var(--r3); opacity:1; }
+.aj-texto:focus{ box-shadow:inset 0 0 0 1px var(--caret), 0 0 0 3px color-mix(in srgb, var(--caret) 30%, transparent); }
+.aj-texto[aria-invalid]{ box-shadow:inset 0 0 0 1px var(--c-erro); }
+/* a prévia imita o fim do arquivo exportado: papel branco, tinta escura */
+.aut-previa{
+  padding:6px 20px 26px; border-radius:12px; background:#fff; color:#8a9099;
+  box-shadow:inset 0 0 0 1px var(--aj-fio);
+}
+.aut-previa .assinatura{ margin:0; display:flex; flex-direction:column; align-items:center; gap:.45em; text-align:center; font:12px/1.6 var(--ui); }
+.aut-previa .assinatura-fio{ width:3.2rem; height:1px; background:#dcdfe4; margin:1.2rem 0 1.1rem; }
+.aut-previa .assinatura-obra{ font:italic 15px/1.45 Georgia,"Times New Roman",serif; color:#2f333b; }
+.aut-previa .assinatura-autor{ font-size:13px; color:#2f333b; }
+.aut-previa .assinatura-autor a{ color:inherit; text-decoration:none; border-bottom:1px solid #d6d9de; }
+.aut-previa .assinatura-data{ font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#a3a9b1; }
+.aut-previa .assinatura-marca{ margin-top:.7em; }
+.aut-previa .assinatura-marca a{ color:#6f7681; text-decoration:none; display:inline-flex; align-items:center; gap:.45em; }
+.aut-previa svg.folha{ all:revert; position:static; flex:none; width:13px; height:13px; vertical-align:middle; }
 .aj-meta input{ width:8rem; font-variant-numeric:tabular-nums; }
 .aj-fichas{ display:flex; flex-wrap:wrap; gap:6px; }
 .aj-fichas [role=radio]{
@@ -1951,20 +1977,27 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 .ctx-acao span{ font-size:12px; color:var(--r2); white-space:nowrap; }
 .ctx-acao:hover:not(:disabled) span{ color:var(--tinta); }
 
-/* grifo: as sete cores numa fileira */
-.ctx-grifo{ display:flex; align-items:center; gap:12px; height:46px; padding:0 10px; border-bottom:1px solid var(--fio); }
-.ctx-grifo-rot{ display:flex; align-items:center; gap:10px; width:7.4rem; flex:none; }
-.ctx-cores{ display:flex; gap:6px; flex:1; }
-.ctx-cor-b{ width:26px; height:26px; border-radius:8px; display:grid; place-items:center; }
+/* grifo: na mesma grade das colunas. "Grifar" e o atalho ocupam a
+   primeira, como um item; as sete cores viram fichas que enchem as
+   outras duas, iguais às fichas H1 a H6 lá embaixo. */
+.ctx-grifo{
+  display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0 6px; align-items:center;
+  height:48px; border-bottom:1px solid var(--fio);
+}
+.ctx-grifo-rot{ display:flex; align-items:center; gap:10px; padding:0 10px; min-width:0; }
+.ctx-grifo-rot > span{ flex:1; }
+.ctx-cores{ grid-column:2 / 4; display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:3px; padding:0 4px; }
+.ctx-cor-b{ height:30px; border-radius:7px; display:grid; place-items:center; background:var(--preench) !important; }
+.ctx-cor-b:hover,.ctx-cor-b:focus-visible{ background:var(--preench-2) !important; }
 .ctx-cor-b::before{
-  content:""; width:16px; height:16px; border-radius:5px;
-  background:color-mix(in srgb, var(--cor) 72%, transparent); box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18);
+  content:""; width:18px; height:18px; border-radius:6px;
+  background:color-mix(in srgb, var(--cor) 78%, transparent); box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18);
   transition:transform 140ms var(--mola);
 }
-.ctx-cor-b:hover::before,.ctx-cor-b:focus-visible::before{ transform:scale(1.15); }
-.ctx-cor-b.padrao{ position:relative; margin-right:13px; }
-.ctx-cor-b.padrao::after{ content:""; position:absolute; right:-10px; top:5px; bottom:5px; width:1px; background:var(--fio); }
-.ctx-grifo kbd{ margin-left:auto; }
+.ctx-cor-b:hover::before,.ctx-cor-b:focus-visible::before{ transform:scale(1.18); }
+/* a cor do tema fica de fora das seis, com um fio entre elas */
+.ctx-cor-b.padrao{ position:relative; }
+.ctx-cor-b.padrao::after{ content:""; position:absolute; right:-2px; top:7px; bottom:7px; width:1px; background:var(--fio); }
 
 /* três colunas de sete linhas: cada linha mede o mesmo nas três */
 .ctx-cols{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0 6px; padding-top:4px; }
@@ -1983,7 +2016,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 @media (max-width: 640px){
   .ctx-cols{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 6px; }
   .ctx-barra .ctx-acao span{ font-size:11px; }
-  .ctx-grifo kbd{ display:none; }
+  .ctx-grifo-rot kbd{ display:none; }
 }
 
 /* ══ grifo, comentário e nota de rodapé no texto ══ */

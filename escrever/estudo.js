@@ -558,7 +558,7 @@ function painelCtx(){
   // 3. grifo nas sete cores (gravadas como no Obsidian: ==🟥texto==)
   const grifo = document.createElement('div');
   grifo.className = 'ctx-grifo';
-  grifo.innerHTML = `<span class="ctx-grifo-rot"><i>${ico('grifo')}</i>Grifar</span>`;
+  grifo.innerHTML = `<span class="ctx-grifo-rot"><i>${ico('grifo')}</i><span>Grifar</span><kbd>${escapar(paraSO('Ctrl+Shift+H'))}</kbd></span>`;
   const cores = document.createElement('div');
   cores.className = 'ctx-cores';
   for (const [e, nome, cor] of CORES_REALCE){
@@ -569,7 +569,6 @@ function painelCtx(){
     cores.append(b);
   }
   grifo.append(cores);
-  grifo.insertAdjacentHTML('beforeend', `<kbd>${escapar(paraSO('Ctrl+Shift+H'))}</kbd>`);
   p.append(grifo);
 
   // 4. três colunas, sete linhas cada

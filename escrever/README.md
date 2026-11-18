@@ -1,4 +1,4 @@
-# Escritor 2.1
+# Escritor 2.2
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -12,6 +12,11 @@ python3 -m http.server 8000
 Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o aplicativo escrito nele mesmo. A primeira coisa que você escrever vira uma nota sua.
 
 ---
+
+## Na 2.2
+
+- **Autoria:** uma seção nova no Personalizar, como o "Set up Authorship" do iA Writer. Você escreve o seu nome do jeito que quiser assinar e, se quiser, um link (site, e-mail ou rede social). Na exportação para HTML, Word e PDF o nome entra na assinatura do fim, logo abaixo do título da obra, como link. O HTML também leva `<meta name="author">`. O “Feito com Escritor” continua. Um e-mail vira `mailto:`, um endereço sem `https://` ganha o protocolo, e qualquer outro tipo de link é recusado (o campo fica vermelho). A seção mostra uma prévia ao vivo, e o nome viaja junto em **Exportar ajustes**, mas o **Voltar ao padrão** não o apaga.
+- **Grifar encaixado:** no botão direito, as sete cores viraram fichas na mesma grade das colunas, iguais às de H1 a H6, e o atalho fica ao lado de "Grifar".
 
 ## Na 2.1
 
@@ -62,7 +67,7 @@ Tudo abre como pop-up central, deitado para os lados:
 Todo pop-up tem um **×** para fechar (além do `Esc` e do clique fora), e toda busca fica no meio, logo abaixo do título. Nos menus nada acende sozinho: só o que está sob o ponteiro ou sob as setas do teclado, sempre com o mesmo véu de cor. A pílula que desliza fica só onde as opções correm da esquerda para a direita, como nos seletores e nas abas.
 
 ### Personalizar
-O painel **Aa** (`Ctrl+,`) segue o desenho de ajustes do RefBox: título no centro, × no canto, a busca centralizada e uma fileira de ícones (Estilos, Aparência, Texto, Escrita, Revisão, Tela e meta, Obsidian, Atalhos e **Amostra**). Cada ícone mostra a sua seção, com bastante espaço; a busca junta as seções e mostra tudo o que bate. A **Amostra** é uma aba inteira: um trecho grande, escrito com tudo o que você escolheu.
+O painel **Aa** (`Ctrl+,`) segue o desenho de ajustes do RefBox: título no centro, × no canto, a busca centralizada e uma fileira de ícones (Estilos, Aparência, Texto, Escrita, Revisão, Tela e meta, **Autoria**, Obsidian, Atalhos e **Amostra**). Cada ícone mostra a sua seção, com bastante espaço; a busca junta as seções e mostra tudo o que bate. A **Amostra** é uma aba inteira: um trecho grande, escrito com tudo o que você escolheu.
 
 A seção **Obsidian** virou um módulo de verdade: estado da pasta, escolher, salvar agora, esquecer, salvar sozinho enquanto escreve e um passo a passo de como funciona.
 

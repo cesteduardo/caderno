@@ -81,7 +81,9 @@ const prefs = Object.assign({
   // espaço entre letras, intensidade do foco, leitura e seus estilos
   autoClaro: 'claro', autoEscuro: 'escuro', corPropria: '#2b7fff',
   titulos: 'tinta', letras: 0, esmaecer: 'medio', ppm: 200,
-  mostrarTempo: true, meusEstilos: []
+  mostrarTempo: true, meusEstilos: [],
+  // autoria: quem assina o texto exportado (e um link opcional)
+  autor: '', autorLink: ''
 }, lerPrefs());
 
 /* Migração da primeira versão, em que a ferramenta se chamava
@@ -1339,6 +1341,20 @@ const FOLHA_PNG =
   `width="13" height="13" alt="" border="0" ` +
   `style="border:0;vertical-align:middle">`;
 
+/* O link do autor aceita o que a pessoa digitar: um e-mail vira
+   mailto:, um endereço sem protocolo ganha https://. Só http, https e
+   mailto saem daqui, para nada estranho entrar no arquivo. */
+function linkDoAutor(v = prefs.autorLink){
+  v = String(v || '').trim();
+  if (!v || /\s/.test(v)) return '';
+  if (/^mailto:/i.test(v)) return v;
+  if (/^[^@/:]+@[^@/:]+\.[^@/:]+$/.test(v)) return 'mailto:' + v;
+  if (/^https?:\/\//i.test(v)) return v;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return '';
+  return 'https://' + v.replace(/^\/+/, '');
+}
+const nomeDoAutor = () => String(prefs.autor || '').trim();
+
 function dataPorExtenso(){
   return new Date().toLocaleDateString('pt-BR',
     { day: 'numeric', month: 'long', year: 'numeric' });
@@ -1349,6 +1365,8 @@ function dataPorExtenso(){
 function assinaturaHTML(paraWord){
   const t = escapar(tituloLegivel());
   const data = escapar(dataPorExtenso());
+  const autor = escapar(nomeDoAutor());
+  const link = escapar(linkDoAutor());
   const feito = paraWord
     ? `Feito com ${FOLHA_PNG} Escritor`
     : `Feito com${FOLHA_SVG}Escritor`;   // o gap do flex faz os espaços
@@ -1362,6 +1380,9 @@ function assinaturaHTML(paraWord){
       `font-size:1pt;line-height:1pt">&nbsp;</td></tr></table>` +
     (t ? `<p align="center" style="margin:0;font:italic 11.5pt Georgia,serif;color:#333">` +
          `${t}</p>` : '') +
+    (autor ? `<p align="center" style="margin:5pt 0 0;font-family:Calibri,Arial,sans-serif;` +
+      `font-size:10pt;color:#333">` +
+      (link ? `<a href="${link}" style="color:#333;text-decoration:none">${autor}</a>` : autor) + `</p>` : '') +
     `<p align="center" style="margin:6pt 0 0;font-family:Calibri,Arial,sans-serif;` +
       `font-size:7.5pt;letter-spacing:1.4pt;color:#9a9a9a">${data.toUpperCase()}</p>` +
     `<p align="center" style="margin:13pt 0 0;font-family:Calibri,Arial,sans-serif;` +
@@ -1372,6 +1393,7 @@ function assinaturaHTML(paraWord){
   return `<footer class="assinatura">` +
     `<span class="assinatura-fio" aria-hidden="true"></span>` +
     (t ? `<span class="assinatura-obra">${t}</span>` : '') +
+    (autor ? `<span class="assinatura-autor">${link ? `<a href="${link}">${autor}</a>` : autor}</span>` : '') +
     `<span class="assinatura-data">${data}</span>` +
     `<span class="assinatura-marca"><a href="${ESCRITOR_URL}">${feito}</a></span>` +
     `</footer>`;
@@ -1427,6 +1449,9 @@ th,td{border:1px solid #e9ebef;padding:.45em .7em;text-align:left}
 .assinatura-fio{width:3.2rem;height:1px;background:#dcdfe4;margin-bottom:1.5rem}
 .assinatura-obra{font:italic 1.16em/1.45 Georgia,"Iowan Old Style","Times New Roman",serif;
   color:#2f333b;max-width:24rem}
+.assinatura-autor{font-size:1.06em;letter-spacing:.01em;color:#2f333b}
+.assinatura-autor a{color:inherit;text-decoration:none;border-bottom:1px solid #d6d9de}
+.assinatura-autor a:hover{border-color:#2f333b}
 .assinatura-data{font-size:.82em;letter-spacing:.16em;text-transform:uppercase;color:#a3a9b1}
 .assinatura-marca{margin-top:.95em;letter-spacing:.03em}
 .assinatura-marca a{color:#6f7681;text-decoration:none;
@@ -1452,7 +1477,9 @@ async function exportar(tipo){
     return baixar(`${nome}.html`, await embutir(
       `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">` +
       `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-      `<title>${escapar(nome)}</title><style>${CSS_EXPORT}</style></head>` +
+      `<title>${escapar(nome)}</title>` +
+      (nomeDoAutor() ? `<meta name="author" content="${escapar(nomeDoAutor())}">` : '') +
+      `<style>${CSS_EXPORT}</style></head>` +
       `<body>\n${paraHTML(md)}\n${assinaturaHTML()}\n</body></html>`),
       'text/html;charset=utf-8');
   }
@@ -1537,7 +1564,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.1.1';
+const VERSAO = '2.2.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -2753,6 +2780,7 @@ O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. No a
 - **Aparência**: oito papéis e o Automático, que segue o claro ou escuro do sistema; a cor de destaque, inclusive uma escolhida por você; a cor dos títulos e os sinais do Markdown.
 - **Texto**: fonte, corpo, entrelinha, espaço entre letras e largura da coluna.
 - **Escrita**, **Revisão** e **Tela e meta** reúnem o Foco, a máquina de escrever, a tipografia inteligente, a ortografia, as classes gramaticais, o rodapé e a meta de palavras.
+- **Autoria** guarda o seu nome, do jeito que quiser assinar, e um link opcional (site, e-mail ou rede social). Eles assinam os arquivos exportados.
 
 A busca no alto do painel (\`Ctrl+F\` com ele aberto) acha qualquer ajuste pelo nome. **Exportar ajustes** guarda tudo num arquivo .json, que **Importar** traz de volta em outro navegador.
 
@@ -2771,6 +2799,8 @@ O menu **Exportar** cria uma cópia do documento no formato escolhido:
 - **PDF** abre a impressão do navegador para salvar ou imprimir.
 
 Também é possível copiar Markdown ou HTML para a área de transferência. O primeiro título do documento é usado como nome do arquivo.
+
+No fim do HTML, do Word e do PDF vai uma assinatura discreta: o título da obra, o seu nome (se você preencheu a **Autoria** no Personalizar, e com link se deu um), a data e o “Feito com Escritor”.
 
 ## Pasta no Obsidian
 

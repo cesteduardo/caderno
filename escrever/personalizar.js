@@ -297,6 +297,21 @@ function montar(){
   $('#rngLetras').oninput = (e) => mudar('letras', +e.target.value);
   $('#rngColuna').oninput = (e) => mudar('coluna', +e.target.value);
   $('#numMeta').onchange = (e) => mudar('meta', Math.max(0, Math.round(+e.target.value || 0)));
+
+  /* autoria: grava a cada letra, sem redesenhar a folha */
+  const autoria = (chave) => (e) => { prefs[chave] = e.target.value.trim(); salvarPrefs(); pintarAutoria(); };
+  $('#txtAutor').oninput = autoria('autor');
+  $('#txtAutorLink').oninput = autoria('autorLink');
+}
+
+/* A prévia é a própria assinatura dos arquivos exportados. */
+function pintarAutoria(){
+  const caixa = $('#autPrevia');
+  if (!caixa) return;
+  caixa.innerHTML = assinaturaHTML();
+  caixa.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+  const campo = $('#txtAutorLink');
+  campo.toggleAttribute('aria-invalid', !!prefs.autorLink && !linkDoAutor());
 }
 
 /* As faixas pintam a parte já percorrida na cor de destaque, como no
@@ -349,6 +364,9 @@ function sincronizar(){
   if (typeof medirPilulas === 'function') medirPilulas();
   $('#selContagem').value = String(prefs.contagem);
   if (document.activeElement !== $('#numMeta')) $('#numMeta').value = prefs.meta || '';
+  if (document.activeElement !== $('#txtAutor')) $('#txtAutor').value = prefs.autor || '';
+  if (document.activeElement !== $('#txtAutorLink')) $('#txtAutorLink').value = prefs.autorLink || '';
+  pintarAutoria();
 
   /* estilos: marca o que bate com o estado de agora */
   const bate = (v) => Object.entries(v).every(([k, x]) => prefs[k] === x);
@@ -609,7 +627,7 @@ $('#btnPadrao').onclick = () => {
   clearTimeout(relogioPadrao);
   relogioPadrao = setTimeout(() => { desfazerPadrao = null; b.textContent = 'Voltar ao padrão'; }, 8000);
 };
-const CHAVES_ARQUIVO = [...Object.keys(PADRAO), 'meusEstilos', 'obsidianAuto'];
+const CHAVES_ARQUIVO = [...Object.keys(PADRAO), 'meusEstilos', 'obsidianAuto', 'autor', 'autorLink'];
 $('#ajExportar').onclick = () => {
   const dados = { escritor: 'ajustes', versao: 1, ajustes: Object.fromEntries(CHAVES_ARQUIVO.map(k => [k, prefs[k]])) };
   const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' }));
