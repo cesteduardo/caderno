@@ -932,7 +932,7 @@ function desenhar(){
 
   if (prefs.maquina && precisaCentrar){
     precisaCentrar = false;
-    centralizarCursor();
+    descerAteOCentro();
   }
 }
 
@@ -980,12 +980,62 @@ function desenharNumerosLinha(texto, cursor){
   }
 }
 
+/* Centraliza de uma vez: só quando o modo liga ou quando a folha
+   muda de medida (fonte, corpo, coluna), porque aí a linha mudou de
+   lugar sem ninguém ter mexido nela. */
+const alvoDoCentro = (marca) => Math.max(0, marca.offsetTop - scroller.clientHeight / 2 + 12);
 function centralizarCursor(){
   const marca = document.getElementById('marcaCursor');
   if (!marca) return;
-  const alvo = marca.offsetTop - scroller.clientHeight / 2 + 12;
-  scroller.scrollTop = Math.max(0, alvo);
+  scroller.scrollTop = alvoDoCentro(marca);
 }
+
+/* O modo máquina de escrever, como a máquina de verdade: a folha só
+   anda para a frente. Enquanto se digita (ou se desce com o teclado),
+   a linha que passou do meio da tela leva a folha junto, num passo
+   macio do tamanho de uma linha. Ela nunca volta para cima sozinha,
+   e um clique ou uma seleção com o mouse não mexem em nada: dá para
+   escolher qualquer linha sem a página fugir debaixo do cursor.
+   A única exceção é a linha sumir do alto (atrás da barra): aí ela
+   volta ao meio, para quem digita enxergar o que está escrevendo. */
+function descerAteOCentro(){
+  const marca = document.getElementById('marcaCursor');
+  if (!marca) return;
+  const alvo = alvoDoCentro(marca);
+  const indo = descida ? descida.alvo : scroller.scrollTop;
+  const topo = marca.offsetTop - scroller.scrollTop;
+  const escondida = topo < (document.getElementById('bar')?.offsetHeight || 56) + 8;
+  if (!escondida && alvo <= indo + 1) return;
+  const longe = Math.abs(alvo - scroller.scrollTop) > scroller.clientHeight * 0.4;
+  if (escondida || longe || matchMedia('(prefers-reduced-motion: reduce)').matches){
+    descida = null;
+    scroller.scrollTop = alvo;
+    return;
+  }
+  rolarMacio(alvo);
+}
+
+/* O passo macio é feito à mão, quadro a quadro e medido pelo relógio:
+   o scrollTo({behavior:'smooth'}) do navegador era cancelado a cada
+   redesenho da folha e a página ficava parada. Se outra linha chega
+   no meio do caminho, só o destino muda, sem recomeçar o movimento. */
+let descida = null;
+function rolarMacio(alvo){
+  if (descida){ descida.alvo = alvo; return; }
+  descida = { alvo, antes: performance.now() };
+  const quadro = (agora) => {
+    if (!descida) return;
+    const dt = Math.min(64, agora - descida.antes);
+    descida.antes = agora;
+    const falta = descida.alvo - scroller.scrollTop;
+    if (Math.abs(falta) < 0.6){ scroller.scrollTop = descida.alvo; descida = null; return; }
+    scroller.scrollTop += falta * (1 - Math.exp(-dt / 55));
+    requestAnimationFrame(quadro);
+  };
+  requestAnimationFrame(quadro);
+}
+// quem rola com a roda ou o dedo assume a página na hora
+['wheel', 'touchstart'].forEach(ev => scroller.addEventListener(ev, () => { descida = null; }, { passive:true }));
 
 /* ═══════════════════════════════════════════════════════════
    6. Números e dica do rodapé
@@ -1487,7 +1537,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.0.0';
+const VERSAO = '2.0.1';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -2518,12 +2568,21 @@ editor.addEventListener('input', aoDigitar);
    o próximo quadro e só acontece se o cursor de fato mudou de lugar. */
 let ultimoDesenho = '';
 let rafCursor = 0;
+/* Só as teclas que andam para baixo levam a folha: subir com a seta,
+   clicar ou arrastar o mouse mudam o cursor e deixam a página quieta. */
+let desceuPeloTeclado = false;
+const TECLAS_QUE_DESCEM = new Set(['ArrowDown', 'PageDown', 'Enter']);
+editor.addEventListener('keydown', (e) => {
+  desceuPeloTeclado = TECLAS_QUE_DESCEM.has(e.key) || (e.key === 'End' && (e.ctrlKey || e.metaKey));
+});
+editor.addEventListener('pointerdown', () => { desceuPeloTeclado = false; });
 function redesenharCursor(){
   cancelAnimationFrame(rafCursor);
   rafCursor = requestAnimationFrame(() => {
     const chave = editor.selectionStart + ':' + editor.selectionEnd + ':' + editor.value.length;
     if (chave === ultimoDesenho) return;
-    precisaCentrar = prefs.maquina;
+    precisaCentrar = prefs.maquina && desceuPeloTeclado;
+    desceuPeloTeclado = false;
     desenhar();
     atualizarRegua();
   });
@@ -2566,7 +2625,7 @@ document.addEventListener('mousemove', mostrarChrome);
 scroller.addEventListener('scroll', () => {
   corpo.dataset.scrolled = scroller.scrollTop > 4 ? '1' : '0';
 });
-window.addEventListener('resize', () => { if (prefs.maquina) centralizarCursor(); });
+window.addEventListener('resize', () => { if (prefs.maquina) descerAteOCentro(); });
 
 /* A altura real da barra vira variável de CSS: no celular o painel
    suspenso nasce logo abaixo dela, tenha ela uma linha ou duas. */
@@ -2583,7 +2642,7 @@ else window.addEventListener('resize', medirBarra);
 if (window.visualViewport){
   window.visualViewport.addEventListener('resize', () => {
     atualizarRegua();
-    if (prefs.maquina) centralizarCursor();
+    if (prefs.maquina) descerAteOCentro();
     else if (document.activeElement === editor) manterCursorVisivel();
   });
 }
@@ -2662,7 +2721,7 @@ O menu **Foco** reduz visualmente tudo o que está fora do trecho atual. Ele nã
 - **Linha** destaca somente a linha atual.
 - **Desligado** devolve a mesma intensidade a todo o documento.
 
-No mesmo menu, **Máquina de escrever** mantém a linha atual perto do centro da tela. O documento se move enquanto você digita, diminuindo a necessidade de acompanhar o cursor com os olhos.
+No mesmo menu, **Máquina de escrever** funciona como a máquina de verdade: a folha só anda para a frente. Quando a linha que você digita passa do meio da tela, o documento desce uma linha e ela volta ao centro. Clicar, selecionar com o mouse ou subir com as setas não mexe na página, então dá para escolher qualquer linha sem ela fugir.
 
 ## Realce e revisão
 

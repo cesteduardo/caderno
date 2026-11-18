@@ -73,7 +73,7 @@ Todos os ícones (barra, menus, Personalizar, botão direito) vêm do **Lucide**
 
 **Foco.** Recua tudo o que não é o trecho atual: Frase, Parágrafo ou Linha (a linha visual na tela, inclusive quando um parágrafo quebra pela largura). A **Intensidade do foco** (leve, médio, forte) fica no Personalizar.
 
-**Máquina de escrever.** A linha do cursor fica sempre no meio da tela; o texto sobe e os olhos ficam parados.
+**Máquina de escrever.** Como a máquina de verdade, a folha só anda para a frente: quando a linha que você digita passa do meio da tela, o documento desce uma linha, num passo macio, e ela volta ao centro. Clicar numa linha, selecionar com o mouse ou subir com as setas não mexe na página, então dá para escolher qualquer trecho sem ele fugir (2.0.1).
 
 **Ortografia.** Um risco vermelho embaixo da palavra suspeita, sem nada por cima do texto. Usa o dicionário pt-BR do navegador e uma lista própria de erros clássicos (`concerteza`, `derrepente`, `apartir`…). Com o cursor numa delas, a forma certa aparece no rodapé; clicar nela ou `Ctrl+;` faz a troca, e `Ctrl+Z` desfaz.
 
