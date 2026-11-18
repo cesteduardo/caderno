@@ -4,6 +4,11 @@ Caderno de estudo e produtividade num app só: a rotina diária, o leitor de liv
 (antigo INK), as aulas transcritas (antigo Caderno Inteligente), as notas ligadas
 no espírito do GR Notes/Obsidian e o Escritor como editor de texto.
 
+O visual é o do Escritor: Inter em tudo, papel branco, preenchimentos de meio tom,
+o azul do Escritor como destaque, ícones Lucide (`js/icones.js`) e uma barra de
+vidro no topo com as seções, **Ir para** (Ctrl+O) e **Foco**. No celular a barra
+vira a barra de abas embaixo.
+
 - **Hoje**: tarefas do dia, diário (abre também no Escritor) e atalhos de estudo
   (revisar, continuar lendo, última aula, foco).
 - **Ler**: EPUB, PDF e TXT.
@@ -19,7 +24,15 @@ no espírito do GR Notes/Obsidian e o Escritor como editor de texto.
     Cartão) ou a página inteira (aba Traduzir). Usa o tradutor do próprio Chrome
     quando o aparelho tem; senão, online (Google Tradutor, com o MyMemory de
     reserva). Dá para proibir o online em Aa → Tradução.
-  - Sumário, busca, temas (Papel, Sépia, Noite, E-ink, Sol), fichamento e nota do livro.
+  - **Moldura do leitor**: Sumário, Marcações e Buscar (Ctrl+F) abrem numa barra
+    lateral que empurra o texto em vez de cobri-lo, e ela continua aberta quando
+    você pula para um trecho (marcar, conferir e seguir lendo sem fechar nada). A
+    tradução da página fica do outro lado (**Ao lado**) ou numa janela de vidro
+    que se arrasta (**Soltar**), mostrando a tradução em destaque e o original
+    embaixo; acompanha a página quando você vira. O **Aa** desce do próprio botão,
+    com os temas em amostras. No celular, lateral e Aa viram folhas que sobem de
+    baixo e fecham no Voltar. Esc fecha o que estiver aberto.
+  - Temas (Papel, Sépia, Noite, E-ink, Sol), fichamento e nota do livro.
 - **Aulas**: grava pelo microfone ou pelo áudio de uma aba, transcreve no próprio aparelho
   (Whisper via transformers.js) e monta a ficha: resumo, pontos-chave, autores, obras,
   conceitos e perguntas de revisão.

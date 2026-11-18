@@ -4,10 +4,10 @@
    segundo plano; uma versão nova aparece na abertura seguinte.
    A sincronização (api.github.com) e o modelo do Whisper (Hugging Face,
    guardado pela própria biblioteca) não passam por aqui. */
-const CACHE = 'caderno-v14';
+const CACHE = 'caderno-v15';
 const FILES = [
   './', 'index.html', 'style.css', 'estudo.css', 'manifest.webmanifest',
-  'js/rotina.js', 'js/base.js', 'js/formatos.js', 'js/leitor.js', 'js/pdf.js', 'js/analise.js',
+  'js/icones.js', 'js/rotina.js', 'js/base.js', 'js/formatos.js', 'js/leitor.js', 'js/pdf.js', 'js/analise.js',
   'js/aulas.js', 'js/revisar.js', 'js/traduzir.js', 'js/escrever.js', 'js/notas.js', 'js/app.js', 'js/whisper.js',
   'escrever/index.html', 'escrever/app.js', 'escrever/personalizar.js', 'escrever/estudo.js', 'escrever/icones.js', 'escrever/ponte.js', 'escrever/style.css', 'escrever/icons/favicon.svg',
   'escrever/fontes/Inter-Regular.woff2', 'escrever/fontes/Inter-Medium.woff2', 'escrever/fontes/Inter-SemiBold.woff2',
@@ -15,7 +15,7 @@ const FILES = [
   'escrever/fontes/iAWriterMonoS-Regular.woff2', 'escrever/fontes/iAWriterMonoS-Bold.woff2', 'escrever/fontes/iAWriterMonoS-Italic.woff2', 'escrever/fontes/iAWriterMonoS-BoldItalic.woff2',
   'escrever/fontes/iAWriterQuattroS-Regular.woff2', 'escrever/fontes/iAWriterQuattroS-Bold.woff2', 'escrever/fontes/iAWriterQuattroS-Italic.woff2', 'escrever/fontes/iAWriterQuattroS-BoldItalic.woff2',
   'vendor/jszip.min.js', 'vendor/pdf.min.js', 'vendor/pdf.worker.min.js', 'data/dicionario.json',
-  'fonts/Inter-Regular.woff2', 'fonts/Inter-Medium.woff2', 'fonts/Inter-SemiBold.woff2', 'fonts/Jersey10-Regular.woff2',
+  'fonts/Inter-Regular.woff2', 'fonts/Inter-Medium.woff2', 'fonts/Inter-SemiBold.woff2',
   'icons/icon-192.png', 'icons/icon-512.png',
 ];
 const CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@';
