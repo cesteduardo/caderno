@@ -55,7 +55,7 @@ const CONTAGEM_NOMES = ['Palavras', 'Caracteres', 'Caracteres sem espaços', 'Fr
 /* chaves liga/desliga, por seção: [prefs, rótulo, explicação, busca] */
 const CHAVES = {
   optEscrita: [
-    ['maquina', 'Máquina de escrever', 'A linha do cursor fica no meio da tela.', 'ctrl+t rolar centro'],
+    ['maquina', 'Máquina de escrever', 'A folha desce enquanto você digita; clicar não mexe na página.', 'ctrl+t rolar centro'],
     ['tipografia', 'Tipografia inteligente', '"aspas" viram “aspas”, ... vira … e -- vira —.', 'aspas curvas reticências travessão'],
     ['poeta', 'Modo Poeta', 'Régua de recuo e versos alinhados.', 'poesia verso recuo régua'],
   ],

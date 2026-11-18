@@ -1357,7 +1357,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 @keyframes aj-fundo-sai{ to{ opacity:0; } }
 
 .aj-painel{
-  width:min(1240px, 100%); height:min(800px, 100%);
+  width:min(880px, 100%); height:min(840px, 100%);
   display:flex; flex-direction:column; overflow:hidden;
   background:var(--aj-fundo); color:var(--tinta);
   border:0; border-radius:16px;
@@ -1382,7 +1382,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 /* ── topo: título no centro, ações nas pontas ── */
 .aj-topo{
   flex:none; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px;
-  min-height:56px; padding:10px 14px 4px;
+  min-height:56px; padding:12px 24px 2px;
 }
 .aj-topo-esq{ justify-self:start; display:flex; align-items:center; gap:8px; }
 .aj-topo-dir{ justify-self:end; display:flex; align-items:center; gap:8px; }
@@ -1396,9 +1396,10 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 }
 .aj-conta:empty{ display:none; }
 /* toda busca fica no meio, logo abaixo do título */
-.aj-procura{ flex:none; display:flex; justify-content:center; padding:6px 20px 12px; box-shadow:inset 0 -1px 0 var(--aj-fio); }
+.aj-procura{ flex:none; display:flex; justify-content:center; padding:4px 24px 10px; }
+.aj-procura:not(:has(+ .aj-nav)){ box-shadow:inset 0 -1px 0 var(--aj-fio); padding-bottom:14px; }
 .aj-busca{
-  width:min(30rem, 100%);
+  width:100%;
   display:flex; align-items:center; gap:.5rem; height:34px; padding:0 .5rem 0 .7rem;
   border:0; border-radius:10px; background:var(--preench-2);
   transition:background var(--transicao), box-shadow var(--transicao);
@@ -1426,14 +1427,14 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
    desenho é do Lucide) com o nome embaixo. A escolhida fica
    sobre uma pílula clara que desliza de uma para a outra. */
 .aj-nav{
-  flex:none; display:flex; justify-content:center; gap:4px;
-  padding:6px 16px 12px; background:var(--aj-lado);
+  flex:none; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(76px, 1fr); gap:4px;
+  padding:2px 24px 14px;
   box-shadow:inset 0 -1px 0 var(--aj-fio); overflow-x:auto; scrollbar-width:none;
 }
 .aj-nav::-webkit-scrollbar{ display:none; }
 .aj-nav button{
   position:relative; z-index:1; flex:none;
-  display:flex; flex-direction:column; align-items:center; gap:6px; width:88px;
+  display:flex; flex-direction:column; align-items:center; gap:6px; width:auto; min-width:0;
   padding:9px 4px 8px; border:0; border-radius:13px; background:transparent;
   color:var(--r2); font-size:12px; font-weight:500; white-space:nowrap;
   transition:background 150ms, color 200ms ease, opacity var(--transicao), transform 120ms var(--mola);
@@ -1463,15 +1464,15 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   grid-area:rolagem; min-height:0; overflow:auto; overscroll-behavior:contain;
   scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--tinta) 22%, transparent) transparent;
 }
-.aj-conteudo{ container-type:inline-size; max-width:50rem; margin:0 auto; padding:10px 40px 56px; }
+.aj-conteudo{ container-type:inline-size; padding:6px 40px 48px; }
 
 .aj-secao{ padding-top:24px; }
 .aj-secao[hidden]{ display:none; }
 .aj-secao h3{
-  margin:0 0 14px 2px; font-size:22px; font-weight:600; letter-spacing:-.022em; color:var(--tinta);
+  margin:0 0 14px; font-size:22px; font-weight:600; letter-spacing:-.022em; color:var(--tinta);
 }
 .aj[data-buscando] .aj-secao h3{ font-size:15px; margin-bottom:10px; }
-.aj-intro{ margin:-4px 2px 18px; font-size:13.5px; line-height:1.55; color:var(--aj-suave); max-width:38rem; }
+.aj-intro{ margin:-4px 0 18px; font-size:13.5px; line-height:1.55; color:var(--aj-suave); max-width:38rem; }
 .aj-secao.buscando .aj-intro{ display:none; }
 .aj-fora{ display:none !important; }
 .aj-nada{ margin:3rem 0; text-align:center; font-size:13px; color:var(--aj-suave); }
@@ -1480,15 +1481,11 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
    Cada linha leva um fio embaixo e uma margem de -1px: a do fim cai
    para fora do cartão e o overflow a corta, sem precisar saber qual
    é a última linha visível (a busca esconde linhas no meio). */
-.aj-grupo{
-  padding:0 18px; border-radius:14px; overflow:hidden;
-  background:var(--aj-cartao);
-  box-shadow:0 0 0 .5px var(--aj-fio), 0 1px 2px rgba(0,0,0,.04);
-}
-.aj-grupo + .aj-grupo,.aj-estilos + .aj-grupo{ margin-top:20px; }
+.aj-grupo{ padding:0; overflow:hidden; }
+.aj-grupo + .aj-grupo,.aj-estilos + .aj-grupo{ margin-top:14px; padding-top:14px; border-top:1px solid var(--aj-fio); overflow:visible; }
 .aj-grupo:not(:has(.aj-linha:not(.aj-fora,[hidden]), .aj-chave:not(.aj-fora,[hidden]), .aj-atalhos)){ display:none; }
 .aj-grupo :focus-visible{ outline-offset:-2px; }
-.aj-linha,.aj-chave{ border-bottom:1px solid var(--aj-fio); margin-bottom:-1px; }
+.aj-linha,.aj-chave{ border-bottom:0; }
 
 /* uma linha de ajuste: rótulo à esquerda, controle à direita */
 .aj-linha{
@@ -1545,7 +1542,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 .f-serifa{ font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; } .f-sans{ font-family:"Inter Escritor",Inter,sans-serif; }
 
 .aj-estilos,.aj-papeis{ display:grid; gap:14px 12px; }
-.aj-estilos{ grid-template-columns:repeat(auto-fill, minmax(112px, 1fr)); }
+.aj-estilos{ grid-template-columns:repeat(4, minmax(0,1fr)); }
 .aj-papeis{ grid-template-columns:repeat(auto-fill, minmax(78px, 1fr)); padding-bottom:2px; }
 .aj-estilos button,.aj-papeis [role=radio],.aj-meu > button{
   display:grid; align-content:start; gap:6px; padding:0;
@@ -1701,7 +1698,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 /* ── chaves (liga/desliga) ── */
 .aj-chaves{ display:grid; }
 .aj-chave{
-  display:flex; align-items:center; gap:1rem; width:100%; padding:11px 0 12px;
+  display:flex; align-items:center; gap:1rem; width:100%; padding:15px 0 16px;
   border-top:0; border-left:0; border-right:0;
   background:transparent; text-align:left;
 }
@@ -1807,10 +1804,10 @@ body[data-foco="1"] .aj-folha{ color:var(--tinta-foco); }
 /* ── rodapé do painel ── */
 .aj-pe{
   flex:none; display:flex; align-items:center; gap:4px;
-  padding:10px 14px; box-shadow:inset 0 1px 0 var(--aj-fio);
+  padding:10px 24px 10px 12px; box-shadow:inset 0 1px 0 var(--aj-fio);
 }
 .aj-pe .cresce{ flex:1; }
-.aj-pe--dica{ gap:1.1rem; justify-content:flex-end; font-size:11.5px; color:var(--aj-suave); padding:9px 16px; }
+.aj-pe--dica{ gap:1.1rem; justify-content:flex-end; font-size:11.5px; color:var(--aj-suave); padding:9px 24px; }
 .aj-pe--dica span:first-child{ margin-right:auto; }
 .aj-pe--dica kbd{ margin-right:.25rem; }
 
@@ -1871,11 +1868,11 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 @container (max-width:620px){ .obs-passos{ grid-template-columns:minmax(0,1fr); } }
 
 /* ══ Notas: as folhas em cartões, no meio da tela ══ */
-.aj--notas .aj-painel{ width:min(1040px, 100%); height:min(720px, 100%); }
+.aj--notas .aj-painel{ width:min(880px, 100%); height:min(760px, 100%); }
 .aj--notas .aj-topo{ gap:12px; }
 .aj--notas .aj-bt--principal{ gap:6px; padding:0 14px 0 10px; }
 .aj--notas .aj-bt--principal svg{ width:14px; height:14px; }
-.notas-rolagem{ flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding:24px 28px 32px; }
+.notas-rolagem{ flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding:24px 24px 32px; }
 .notas-grade{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:16px; }
 .nota-cartao{ position:relative; min-width:0; }
 .nota-abrir{
@@ -2063,11 +2060,6 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 .ponto-texto{ color:var(--r2); }
 .revisao-vazio{ padding:1.4rem; text-align:center; font-size:13px; color:var(--r2); }
 
-/* ══ telas médias: a fileira de ícones rola de lado ══ */
-@media (max-width:1040px){
-  .aj-nav{ justify-content:flex-start; }
-  .aj-nav button{ width:80px; }
-}
 /* ══ celular: a tela inteira para o Personalizar ══
    Só as abas ficam presas no alto. A amostra entra no começo da
    rolagem (o JS a muda de lugar), grande, e cada ajuste empilha o
@@ -2088,7 +2080,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   .aj-x{ width:34px; height:34px; }
 
   .aj-meio{ grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); grid-template-areas:"rolagem"; }
-  .aj-nav{ justify-content:flex-start; gap:4px; padding:10px 14px; }
+  .aj-nav{ display:flex; justify-content:flex-start; gap:4px; padding:10px 14px; }
   .aj-nav button{ flex-direction:row; width:auto; height:40px; padding:0 14px 0 6px; gap:.5rem; font-size:15px; border-radius:999px; }
   .aj-nav > .pilula{ border-radius:999px; }
   .aj-ic{ width:28px; height:28px; border-radius:999px; }

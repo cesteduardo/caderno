@@ -894,12 +894,12 @@ function renderProgress(){
    --------------------------------------------------------------------- */
 
 const VIEWS = { hoje: renderToday, semana: renderWeek, planos: renderPlans, recursos: renderLibrary, progresso: renderProgress };
-const navFor = view => [...document.querySelectorAll('.nav button')].find(b => b.dataset.view === view || (b.dataset.group || '').split(' ').includes(view));
+const navFor = view => [...document.querySelectorAll('.nav-tabs button')].find(b => b.dataset.view === view || (b.dataset.group || '').split(' ').includes(view));
 
 // Pílula escura que desliza até a aba ativa
 const navInd = document.querySelector('.nav-ind');
 function moveNavInd(animate = true){
-  const b = document.querySelector('.nav button[aria-current="page"]');
+  const b = document.querySelector('.nav-tabs button[aria-current="page"]');
   if (!b || !navInd) return;
   navInd.classList.toggle('no-anim', !animate);
   navInd.style.width = b.offsetWidth + 'px';
@@ -915,7 +915,7 @@ function go(view, arg){
   currentView = view;
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + view));
   const nb = navFor(view);
-  document.querySelectorAll('.nav button').forEach(b =>
+  document.querySelectorAll('.nav-tabs button').forEach(b =>
     b === nb ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   if (typeof onViewChange === 'function') onViewChange(view);
   moveNavInd(!first);
@@ -924,7 +924,7 @@ function go(view, arg){
   VIEWS[view](arg);
   window.scrollTo(0, 0);
 }
-document.querySelectorAll('.nav button').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
+document.querySelectorAll('.nav-tabs button').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
 // Endereço com #aba (e o botão voltar do navegador) também troca de aba
 window.addEventListener('hashchange', () => { const [v, a] = location.hash.slice(1).split('/'); if (!document.querySelector('#v-' + v)?.classList.contains('on') || a) go(v, a && decodeURIComponent(a)); });
 

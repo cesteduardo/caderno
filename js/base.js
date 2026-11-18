@@ -262,7 +262,7 @@ function removeHls(list, msg, extra){
     if (typeof RD !== 'undefined' && RD.eng) RD.eng.repaint();
     if (currentView === 'notas') renderNotes();
     if (currentView === 'aula' && typeof renderLesson === 'function') renderLesson(curLesson, true);
-    const p = $('#rdPanel'); if (p && !p.hidden && p.dataset.tab === 'hl') panelSwap('hl');
+    if (typeof rdRefresh === 'function' && typeof RD !== 'undefined' && RD.eng) rdRefresh('hl');
   };
   after();
   toast(msg || (list.length === 1 ? 'Marcação removida.' : `${list.length} marcações removidas.`), 'Desfazer', () => {

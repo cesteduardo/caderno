@@ -47,3 +47,6 @@ function ico(nome, cls){
   s.innerHTML = ICONES[nome] || '';
   return s;
 }
+
+/* Quem tem data-ic ganha o ícone na frente do texto */
+document.querySelectorAll('[data-ic]').forEach(el => el.prepend(ico(el.dataset.ic)));

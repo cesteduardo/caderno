@@ -19,6 +19,7 @@ Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o apli
 - **Máquina de escrever que só desce:** a folha anda para a frente enquanto se digita; clicar e selecionar não mexem na página.
 - **Realce alinhado:** as duas colunas do pop-up começam e terminam juntas.
 - **Ícone do Obsidian** na seção Obsidian do Personalizar.
+- **Personalizar e Notas no desenho do RefBox:** janela do tamanho do conteúdo, título, busca e abas na mesma superfície, abas dividindo a largura por igual, ajustes em linhas soltas (nome à esquerda, controle à direita) e tudo na mesma margem.
 
 ## O que há de novo na 2.0
 

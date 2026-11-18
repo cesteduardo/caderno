@@ -19,14 +19,20 @@
 <body>
 
 <nav class="nav" aria-label="Seções">
-  <span class="nav-ind" aria-hidden="true"></span>
   <span class="nav-brand">Caderno</span>
-  <button data-view="hoje">Hoje</button>
-  <button data-view="ler" data-group="ler">Ler</button>
-  <button data-view="aulas" data-group="aulas aula">Aulas</button>
-  <button data-view="revisar" data-group="revisar">Revisar</button>
-  <button data-view="notas" data-group="notas">Notas</button>
-  <button data-view="semana" data-group="semana planos recursos progresso">Rotina</button>
+  <div class="nav-tabs">
+    <span class="nav-ind" aria-hidden="true"></span>
+    <button data-view="hoje" data-ic="sun"><span>Hoje</span></button>
+    <button data-view="ler" data-group="ler" data-ic="book-open"><span>Ler</span></button>
+    <button data-view="aulas" data-group="aulas aula" data-ic="graduation-cap"><span>Aulas</span></button>
+    <button data-view="revisar" data-group="revisar" data-ic="layers"><span>Revisar</span></button>
+    <button data-view="notas" data-group="notas" data-ic="notebook-pen"><span>Notas</span></button>
+    <button data-view="semana" data-group="semana planos recursos progresso" data-ic="calendar-range"><span>Rotina</span></button>
+  </div>
+  <div class="nav-extra">
+    <button type="button" id="navIr" data-ic="search" title="Ir para um livro, nota ou aula (Ctrl+O)"><span>Ir para</span><kbd>Ctrl O</kbd></button>
+    <button type="button" id="navFoco" data-ic="timer" title="Foco: um bloco cronometrado, tela limpa"><span>Foco</span></button>
+  </div>
 </nav>
 
 <main class="wrap">
@@ -261,6 +267,7 @@
 <!-- Foco (pomodoro) -->
 <div id="focus" class="focus" hidden></div>
 
+<script src="js/icones.js" defer></script>
 <script src="vendor/jszip.min.js" defer></script>
 <script src="vendor/pdf.min.js" defer></script>
 <script src="js/rotina.js" defer></script>

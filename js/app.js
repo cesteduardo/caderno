@@ -205,3 +205,12 @@ $('#diaryOpen').addEventListener('click', () => {
 // refreshView da rotina chama VIEWS[v]() sem argumento: a aula aberta continua
 const _rv = refreshView;
 refreshView = function(){ if (currentView === 'aula'){ renderLesson(curLesson, true); return; } _rv(); };
+
+/* ---------- Barra do topo ----------
+   Ir para (Ctrl+O) e Foco à direita; o fio de baixo só aparece depois
+   de rolar, como no Escritor. */
+$('#navIr').addEventListener('click', () => { if ($('#modal').hidden) quickSwitch(); });
+$('#navFoco').addEventListener('click', () => focusSetup());
+const marcaRolagem = () => document.body.classList.toggle('rolou', scrollY > 4);
+addEventListener('scroll', marcaRolagem, { passive: true });
+marcaRolagem();

@@ -14,6 +14,9 @@
 const RS_KEY = 'caderno-leitor';
 const RS = { font: 'serif', size: 19, lh: 1.6, margin: 'm', just: true, theme: 'papel', awake: true, layout: 'pagina', measure: 'm', trTo: 'pt-BR', trOnline: true, trDock: false, trPos: null };
 try { Object.assign(RS, JSON.parse(localStorage.getItem(RS_KEY) || '{}')); } catch (e) {}
+/* v2 da moldura: a tradução abre ao lado do texto (solta continua opção)
+   e a barra lateral lembra a aba em que ficou. */
+if (!RS.moldura2){ RS.moldura2 = 1; RS.trDock = true; RS.lado = ''; }
 const saveRS = () => { try { localStorage.setItem(RS_KEY, JSON.stringify(RS)); } catch (e) {} };
 const THEMES = [
   { id: 'papel', name: 'Papel' },
@@ -131,26 +134,42 @@ async function inkCheck(){
    ===================================================================== */
 const RD = { book: null, eng: null, el: $('#reader'), chromeTimer: 0 };
 
+/* A moldura no desenho do Escritor: barra fina de vidro com o título no
+   meio; à esquerda, voltar; à direita, as ferramentas de estudo (ícone e
+   nome, o nome some em tela estreita). Sumário, Marcações e Buscar abrem
+   numa barra lateral que EMPURRA o texto: dá para percorrer as marcações
+   ou o sumário sem parar de ler. A tradução fica do outro lado (ou solta,
+   numa janela que se arrasta) e o Aa desce do próprio botão. No celular,
+   lateral e Aa viram folhas que sobem de baixo. */
+function rdFerr(id, icone, rotulo, titulo, acao){
+  return h('button', { class: 'rd-ferr', type: 'button', id, title: titulo, 'aria-label': rotulo, onclick: acao }, ico(icone), h('span', { class: 'rot', text: rotulo }));
+}
 function buildReader(){
   const el = RD.el;
   el.replaceChildren(
     h('header', { class: 'rd-top' },
-      h('button', { class: 'rd-btn', type: 'button', 'aria-label': 'Voltar à biblioteca', text: '←', onclick: () => popLayer() }),
+      h('div', { class: 'rd-esq' },
+        h('button', { class: 'rd-ferr rd-voltar', type: 'button', title: 'Voltar à biblioteca', 'aria-label': 'Voltar à biblioteca', onclick: () => popLayer() }, ico('chevron-left'), h('span', { class: 'rot', text: 'Biblioteca' }))),
       h('div', { class: 'rd-title' }, h('b', { id: 'rdTitle' }), h('span', { id: 'rdChap' })),
-      h('button', { class: 'rd-btn', type: 'button', text: 'Sumário', onclick: () => panel('toc') }),
-      h('button', { class: 'rd-btn', type: 'button', text: 'Marcações', onclick: () => panel('hl') }),
-      h('button', { class: 'rd-btn rd-wide', type: 'button', text: 'Traduzir', onclick: () => panel('tr') }),
-      h('button', { class: 'rd-btn rd-wide', type: 'button', text: 'Buscar', onclick: () => panel('busca') }),
-      h('button', { class: 'rd-btn', type: 'button', text: 'Aa', 'aria-label': 'Ajustes de leitura', onclick: () => panel('aa') })),
+      h('div', { class: 'rd-dir' },
+        rdFerr('rdBtoc', 'list-tree', 'Sumário', 'Sumário', () => lado('toc')),
+        rdFerr('rdBhl', 'highlighter', 'Marcações', 'Marcações e notas do livro', () => lado('hl')),
+        rdFerr('rdBbusca', 'search', 'Buscar', 'Buscar no livro (Ctrl+F)', () => lado('busca')),
+        h('span', { class: 'rd-sep', 'aria-hidden': 'true' }),
+        rdFerr('rdBtr', 'languages', 'Traduzir', 'Traduzir a página', () => traducao()),
+        h('button', { class: 'rd-ferr rd-aa-btn', type: 'button', id: 'rdBaa', title: 'Ajustes de leitura', 'aria-label': 'Ajustes de leitura', onclick: () => aaAbrir() }, h('span', { class: 'ico-aa', text: 'Aa' })))),
+    h('aside', { class: 'rd-lado', id: 'rdLado', hidden: true, 'aria-label': 'Barra lateral' }),
     h('div', { class: 'rd-stage', id: 'rdStage' }),
+    h('aside', { class: 'rd-tr', id: 'rdTr', hidden: true, 'aria-label': 'Tradução' }),
     h('footer', { class: 'rd-bot' },
       h('input', { type: 'range', id: 'rdRange', min: 0, max: 1000, value: 0, 'aria-label': 'Posição no livro' }),
       h('span', { id: 'rdPos' })),
-    h('aside', { class: 'rd-panel', id: 'rdPanel', hidden: true }),
-    h('div', { class: 'rd-veu', 'aria-hidden': 'true', onclick: () => popLayer() }),
+    h('div', { class: 'rd-aa', id: 'rdAa', hidden: true, role: 'dialog', 'aria-label': 'Ajustes de leitura' }),
+    h('div', { class: 'rd-veu', id: 'rdVeu', hidden: true, 'aria-hidden': 'true', onclick: () => popLayer() }),
     h('div', { class: 'rd-flash', id: 'rdFlash' }));
   $('#rdRange').addEventListener('change', e => RD.eng.gotoPct(e.target.value / 1000));
   $('#rdRange').addEventListener('input', e => { $('#rdPos').textContent = Math.round(e.target.value / 10) + '%'; });
+  RD.lado = ''; RD.tr = false; RD.aa = false; RD.folha = '';
 }
 
 function applyRS(){
@@ -189,11 +208,12 @@ async function openBook(id){
   catch (e) { toast('Não consegui abrir: ' + (e.message || e)); popLayer(); return; }
   if (RS.awake) wantAwake(true);
   showChrome(true);
+  if (RS.lado && RS.lado !== 'busca' && !estreito()) lado(RS.lado, true);
 }
 function closeReader(){
   try { RD.eng && RD.eng.close(); } catch (e) {}
   if (RD.book){ RD.book.last = Date.now(); putI('books', RD.book); }
-  RD.el.hidden = true; RD.el.replaceChildren(); RD.el.classList.remove('dividido');
+  RD.el.hidden = true; RD.el.replaceChildren(); RD.el.classList.remove('dividido', 'com-lado', 'com-tr');
   delete document.body.dataset.rdtheme;
   RD.book = null; RD.eng = null;
   document.body.classList.remove('reading');
@@ -227,49 +247,133 @@ function flash(){
 }
 
 /* ---------- Painéis do leitor ----------
-   Sumário, Marcações, Buscar e Aa abrem no meio da tela, sobre um véu,
-   como os pop-ups do Escritor. O Traduzir é diferente: o texto precisa
-   continuar à vista, então ele vira uma janela solta que se arrasta pelo
-   título para onde for melhor, ou ocupa metade da tela (Dividir tela),
-   com o livro na outra metade. */
-const TABS_RD = [['toc', 'Sumário'], ['hl', 'Marcações'], ['tr', 'Traduzir'], ['busca', 'Buscar'], ['aa', 'Aa']];
-function panel(tab){
-  const p = $('#rdPanel');
-  if (!p.hidden && p.dataset.tab === tab){ popLayer(); return; }
-  const wasOpen = !p.hidden;
-  p.dataset.tab = tab;
-  const tr = tab === 'tr';
-  const head = h('div', { class: 'rp-head' },
-    h('div', { class: 'rp-tabs', role: 'tablist' }, TABS_RD.map(([k, l]) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === tab), class: k === tab ? 'on' : '', text: l, onclick: () => { p.hidden = true; panelSwap(k); } }))),
-    tr ? h('button', { class: 'rp-dock', type: 'button', title: RS.trDock ? 'Voltar a janela solta' : 'Dividir a tela com o livro', 'aria-pressed': String(!!RS.trDock), text: RS.trDock ? 'Soltar' : 'Dividir tela',
-      onclick: () => { RS.trDock = !RS.trDock; saveRS(); trModo(); panelSwap('tr'); } }) : null,
-    h('button', { class: 'x', type: 'button', text: '×', 'aria-label': 'Fechar', onclick: () => popLayer() }));
-  p.replaceChildren(head, h('div', { class: 'rp-body' }, ({ toc: panelToc, hl: panelHl, tr: panelTr, busca: panelSearch, aa: panelAa })[tab]()));
-  p.hidden = false;
-  trModo();
-  if (tr && !RS.trDock) arrastavel(p, head, pos => { RS.trPos = pos; saveRS(); });
-  if (!wasOpen) pushLayer(() => { p.hidden = true; trModo(); });
-}
-function panelSwap(k){ const p = $('#rdPanel'); p.hidden = false; p.dataset.tab = ''; panel(k); }
+   lado(tab)   barra lateral: Sumário, Marcações, Buscar
+   traducao()  tradução ao lado do texto ou numa janela solta
+   aaAbrir()   ajustes de leitura, descendo do botão Aa
+   Em tela larga a lateral e a tradução são ferramentas fixas: não
+   escurecem nada, o texto se ajusta ao espaço que sobra. No celular
+   (ou janela estreita) viram folhas sobre o texto e entram na pilha do
+   Voltar. */
+const estreito = () => innerWidth < 760;
+const LADO_ABAS = [['toc', 'Sumário'], ['hl', 'Marcações'], ['busca', 'Buscar']];
+const LADO_FN = () => ({ toc: panelToc, hl: panelHl, busca: panelSearch });
 
-/* Solta, dividida ou fechada: o leitor se ajeita e refaz as páginas */
-function trModo(){
-  const p = $('#rdPanel'), el = RD.el;
-  if (!p || !el) return;
-  const aberto = !p.hidden && p.dataset.tab === 'tr';
-  const dividido = aberto && !!RS.trDock;
-  p.classList.toggle('flutua', aberto && !dividido);
-  p.classList.toggle('doca', dividido);
-  if (aberto && !dividido){
+function lado(tab, quieto){
+  const p = $('#rdLado'); if (!p) return;
+  if (RD.lado === tab && !quieto){ ladoFechar(); return; }
+  const novo = !RD.lado;
+  RD.lado = tab;
+  if (!estreito()){ RS.lado = tab; saveRS(); }
+  const abas = h('div', { class: 'rl-abas', role: 'tablist' }, LADO_ABAS.map(([k, l]) =>
+    h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === tab), class: k === tab ? 'on' : '', text: l, onclick: () => { if (k !== RD.lado) lado(k); } })));
+  p.replaceChildren(
+    h('div', { class: 'rl-head' }, abas,
+      h('button', { class: 'rd-x', type: 'button', 'aria-label': 'Fechar a barra lateral', title: 'Fechar (Esc)', onclick: () => ladoFechar() }, ico('x'))),
+    h('div', { class: 'rl-body' }, LADO_FN()[tab]()));
+  p.hidden = false; p.dataset.tab = tab;
+  if (estreito()){ if (novo){ RD.folha = 'lado'; folhaAbrir(() => ladoFechar(true)); } }
+  rdLayout();
+  if (tab === 'toc') requestAnimationFrame(() => p.querySelector('.toc li.on')?.scrollIntoView({ block: 'center' }));
+}
+function ladoFechar(doVoltar){
+  const p = $('#rdLado'); if (!p || !RD.lado) return;
+  if (RD.folha === 'lado' && !doVoltar){ popLayer(); return; }
+  RD.lado = ''; p.hidden = true; p.replaceChildren();
+  if (RD.folha === 'lado') folhaFechar();
+  if (!estreito()){ RS.lado = ''; saveRS(); }
+  rdLayout();
+}
+/* Depois de pular para um trecho: no celular a folha sai; na tela larga
+   a lateral fica, para o próximo pulo. */
+function rdNavegou(){ if (RD.folha === 'lado') popLayer(); }
+/* Redesenha uma aba aberta (marcação nova, nota editada, página virada) */
+function rdRefresh(tab){
+  if (tab === 'tr'){ if (RD.tr) traducao(true); return; }
+  if (RD.lado === tab){ const st = $('#rdLado .rl-body')?.scrollTop || 0; lado(tab, true); const b = $('#rdLado .rl-body'); if (b) b.scrollTop = st; }
+}
+const panelSwap = k => k === 'tr' ? rdRefresh('tr') : k === 'aa' ? aaAbrir(true) : rdRefresh(k);
+
+/* Tradução: ao lado (padrão) ou solta */
+function traducao(refazer){
+  const p = $('#rdTr'); if (!p) return;
+  if (RD.tr && !refazer){ trFechar(); return; }
+  const novo = !RD.tr;
+  RD.tr = true;
+  const solta = !RS.trDock;
+  const head = h('div', { class: 'rt-head' },
+    h('b', { text: 'Tradução' }),
+    h('div', { class: 'rt-acts' },
+      h('button', { class: 'rd-ferr', type: 'button', title: solta ? 'Pôr ao lado do texto' : 'Soltar numa janela que se arrasta', 'aria-label': solta ? 'Ao lado' : 'Soltar',
+        onclick: () => { RS.trDock = !RS.trDock; saveRS(); traducao(true); } }, ico(solta ? 'columns-2' : 'picture-in-picture-2'), h('span', { class: 'rot', text: solta ? 'Ao lado' : 'Soltar' })),
+      h('button', { class: 'rd-x', type: 'button', 'aria-label': 'Fechar a tradução', title: 'Fechar', onclick: () => trFechar() }, ico('x'))));
+  p.replaceChildren(head, h('div', { class: 'rt-body' }, panelTr()));
+  p.hidden = false;
+  p.classList.toggle('solta', solta);
+  if (solta){
     const pos = RS.trPos;
     if (pos){ p.style.left = Math.max(8, Math.min(innerWidth - 320, pos.x)) + 'px'; p.style.top = Math.max(8, Math.min(innerHeight - 160, pos.y)) + 'px'; }
     else { p.style.left = ''; p.style.top = ''; }
-  } else { p.style.left = ''; p.style.top = ''; }
-  if (el.classList.contains('dividido') !== dividido){
-    el.classList.toggle('dividido', dividido);
-    if (RD.eng) setTimeout(() => RD.eng.relayout(), 60);
-  }
+    arrastavel(p, head, pos => { RS.trPos = pos; saveRS(); });
+  } else { p.style.left = ''; p.style.top = ''; head.onpointerdown = null; }
+  rdLayout();
 }
+function trFechar(){
+  const p = $('#rdTr'); if (!p || !RD.tr) return;
+  RD.tr = false; p.hidden = true; p.replaceChildren();
+  rdLayout();
+}
+
+/* O texto ocupa o que sobra entre a lateral e a tradução */
+function rdLayout(){
+  const el = RD.el; if (!el) return;
+  const larga = !estreito();
+  el.classList.toggle('com-lado', !!RD.lado && larga);
+  el.classList.toggle('com-tr', RD.tr && !!RS.trDock);
+  el.classList.toggle('dividido', RD.tr && !!RS.trDock);
+  for (const [id, on] of [['rdBtoc', RD.lado === 'toc'], ['rdBhl', RD.lado === 'hl'], ['rdBbusca', RD.lado === 'busca'], ['rdBtr', RD.tr], ['rdBaa', RD.aa]]){
+    const b = document.getElementById(id); if (b) b.setAttribute('aria-pressed', String(on));
+  }
+  /* os motores refazem as páginas sozinhos (ResizeObserver no palco) */
+}
+addEventListener('resize', () => { if (RD.eng){ clearTimeout(rdLayout.t); rdLayout.t = setTimeout(rdLayout, 120); } });
+
+/* Folha (celular): véu leve, entra no Voltar */
+function folhaAbrir(fechar){
+  const v = $('#rdVeu'); if (v) v.hidden = false;
+  pushLayer(() => { fechar(); });
+}
+function folhaFechar(){ RD.folha = ''; const v = $('#rdVeu'); if (v && !RD.aa) v.hidden = true; }
+
+/* Aa: desce do botão (na tela larga) ou sobe de baixo (no celular) */
+function aaAbrir(refazer){
+  const p = $('#rdAa'), b = $('#rdBaa'); if (!p) return;
+  if (RD.aa && !refazer){ popLayer(); return; }
+  const st = p.querySelector('.aa')?.scrollTop || 0;
+  p.replaceChildren(panelAa());
+  const novo = !RD.aa;
+  RD.aa = true; p.hidden = false;
+  p.querySelector('.aa').scrollTop = st;
+  if (!estreito() && b){
+    const r = b.getBoundingClientRect();
+    p.style.top = (r.bottom + 6) + 'px';
+    p.style.right = Math.max(8, innerWidth - r.right - 6) + 'px';
+  } else { p.style.top = ''; p.style.right = ''; }
+  if (novo){
+    if (estreito()) $('#rdVeu').hidden = false;
+    pushLayer(() => { RD.aa = false; p.hidden = true; p.replaceChildren(); if (!RD.folha) $('#rdVeu').hidden = true; rdLayout(); });
+  }
+  rdLayout();
+}
+/* clicar fora do Aa fecha (sem virar a página por engano) */
+document.addEventListener('pointerdown', e => {
+  if (!RD.aa || estreito()) return;
+  if (e.target.closest('#rdAa,#rdBaa,#modal,.toast')) return;
+  e.preventDefault(); e.stopPropagation();
+  popLayer();
+}, true);
+/* algo cobre o texto? então cliques e setas não viram a página */
+const rdSobreposto = () => RD.aa || !!RD.folha;
+
 /* Arrastar uma janela pelo cabeçalho (mouse, dedo ou caneta) */
 function arrastavel(el, alca, aoSoltar){
   alca.onpointerdown = (e) => {
@@ -300,7 +404,7 @@ function panelToc(){
   if (!toc.length) return h('p', { class: 'muted pad', text: 'Este arquivo não traz sumário.' });
   const act = RD.eng.tocActive();
   return h('ol', { class: 'rp-list toc' }, toc.map((t, i) => h('li', { class: (i === act ? 'on ' : '') + 'd' + (t.d || 0) },
-    h('button', { type: 'button', onclick: () => { popLayer(); RD.eng.gotoToc(t); } }, h('span', { text: t.l }), t.p ? h('i', { text: t.p }) : null))));
+    h('button', { type: 'button', onclick: () => { rdNavegou(); RD.eng.gotoToc(t); } }, h('span', { text: t.l }), t.p ? h('i', { text: t.p }) : null))));
 }
 
 let hlFilter = '';
@@ -322,7 +426,7 @@ function panelHl(){
       HL_COLORS.filter(c => count(c.id)).map(c => h('button', { type: 'button', class: 'cf-n dot-' + c.id + (hlFilter === c.id ? ' on' : ''), title: hlColorName(c.id), onclick: () => { hlFilter = hlFilter === c.id ? '' : c.id; panelSwap('hl'); } }, h('i'), String(count(c.id)))),
       h('button', { type: 'button', class: 'cf-clear', text: 'Remover…', onclick: () => clearMarks(b, list) })) : null,
     list.length ? h('ol', { class: 'rp-list hls' }, list.map(x => h('li', { class: 'c-' + x.color + ' s-' + (x.style || 'marca') },
-      h('button', { type: 'button', class: 'hl-go', onclick: () => { popLayer(); RD.eng.gotoHl(x); } },
+      h('button', { type: 'button', class: 'hl-go', onclick: () => { rdNavegou(); RD.eng.gotoHl(x); } },
         h('span', { class: 'hl-txt', text: clip(x.text, 280) }),
         x.tr ? h('span', { class: 'hl-tr', text: x.tr }) : null,
         x.note ? h('span', { class: 'hl-note', text: x.note }) : null,
@@ -397,7 +501,7 @@ function panelSearch(){
       if (my !== run) return false;
       if (!n) out.replaceChildren();
       n++;
-      out.append(h('li', {}, h('button', { type: 'button', onclick: () => { popLayer(); RD.eng.gotoHit(hit); } },
+      out.append(h('li', {}, h('button', { type: 'button', onclick: () => { rdNavegou(); RD.eng.gotoHit(hit); } },
         h('span', {}, hit.pre, h('mark', { text: hit.mid }), hit.post), hit.label ? h('i', { text: hit.label }) : null)));
       return n < 200;
     });
@@ -413,16 +517,18 @@ function panelAa(){
   const seg = (opts, cur, set) => h('div', { class: 'seg' }, opts.map(([v, l]) => h('button', { type: 'button', class: v === cur ? 'on' : '', text: l, onclick: () => { set(v); saveRS(); applyRS(); RD.eng.relayout(); panelSwap('aa'); } })));
   const pdf = RD.book.type === 'PDF';
   return h('div', { class: 'aa' },
-    h('h3', { text: 'Tema' }),
-    seg(THEMES.map(t => [t.id, t.name]), RS.theme, v => {
-      RS.theme = v;
-      if (v === 'sol' && !RS.solTip){ RS.solTip = 1; setTimeout(() => toast('Modo Sol: contraste máximo e letra mais grossa. Suba o brilho do celular no máximo; a tela não fica menos refletiva, mas o texto vence o reflexo.'), 400); }
-    }),
+    /* temas como amostras: o papel e a tinta de cada um */
+    h('div', { class: 'aa-temas', role: 'radiogroup', 'aria-label': 'Tema' }, THEMES.map(t => h('button', { type: 'button', role: 'radio', 'aria-checked': String(t.id === RS.theme), class: 'aa-tema tm-' + t.id + (t.id === RS.theme ? ' on' : ''),
+      onclick: () => {
+        RS.theme = t.id; saveRS(); applyRS(); RD.eng.relayout(); panelSwap('aa');
+        if (t.id === 'sol' && !RS.solTip){ RS.solTip = 1; setTimeout(() => toast('Modo Sol: contraste máximo e letra mais grossa. Suba o brilho do celular no máximo; a tela não fica menos refletiva, mas o texto vence o reflexo.'), 400); }
+      } }, h('i', { text: 'Aa' }), h('span', { text: t.name })))),
+    pdf ? null : h('div', { class: 'aa-tam' },
+      h('button', { type: 'button', class: 'aa-menor', 'aria-label': 'Letra menor', text: 'A', onclick: () => { RS.size = Math.max(13, RS.size - 1); saveRS(); applyRS(); RD.eng.relayout(); $('#aaTam').textContent = RS.size + ' px'; } }),
+      h('span', { id: 'aaTam', text: RS.size + ' px' }),
+      h('button', { type: 'button', class: 'aa-maior', 'aria-label': 'Letra maior', text: 'A', onclick: () => { RS.size = Math.min(34, RS.size + 1); saveRS(); applyRS(); RD.eng.relayout(); $('#aaTam').textContent = RS.size + ' px'; } })),
     pdf ? null : h('h3', { text: 'Letra' }),
     pdf ? null : seg([['serif', 'Serifa'], ['sans', 'Inter']], RS.font, v => { RS.font = v; }),
-    pdf ? null : h('div', { class: 'aa-row' }, h('span', { text: 'Tamanho' }),
-      h('button', { class: 'round', type: 'button', text: 'A−', onclick: () => { RS.size = Math.max(13, RS.size - 1); saveRS(); applyRS(); RD.eng.relayout(); } }),
-      h('button', { class: 'round', type: 'button', text: 'A+', onclick: () => { RS.size = Math.min(34, RS.size + 1); saveRS(); applyRS(); RD.eng.relayout(); } })),
     pdf ? null : h('h3', { text: 'Entrelinha' }),
     pdf ? null : seg([[1.4, 'Justa'], [1.6, 'Normal'], [1.85, 'Folgada']], RS.lh, v => { RS.lh = v; }),
     pdf ? null : h('h3', { text: 'Margens' }),
@@ -461,7 +567,7 @@ function panelAa(){
    marcações, Remover. */
 function selActions(base){
   const done = () => { selbar.hide(); getSelection().removeAllRanges(); };
-  const mk = c => { PEN.color = c; savePen(); return base.make(c, PEN.style); };
+  const mk = c => { PEN.color = c; savePen(); const x = base.make(c, PEN.style); setTimeout(() => rdRefresh('hl'), 0); return x; };
   return [
     ...colorDots(null, c => { mk(c); done(); }),
     styleBtn(PEN.style, () => selbar.show(selbar.rect, styleRow(PEN.style, st => { PEN.style = st; savePen(); mk(PEN.color); done(); }, () => selbar.show(selbar.rect, selActions(base))))),
@@ -517,9 +623,16 @@ function exportBookMd(b){
 
 /* Com a aba Traduzir aberta, virar a página traduz a nova */
 function trFollow(){
-  const p = $('#rdPanel');
-  if (!p || p.hidden || p.dataset.tab !== 'tr') return;
-  clearTimeout(trFollow.t); trFollow.t = setTimeout(() => { if (!p.hidden && p.dataset.tab === 'tr') panelSwap('tr'); }, 500);
+  if (RD.lado === 'toc'){
+    clearTimeout(trFollow.tt);
+    trFollow.tt = setTimeout(() => {
+      const act = RD.eng && RD.eng.tocActive(), lis = document.querySelectorAll('#rdLado .toc > li');
+      lis.forEach((li, i) => li.classList.toggle('on', i === act));
+      lis[act]?.scrollIntoView({ block: 'nearest' });
+    }, 300);
+  }
+  if (!RD.tr) return;
+  clearTimeout(trFollow.t); trFollow.t = setTimeout(() => { if (RD.tr) rdRefresh('tr'); }, 500);
 }
 
 /* ---------- toques, gestos e teclado (comuns) ---------- */
@@ -536,7 +649,7 @@ function stageInput(stage, eng){
   stage.addEventListener('click', e => {
     const s = getSelection();
     if (s && !s.isCollapsed) return;
-    if (!$('#rdPanel').hidden) return;
+    if (rdSobreposto()) return;
     const a = e.target.closest('a');
     if (a){ e.preventDefault(); if (a.dataset.href) eng.link(a.dataset.href, a); else if (a.href) window.open(a.href, '_blank', 'noopener'); return; }
     const m = e.target.closest('[data-h]');
@@ -551,7 +664,9 @@ function stageInput(stage, eng){
 }
 document.addEventListener('keydown', e => {
   if (!RD.eng || !$('#modal').hidden || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
-  if (!$('#rdPanel').hidden) return;
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f'){ e.preventDefault(); lado('busca', RD.lado === 'busca'); setTimeout(() => $('#rdLado input[type=search]')?.focus(), 30); return; }
+  if (e.key === 'Escape'){ if (RD.aa || RD.folha) popLayer(); else if (RD.lado) ladoFechar(); else if (RD.tr) trFechar(); return; }
+  if (rdSobreposto()) return;
   if (['ArrowRight', 'PageDown', ' '].includes(e.key) && (RD.eng.paged || (RD.eng.scroll && e.key !== 'ArrowRight'))){ e.preventDefault(); RD.eng.next(); }
   else if (['ArrowLeft', 'PageUp'].includes(e.key) && (RD.eng.paged || (RD.eng.scroll && e.key !== 'ArrowLeft'))){ e.preventDefault(); RD.eng.prev(); }
 });

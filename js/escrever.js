@@ -189,7 +189,7 @@ function closeWriter(){
   if (!RD.eng && FC.el.hidden) document.body.classList.remove('reading');
   if (currentView === 'notas') renderNotes();
   if (currentView === 'hoje') renderToday();
-  if (RD.eng && !$('#rdPanel').hidden && $('#rdPanel').dataset.tab === 'hl') panelSwap('hl');
+  if (RD.eng) rdRefresh('hl');
 }
 addEventListener('pagehide', () => { if (WR.doc) try { frameWin()?.ponteFlush?.(); } catch (e) {} });
 
