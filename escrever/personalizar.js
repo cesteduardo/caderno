@@ -491,7 +491,7 @@ function fecharDialogo(d){
   painelInterno.addEventListener('animationend', fim, { once: true });
   setTimeout(fim, 260);
 }
-const DIALOGOS = [painel, $('#sumario'), $('#revisao')];
+const DIALOGOS = [painel, $('#sumario'), $('#revisao'), $('#comentarios')];
 for (const d of DIALOGOS){
   d.addEventListener('close', () => {
     document.body.append(toast);

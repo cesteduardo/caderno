@@ -1,4 +1,4 @@
-# Escritor 2.4
+# Escritor 2.5
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -12,6 +12,21 @@ python3 -m http.server 8000
 Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o aplicativo escrito nele mesmo. A primeira coisa que você escrever vira uma nota sua.
 
 ---
+
+## Na 2.5
+
+- **Corretor ortográfico de verdade:** antes o sublinhado vermelho vinha do corretor do navegador, que só funciona com um dicionário de português instalado no sistema. Sem ele, "onibus" passava sem marca. Agora o Escritor traz o próprio corretor: o **Hunspell** (o do LibreOffice e do Firefox) em WebAssembly, com o dicionário **VERO** de português do Brasil, rodando num Web Worker para a digitação nunca esperar. Ele carrega sozinho ao abrir (cerca de 1,3 MB comprimido, guardado para funcionar offline).
+  - A palavra que você ainda está digitando não é julgada; o sublinhado aparece quando você sai dela.
+  - Com o cursor numa palavra errada, a primeira sugestão aparece no rodapé (`Ctrl+;` troca). O botão direito mostra até três sugestões e **Adicionar ao dicionário**, que guarda a palavra neste navegador.
+  - Siglas (ONU, PDF), nomes com maiúscula no meio (WhatsApp, iPhone), ligações `[[…]]`, etiquetas, notas e equações ficam de fora. Palavras do dia a dia que o VERO de 2013 não conhece (ok, e-mail, app, podcast, Instagram…) passam sem sublinhado.
+  - A lista de erros clássicos (`concerteza`, `excessão`…) continua, com a troca certa na frente.
+  - Com o corretor próprio ligado, o do navegador sai, para não haver dois sublinhados. Se o próprio não abrir, o do navegador volta.
+- **Comentários à vista:** o `%%comentário%%` continua fora da exportação, mas agora dá para encontrá-los. O rodapé conta quantos há; clicar ali, **Ferramentas → Comentários** ou `Ctrl+Shift+/` abre a lista no meio da tela, cada um com o trecho em volta e a linha, e clicar leva até ele, já selecionado. No **Visualizar**, cada comentário vira um pequeno balão no lugar onde está, que se abre para baixo ao passar o mouse ou tocar.
+- **Engrenagem das Ferramentas:** na barra, entre a tela cheia e o **⋯**, uma engrenagem abre as **Ferramentas** (Buscar e substituir, Sumário, Comentários, Modo Poeta, Tela cheia e Tamanho da tela). O **⋯ Documento** ficou com três abas: Arquivo, Exportar e Ajuda.
+- **Mesmo tamanho sempre:** Ferramentas e Documento abrem com a mesma largura e a mesma altura, e trocar de aba no Documento não estica nem encolhe a janela (as páginas ficam empilhadas e a altura é a da maior).
+- **Tamanho da tela (zoom):** nas Ferramentas, **−** e **+** ampliam a interface inteira nos mesmos degraus do zoom do navegador, de 50% a 300% (175% está lá), e **100%** volta ao normal. Fica guardado neste aparelho. Como o navegador não deixa um site mudar o zoom dele, é o `zoom` do CSS na página toda; as contas que misturam medidas de tela com rolagem (máquina de escrever, botão direito, sugestões de `[[`, régua do Poeta) e as alturas em `vh` foram corrigidas para ele.
+- **Leitura um pouco mais cheia:** no **Visualizar**, a letra fica levemente mais encorpada do que na escrita, para se ver de relance que saiu da edição. As fontes só têm os pesos 400 e 700, então o efeito é um traço finíssimo na cor do próprio texto.
+- **Menus sem texto vazando:** o fundo dos pop-ups da barra e do botão direito ficou quase opaco; no Firefox, quando o desfoque não era desenhado, o texto de trás aparecia através deles.
 
 ## Na 2.4
 
@@ -104,13 +119,17 @@ Todos os ícones (barra, menus, Personalizar, botão direito) vêm do **Lucide**
 
 **Máquina de escrever.** Como a máquina de verdade, a folha só anda para a frente: quando a linha que você digita passa do meio da tela, o documento desce uma linha, num passo macio, e ela volta ao centro. Clicar numa linha, selecionar com o mouse ou subir com as setas não mexe na página, então dá para escolher qualquer trecho sem ele fugir (2.0.1).
 
-**Ortografia.** Um risco vermelho embaixo da palavra suspeita, sem nada por cima do texto. Usa o dicionário pt-BR do navegador e uma lista própria de erros clássicos (`concerteza`, `derrepente`, `apartir`…). Com o cursor numa delas, a forma certa aparece no rodapé; clicar nela ou `Ctrl+;` faz a troca, e `Ctrl+Z` desfaz.
+**Ortografia.** Um risco vermelho embaixo da palavra que não existe, sem nada por cima do texto. O corretor é próprio (Hunspell com o dicionário VERO, num Web Worker) e não depende do navegador, mais uma lista de erros clássicos (`concerteza`, `derrepente`, `apartir`…). Com o cursor numa palavra errada, a forma certa aparece no rodapé; clicar nela ou `Ctrl+;` faz a troca, e `Ctrl+Z` desfaz. O botão direito traz até três sugestões e **Adicionar ao dicionário** (2.5).
 
 **Revisão de estilo.** Repetições, frases longas e vícios ganham um pontilhado âmbar. O rodapé conta os pontos; clicar abre a lista no meio da tela e leva a cada ocorrência.
 
 **Classes gramaticais.** Pinta uma classe por vez (substantivos, verbos, adjetivos, advérbios, conectivos) ou todas, e recua o resto. É uma heurística, não um analisador: o que é ambíguo fica sem cor.
 
-**Visualizar.** Esconde os sinais do Markdown e mostra o texto formatado, com grifos, notas de rodapé numeradas e imagens. Lendo, o olho da barra vira caneta para voltar a escrever.
+**Visualizar.** Esconde os sinais do Markdown e mostra o texto formatado, com grifos, notas de rodapé numeradas e imagens, numa letra um pouco mais cheia que a da escrita. Os comentários viram balões discretos. Lendo, o olho da barra vira caneta para voltar a escrever.
+
+**Comentários.** `Ctrl+/` (ou o botão direito) guarda um comentário entre `%%`, que não sai na exportação. O rodapé conta quantos há e `Ctrl+Shift+/` abre a lista de todos, com o trecho em volta.
+
+**Tamanho da tela.** Nas Ferramentas (a engrenagem), de 50% a 300%, como o zoom do navegador.
 
 **Tela cheia.** Botão na barra ou `Ctrl+Shift+F`. No computador, no Android e no iPad usa a tela cheia do navegador; no iPhone, onde ela não existe, entra um modo imersivo com um botão discreto para sair.
 
@@ -137,6 +156,7 @@ No Mac, troque `Ctrl` por `⌘`, `Alt` por `⌥` e `Shift` por `⇧`. O próprio
 | `Ctrl+K` | ligação para outra nota `[[…]]` |
 | `Ctrl+Shift+H` | realçar (grifo) |
 | `Ctrl+/` | comentário oculto |
+| `Ctrl+Shift+/` | lista de comentários |
 | `Ctrl+E` | visualizar / voltar a escrever |
 | `Ctrl+D` | modo foco |
 | `Ctrl+T` | máquina de escrever |
@@ -154,11 +174,13 @@ No Mac, troque `Ctrl` por `⌘`, `Alt` por `⌥` e `Shift` por `⇧`. O próprio
 
 ## Como funciona por dentro
 
-O texto vive numa `<textarea>` com a cor transparente. Logo abaixo dela, um `<div>` espelha o mesmo conteúdo já realçado, com **exatamente** a mesma métrica: mesma fonte, corpo, entrelinha, espaçamento entre letras, padding e quebra de linha. Você vê o texto realçado, mas o cursor, a seleção, o desfazer e o corretor continuam sendo os **nativos do navegador**.
+O texto vive numa `<textarea>` com a cor transparente. Logo abaixo dela, um `<div>` espelha o mesmo conteúdo já realçado, com **exatamente** a mesma métrica: mesma fonte, corpo, entrelinha, espaçamento entre letras, padding e quebra de linha. Você vê o texto realçado, mas o cursor, a seleção e o desfazer continuam sendo os **nativos do navegador**. O sublinhado da ortografia é desenhado no espelho, com o resultado do corretor próprio.
 
 A regra que sustenta tudo: **o realce nunca altera a quantidade de caracteres**. Os sinais do Markdown (`#`, `**`, `==`) continuam lá, apenas recuados em cinza. Por isso o texto nunca pula e o cursor nunca desalinha. O grifo, por exemplo, é só uma cor de fundo atrás das letras.
 
 Cada linha é quebrada em **pedaços** (um trecho de texto com suas classes). Foco, revisão, ortografia e classes gramaticais partem o pedaço onde começam e somam uma classe; emendar os pedaços devolve a linha original, caractere por caractere.
+
+O corretor (`orto/`) roda num Web Worker: o Hunspell em WebAssembly abre o `.aff` e o `.dic` do VERO uma vez e responde em lote. O desenho nunca espera por ele. Palavra ainda não conferida conta como certa e vai para a fila; quando a resposta chega, a folha é redesenhada com o sublinhado, e cada palavra é conferida uma vez só.
 
 ---
 
@@ -173,7 +195,7 @@ As três fontes da iA (**Duo**, **Mono** e **Quattro**) são livres (Apache 2.0,
 | **Quattro** | mesma largura | 3,6% mais larga | ênfase marcada pela cor |
 | **Serifa**, **Inter** e **Legível** | não usa | não usa | ênfase e títulos pela cor |
 
-A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. Os ícones são do **Lucide** (licença ISC, [lucide.dev](https://lucide.dev)), em `icones.js`. A **Legível** é a Atkinson Hyperlegible (SIL Open Font License 1.1, Braille Institute). As licenças estão em `fontes/LICENSE.md`, `fontes/LICENSE-INTER.md` e `fontes/LICENSE-ATKINSON.md`.
+A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. Os ícones são do **Lucide** (licença ISC, [lucide.dev](https://lucide.dev)), em `icones.js`. A **Legível** é a Atkinson Hyperlegible (SIL Open Font License 1.1, Braille Institute). O corretor é o **Hunspell** (MPL/GPL/LGPL) em WebAssembly, pelo **hunspell-asm** (MIT), com o dicionário **VERO 3.2** de português do Brasil (LGPLv3/MPL), em `orto/`. As licenças estão em `fontes/LICENSE.md`, `fontes/LICENSE-INTER.md`, `fontes/LICENSE-ATKINSON.md`, `fontes/LICENSE-VERO.md` e `orto/LICENSE.md`.
 
 ---
 
@@ -188,8 +210,9 @@ A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. O
 | `estudo.js` | notas e ligações, botão direito, imagens coladas |
 | `icones.js` | os ícones Lucide |
 | `ponte.js` | a ligação com o [Caderno](https://cesteduardo.github.io/caderno/) (só age lá dentro) |
+| `orto/` | o corretor: Hunspell em WebAssembly, o worker e o dicionário VERO |
 | `fontes/` | iA Writer e Inter em `woff2`, com as licenças |
 
-As notas, o texto aberto e as preferências ficam no `localStorage` do navegador (`escritor:notas`, `escritor:texto`, `escritor:prefs`); as imagens ficam no IndexedDB (`escritor-anexos`). Trocar de navegador ou limpar os dados do site apaga tudo: para guardar de verdade, ligue uma pasta do Obsidian ou exporte.
+As notas, o texto aberto e as preferências ficam no `localStorage` do navegador (`escritor:notas`, `escritor:texto`, `escritor:prefs`, e as palavras que você ensinou ao corretor em `escritor:dicionario`); as imagens ficam no IndexedDB (`escritor-anexos`). Trocar de navegador ou limpar os dados do site apaga tudo: para guardar de verdade, ligue uma pasta do Obsidian ou exporte.
 
 Projeto de código aberto e sem fins lucrativos, feito por GR Brands.

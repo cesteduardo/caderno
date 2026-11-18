@@ -41,6 +41,15 @@ function aplicarTeclasSO(raiz = document){
 document.documentElement.classList.toggle('mac', MAC);
 document.addEventListener('DOMContentLoaded', () => aplicarTeclasSO());
 
+/* Zoom da interface (Ferramentas → Tamanho da tela). É o "zoom" do CSS
+   na página toda, já que o navegador não deixa um site mudar o zoom
+   dele. Com ele, as medidas de tela (getBoundingClientRect, clientX)
+   saem ampliadas e as de layout (scrollTop, left, offsetTop) não: toda
+   conta que mistura as duas divide pela escala. */
+function escalaZoom(){ return parseFloat(document.documentElement.style.zoom) || 1; }
+// os degraus do zoom do navegador, de 50% a 300% (aqui no alto: aplicarPrefs já usa)
+const DEGRAUS_ZOOM = [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+
 const editor   = $('#editor');
 const overlay  = $('#overlay');
 const scroller = $('#scroller');
@@ -71,7 +80,7 @@ if (PONTE) document.documentElement.classList.add('embutido');
 const prefs = Object.assign({
   escopo: 'nenhum', maquina: false, classe: 'nenhuma',
   ortografia: true, estilo: true, tema: 'claro', fonte: 'duo',
-  corpo: 18, contagem: 0, visualizando: false, poeta: false,
+  corpo: 18, contagem: 0, visualizando: false, poeta: false, zoom: 1,
   obsidianAuto: false,
   // personalizar.js: cor de destaque, entrelinha, largura da coluna,
   // sinais do Markdown, barra, rodapé, tipografia e meta de palavras
@@ -172,6 +181,117 @@ const ERROS = new Map(Object.entries({
   'referencia':'referência', 'diferenca':'diferença', 'possivel':'possível',
   'dificil':'difícil', 'facil':'fácil', 'nivel':'nível', 'util':'útil'
 }));
+
+/* ── O corretor de verdade ──────────────────────────────────
+   A lista acima pega os erros clássicos; o resto fica com o Hunspell
+   e o dicionário VERO (orto/), num Web Worker. O corretor do
+   navegador só funciona com um dicionário de português instalado no
+   sistema, e muitas vezes não há: "onibus" passava sem marca.
+
+   O desenho nunca espera: palavra ainda não conferida conta como
+   certa, vai para a fila e, quando a resposta chega, a folha é
+   redesenhada com o sublinhado. Cada palavra é conferida uma vez só.
+   Sem Worker ou sem o dicionário, volta o corretor do navegador. */
+const CHAVE_MEU_DIC = 'escritor:dicionario';
+const ORTO = (() => {
+  const certo = new Map();        // palavra → true (existe) | false (errada)
+  const sugestoes = new Map();    // palavra → [sugestões]
+  const fila = new Set();
+  const esperando = new Map();    // id → resolve
+  let meu = new Set();
+  try { meu = new Set(JSON.parse(localStorage.getItem(CHAVE_MEU_DIC) || '[]')); } catch (e) {}
+  let w = null, pronto = false, falhou = false, seq = 0, vez = 0;
+  /* O VERO é de 2013 e não conhece palavras que todo mundo escreve hoje.
+     Estas passam sem sublinhado; o resto se ensina pelo botão direito. */
+  const DO_DIA_A_DIA = new Set(`ok okay email emails app apps post posts feedback feedbacks upload uploads
+    download downloads wifi wi-fi smartphone smartphones podcast podcasts youtuber youtubers influencer
+    influencers startup startups home office delivery stories story reels stand-up check-in checkup
+    selfie selfies emoji emojis hashtag hashtags streaming playlist playlists print prints printar
+    whatsapp zap instagram google facebook netflix spotify youtube tiktok linkedin gmail chatgpt
+    ebook ebooks e-book e-books pdf pdfs html css markdown obsidian iphone android uber pix covid
+    vlog vlogs tweet tweets`.split(/\s+/));
+
+  const normal = (p) => p.normalize('NFC').replace(/’/g, "'").replace(/^['-]+|['-]+$/g, '');
+  /* Fica de fora o que não é palavra de dicionário: sigla (ONU, PDF),
+     nome com maiúscula no meio (WhatsApp, iPhone) e letra solta. */
+  const conferivel = (p) => p.length > 1 && !/[A-ZÀ-ÖØ-Þ]/.test(p.slice(1));
+
+  function iniciar(){
+    if (w || falhou) return;
+    try { w = new Worker(new URL('orto/orto-worker.js', document.baseURI)); }
+    catch (e) { falhou = true; return; }
+    w.onmessage = (e) => {
+      const d = e.data;
+      if (d.pronto){ pronto = true; aplicarCorretorNativo(); if (fila.size) agendar(); return; }
+      if (d.falhou){ falhar(); return; }
+      const ok = esperando.get(d.id);
+      if (ok){ esperando.delete(d.id); ok(d); }
+    };
+    w.onerror = falhar;
+    if (meu.size) w.postMessage({ tipo: 'meu', palavras: [...meu] });
+  }
+  function falhar(){
+    falhou = true; pronto = false;
+    try { w && w.terminate(); } catch (e) {}
+    w = null;
+    aplicarCorretorNativo();
+  }
+  function pedir(msg){
+    return new Promise((ok) => { msg.id = ++seq; esperando.set(msg.id, ok); w.postMessage(msg); });
+  }
+  function agendar(){
+    if (vez || !pronto) return;
+    vez = setTimeout(async () => {
+      vez = 0;
+      const palavras = [...fila];
+      fila.clear();
+      if (!palavras.length || !pronto) return;
+      const { erradas } = await pedir({ tipo: 'checar', palavras });
+      const ruins = new Set(erradas);
+      for (const p of palavras) certo.set(p, !ruins.has(p));
+      if (erradas.length && prefs.ortografia) desenhar();
+    }, 120);
+  }
+
+  return {
+    get pronto(){ return pronto; },
+    get ativo(){ return pronto && !falhou; },
+    iniciar,
+    /* true só quando o dicionário já disse que a palavra não existe */
+    errada(bruta){
+      if (!pronto) return false;
+      const p = normal(bruta);
+      const baixa = p.toLowerCase();
+      if (!conferivel(p) || meu.has(baixa) || DO_DIA_A_DIA.has(baixa)) return false;
+      const r = certo.get(p);
+      if (r === undefined){ fila.add(p); agendar(); return false; }
+      return !r;
+    },
+    sugestoesProntas(bruta){ return sugestoes.get(normal(bruta)); },
+    async sugerir(bruta){
+      const p = normal(bruta);
+      if (sugestoes.has(p)) return sugestoes.get(p);
+      if (!pronto) return [];
+      const { sugestoes: s } = await pedir({ tipo: 'sugerir', palavra: p });
+      sugestoes.set(p, s);
+      return s;
+    },
+    adicionar(bruta){
+      const p = normal(bruta);
+      meu.add(p.toLowerCase());
+      try { localStorage.setItem(CHAVE_MEU_DIC, JSON.stringify([...meu])); } catch (e) {}
+      if (w) w.postMessage({ tipo: 'meu', palavras: [p.toLowerCase()] });
+      desenhar();
+    },
+  };
+})();
+
+/* Com o corretor próprio funcionando, o do navegador sai: dois
+   sublinhados em cima da mesma palavra, e com dicionários diferentes,
+   só confundem. Se o próprio não abrir, o do navegador volta. */
+function aplicarCorretorNativo(){
+  editor.setAttribute('spellcheck', prefs.ortografia && !ORTO.ativo ? 'true' : 'false');
+}
 
 /* ── Revisão de estilo ──────────────────────────────────────
    Clichê, muleta, redundância e escorregão de norma-padrão.
@@ -486,9 +606,14 @@ function marcarPalavras(pedacos){
   if (!querClasse && !prefs.ortografia) return pedacos;
 
   const saida = [];
+  let pos = 0;   // onde o pedaço começa na linha (para achar a palavra do cursor)
   for (const p of pedacos){
+    const inicioPedaco = pos;
+    pos += (p.t || '').length;
     if (!p.t || !colorivel(p.c)){ saida.push(p); continue; }
     const s = p.t;
+    // ligação, etiqueta, nota e equação não são palavras de dicionário
+    const dicionario = !/\b(?:t-wiki|t-tag|t-nota|t-math)\b/.test(p.c);
     let ult = 0;
     RE_PALAVRA.lastIndex = 0;
     const ocorrencias = [...s.matchAll(RE_PALAVRA)];
@@ -497,7 +622,11 @@ function marcarPalavras(pedacos){
       const baixa = m[0].toLowerCase();
       const anterior = i ? ocorrencias[i - 1][0].toLowerCase() : '';
       const extras = [];
-      if (prefs.ortografia && ERROS.has(baixa)) extras.push('erro');
+      if (prefs.ortografia){
+        // a palavra que está sendo digitada só é julgada quando você sai dela
+        const digitando = inicioPedaco + m.index + m[0].length === colunaDoCursor;
+        if (ERROS.has(baixa) || (dicionario && !digitando && ORTO.errada(m[0]))) extras.push('erro');
+      }
       if (querClasse){
         const g = classeGramatical(baixa, anterior);
         if (g && (prefs.classe === 'todas' || prefs.classe === g)) extras.push(g);
@@ -847,7 +976,7 @@ function rolarAte(posicao){
   if (ancora){
     const caixa = ancora.getBoundingClientRect();
     const refer = scroller.getBoundingClientRect();
-    const alvo = scroller.scrollTop + (caixa.top - refer.top) - scroller.clientHeight * 0.4;
+    const alvo = scroller.scrollTop + (caixa.top - refer.top) / escalaZoom() - scroller.clientHeight * 0.4;
     scroller.scrollTop = Math.max(0, alvo);
     return;
   }
@@ -861,7 +990,7 @@ function rolarAte(posicao){
       faixa.collapse(true);
       const caixa = faixa.getBoundingClientRect();
       const refer = scroller.getBoundingClientRect();
-      const alvo = scroller.scrollTop + (caixa.top - refer.top) - scroller.clientHeight * 0.4;
+      const alvo = scroller.scrollTop + (caixa.top - refer.top) / escalaZoom() - scroller.clientHeight * 0.4;
       scroller.scrollTop = Math.max(0, alvo);
       return;
     }
@@ -875,9 +1004,13 @@ function rolarAte(posicao){
 
 let precisaCentrar = false;
 
+/* Coluna do cursor na linha que está sendo montada; -1 fora dela. */
+let colunaDoCursor = -1;
+
 function desenhar(){
   const texto = editor.value;
   const cursor = editor.selectionStart;
+  const digitandoAgora = document.activeElement === editor && cursor === editor.selectionEnd;
   if (typeof ultimoDesenho !== 'undefined') ultimoDesenho = cursor + ':' + editor.selectionEnd + ':' + texto.length;
 
   let fa = -1, fb = -1;
@@ -897,6 +1030,7 @@ function desenhar(){
       const ini = base, fim = base + linha.length;
       base = fim + 1;
       const cerca = /^\s*(```|~~~)/.test(linha);
+      colunaDoCursor = digitandoAgora && cursor >= ini && cursor <= fim ? cursor - ini : -1;
       let pedacos = cerca ? [pd(linha, 'mk t-cod')] : pedacosDaLinha(linha, emCodigo);
       if (cerca) emCodigo = !emCodigo;
       if (prefs.estilo && apontamentos.length){
@@ -926,11 +1060,13 @@ function desenhar(){
     [fa, fb] = regiaoLinhaVisual(texto, cursor);
     montarOverlay();
   }
+  colunaDoCursor = -1;
   desenharNumerosLinha(texto, cursor);
 
   atualizarNumeros(texto);
   atualizarDica(texto, cursor);
   renderRevisao();
+  if (typeof contarComentarios === 'function') contarComentarios(texto);
 
   if (prefs.maquina && precisaCentrar){
     precisaCentrar = false;
@@ -1083,8 +1219,22 @@ function atualizarDica(texto, cursor){
   const m = RE_PALAVRA.exec(texto);
   if (!m || m.index !== ini) return;
 
-  const certa = ERROS.get(m[0].toLowerCase());
-  if (!certa) return;
+  let certa = ERROS.get(m[0].toLowerCase());
+  if (!certa){
+    // fora da lista: a primeira sugestão do dicionário, se ele achar a palavra errada
+    const fimPalavra = ini + m[0].length;
+    if (cursor === fimPalavra && document.activeElement === editor) return;   // ainda digitando
+    if (!ORTO.errada(m[0])) return;
+    const sug = ORTO.sugestoesProntas(m[0]);
+    if (!sug){
+      ORTO.sugerir(m[0]).then(() => {
+        if (editor.selectionStart === cursor && editor.value === texto) atualizarDica(texto, cursor);
+      });
+      return;
+    }
+    if (!sug.length) return;
+    certa = sug[0];
+  }
 
   correcaoAtual = { ini, fim: ini + m[0].length, errada: m[0], certa };
   dica.innerHTML = `${escapar(m[0])} → <b>${escapar(comOMesmoMolde(m[0], certa))}</b><kbd>${paraSO('Ctrl+;')}</kbd>`;
@@ -1129,6 +1279,10 @@ function acharInicioPalavra(texto, cursor){
    7. Markdown completo — visualização, exportação, impressão
    ═══════════════════════════════════════════════════════════ */
 
+/* Na visualização o comentário vira um balão discreto no lugar onde
+   está; na exportação e na impressão ele continua sumindo. */
+let comentariosNaPrevia = false;
+
 function paraHTML(md, raiz = true){
   md = md.replace(/\r\n?/g,'\n');
   /* Notas de rodapé: as definições "[^1]: texto" saem do corpo e vão
@@ -1149,7 +1303,9 @@ function paraHTML(md, raiz = true){
     const cofre = [];
     const guardar = (h) => `\u0000${cofre.push(h) - 1}\u0000`;
     s = s.replace(/(`+)([^`]+)\1/g, (_, c, x) => guardar(`<code>${x}</code>`));
-    s = s.replace(/%%[^%\n]*%%/g, '');
+    s = s.replace(/%%([^%\n]*)%%/g, (_, c) => !comentariosNaPrevia || !c.trim() ? '' : guardar(
+      `<button type="button" class="coment-marca" aria-label="Comentário: ${c.trim().replace(/"/g, '&quot;')}">${ICO.comentario}` +
+      `<span class="coment-balao" role="tooltip">${c.trim()}</span></button>`));
     s = s.replace(/\[\^([^\]\s]+)\]/g, (_, id) => {
       const n = numeroDaNota(id);
       return n ? guardar(`<sup class="nr" id="nr-ref-${n}"><a href="#nr-${n}">${n}</a></sup>`) : `[^${id}]`;
@@ -1560,7 +1716,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.4.1';
+const VERSAO = '2.5.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -1657,7 +1813,8 @@ function abrirSobre(){
         '<p class="fraco" style="margin-top:.9rem">' +
           'As fontes do texto são as iA Writer (Duo, Mono e Quattro), sob licença Apache 2.0; ' +
           'a da interface é a Inter (OFL), a Legível é a Atkinson Hyperlegible (OFL) ' +
-          'e os ícones são do Lucide (ISC).</p>' +
+          'e os ícones são do Lucide (ISC). O corretor é o Hunspell (MPL/LGPL), em ' +
+          'WebAssembly pelo hunspell-asm (MIT), com o dicionário VERO (LGPLv3/MPL).</p>' +
         '<a class="folha-credito" href="https://grbrands.com.br" target="_blank" rel="noopener">' +
           '<span>Desenvolvido por</span><b>' + GR_SIMBOLO + 'GR Brands<i>.</i></b></a>' +
       '</div>' +
@@ -1725,8 +1882,10 @@ function aplicarPrefs(){
   $$('button[data-fonte]').forEach(b => b.setAttribute('aria-checked', b.dataset.fonte === prefs.fonte));
   $$('[data-alterna]').forEach(b => b.setAttribute('aria-checked', !!prefs[b.dataset.alterna]));
 
-  // O corretor nativo do navegador é a fonte do sublinhado vermelho.
-  editor.setAttribute('spellcheck', prefs.ortografia ? 'true' : 'false');
+  // O sublinhado vem do corretor próprio (ORTO); o do navegador só entra se ele falhar.
+  if (prefs.ortografia) ORTO.iniciar();
+  aplicarCorretorNativo();
+  if (typeof aplicarZoom === 'function') aplicarZoom();
 
   if (typeof aplicarExtras === 'function') aplicarExtras();
   salvarPrefs();
@@ -1747,7 +1906,9 @@ function definirVisualizacao(ativo){
   preview.hidden = !ativo;
   if (ativo){
     preview.classList.toggle('poeta', prefs.poeta);
-    preview.innerHTML = prefs.poeta ? paraHTMLPoeta(editor.value) : paraHTML(editor.value);
+    comentariosNaPrevia = true;
+    try { preview.innerHTML = prefs.poeta ? paraHTMLPoeta(editor.value) : paraHTML(editor.value); }
+    finally { comentariosNaPrevia = false; }
     if (typeof mostrarAnexos === 'function') mostrarAnexos(preview);
     preview.querySelectorAll('a[href^="http"]').forEach(a => {
       a.target = '_blank'; a.rel = 'noopener noreferrer';
@@ -1844,7 +2005,7 @@ function colunaDoPonteiro(event){
   const caixa = reguaTrilho.getBoundingClientRect();
   const passo = larguraEspaco();
   const max = Number(reguaCursor.getAttribute('aria-valuemax')) || 40;
-  return Math.max(0, Math.min(max, Math.round((event.clientX - caixa.left) / passo)));
+  return Math.max(0, Math.min(max, Math.round((event.clientX - caixa.left) / escalaZoom() / passo)));
 }
 
 function iniciarArrasteRegua(event){
@@ -1980,7 +2141,7 @@ $('#stCont').onclick = () => {
    quem quiser fechar os menus (a ponte, o painel Aa) só tira a classe,
    e o observador abaixo fecha o diálogo junto. */
 const reduzMov = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-function itensDoMenu(pop){ return [...pop.querySelectorAll('.mp-corpo button, .mp-abas button')].filter(b => !b.hidden && b.offsetParent !== null); }
+function itensDoMenu(pop){ return [...pop.querySelectorAll('.mp-corpo button, .mp-abas button')].filter(b => !b.hidden && !b.disabled && b.offsetParent !== null && !b.closest('.mp-pagina[hidden]')); }
 
 /* Setas em qualquer direção: vai para o item mais perto daquele lado,
    olhando a posição real na tela. Serve para os cartões lado a lado do
@@ -2011,6 +2172,32 @@ function mostrarAbaDoc(aba){
   if (typeof medirPilulas === 'function') medirPilulas();
 }
 $$('#menuMais .mp-abas [data-aba]').forEach(b => b.addEventListener('click', () => mostrarAbaDoc(b.dataset.aba)));
+
+/* ── Tamanho da tela (Ferramentas) ────────────────────────────
+   Fica guardado neste aparelho, como o zoom de verdade. */
+function aplicarZoom(){
+  const z = DEGRAUS_ZOOM.includes(prefs.zoom) ? prefs.zoom : 1;
+  document.documentElement.style.zoom = z === 1 ? '' : String(z);
+  document.documentElement.style.setProperty('--zoom', String(z));
+  $('#zoomValor').textContent = Math.round(z * 100) + '%';
+  $('[data-zoom="-1"]').disabled = z <= DEGRAUS_ZOOM[0];
+  $('[data-zoom="1"]').disabled = z >= DEGRAUS_ZOOM[DEGRAUS_ZOOM.length - 1];
+  $('[data-zoom="0"]').disabled = z === 1;
+}
+function mudarZoom(passo){
+  const atual = DEGRAUS_ZOOM.indexOf(DEGRAUS_ZOOM.includes(prefs.zoom) ? prefs.zoom : 1);
+  const novo = passo === 0 ? 1 : DEGRAUS_ZOOM[Math.max(0, Math.min(DEGRAUS_ZOOM.length - 1, atual + passo))];
+  if (novo === prefs.zoom) return;
+  const foco = document.activeElement;
+  prefs.zoom = novo;
+  aplicarZoom();
+  salvarPrefs();
+  // o botão que ficou apagado (no limite, ou o 100% depois de voltar) passa o foco adiante
+  if (foco && foco.disabled) document.querySelector('[data-zoom]:not(:disabled)')?.focus({ preventScroll: true });
+  if (typeof medirPilulas === 'function') medirPilulas(true);
+  if (prefs.maquina) descerAteOCentro();
+}
+$$('[data-zoom]').forEach(b => b.addEventListener('click', () => mudarZoom(+b.dataset.zoom)));
 function fecharMenuPop(pop, animar){
   if (!pop.open) return;
   if (!animar || reduzMov()){ pop.classList.remove('saindo'); pop.close(); return; }
@@ -2231,7 +2418,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape'){
     if ($$('.menu.aberto').length){ $$('.menu').forEach(m => m.classList.remove('aberto')); return; }
     if ($('#revisao').open){ fecharRevisao(); renderRevisao(); return; }
-    if (prefs.visualizando) definirVisualizacao(false);
+    if (prefs.visualizando && !document.activeElement?.closest?.('.coment-marca')) definirVisualizacao(false);
     return;
   }
   if (!cmd) return;
@@ -2254,6 +2441,8 @@ document.addEventListener('keydown', (e) => {
     editor.dispatchEvent(new Event('input'));
     return;
   }
+  // Ctrl+Shift+/ (o "?" no teclado): a lista de comentários
+  if (k === '?' || (k === '/' && e.shiftKey)){ e.preventDefault(); return abrirComentarios(); }
   if (k === '/'){ e.preventDefault(); return envolver('%%'); }
   /* Com uma pasta do Obsidian ligada, Ctrl+S salva NELA: e o que o gesto
      quer dizer quando existe um lugar para salvar. Sem pasta, continua
@@ -2635,7 +2824,7 @@ scroller.addEventListener('pointerdown', (e) => {
   editor.focus();
   // clique abaixo do texto: o cursor vai para o fim do documento
   const fim = editor.getBoundingClientRect().bottom - parseFloat(
-    getComputedStyle(editor).paddingBottom || 0);
+    getComputedStyle(editor).paddingBottom || 0) * escalaZoom();
   if (e.clientY > fim) editor.setSelectionRange(editor.value.length, editor.value.length);
   desenhar();
 });
@@ -2682,7 +2871,7 @@ function manterCursorVisivel(){
   if (!marca) return;
   const alvo = marca.getBoundingClientRect().bottom;
   const limite = (window.visualViewport?.height || window.innerHeight) - 24;
-  if (alvo > limite) scroller.scrollTop += alvo - limite;
+  if (alvo > limite) scroller.scrollTop += (alvo - limite) / escalaZoom();
 }
 window.addEventListener('beforeunload', () => {
   if (PONTE){ clearTimeout(relogioSalvar); PONTE.salvar(editor.value); return; }
@@ -2736,6 +2925,10 @@ Clique com o botão direito no texto para formatar sem decorar atalhos. Abre um 
 
 Em cima de uma ligação, de um link, de uma nota de rodapé ou de uma palavra com erro, o painel ganha, no alto, as ações daquele lugar.
 
+## Comentários
+
+Selecione um trecho e use **Comentário** no botão direito (ou \`Ctrl+/\`): ele fica no texto entre \`%%\` e não sai na exportação nem na impressão. Para ver todos de uma vez, clique no contador de comentários do rodapé, use **Ferramentas → Comentários** ou \`Ctrl+Shift+/\`. A lista mostra cada um com o trecho em volta; clicar leva até ele, já selecionado para editar. No **Visualizar**, cada comentário vira um pequeno balão no lugar onde está: passe o mouse ou toque para ler.
+
 ## Imagens
 
 Cole uma imagem (\`Ctrl+V\`) ou arraste um arquivo de imagem para a folha. Ela fica guardada no navegador e o texto recebe \`![](anexos/imagem….png)\`. A imagem aparece no **Visualizar**, vai dentro dos arquivos exportados e, com uma pasta do Obsidian ligada, é gravada em \`anexos\`, ao lado das notas.
@@ -2755,7 +2948,7 @@ No mesmo menu, **Máquina de escrever** funciona como a máquina de verdade: a f
 
 O menu **Realce** ajuda a encontrar problemas sem alterar o conteúdo automaticamente:
 
-1. **Ortografia** — palavras suspeitas recebem um sublinhado vermelho. Quando houver uma correção conhecida, coloque o cursor sobre a palavra: a sugestão aparecerá no rodapé. Clique nela ou pressione \`Ctrl+;\` para substituir. Você pode desfazer com \`Ctrl+Z\`.
+1. **Ortografia** — palavras que não existem recebem um sublinhado vermelho assim que você sai delas (a palavra que você ainda está digitando não é julgada). O Escritor traz o próprio corretor, com o dicionário VERO, o mesmo do LibreOffice, e não depende do dicionário do navegador. Coloque o cursor sobre a palavra e a correção aparece no rodapé: clique nela ou pressione \`Ctrl+;\` para substituir, e \`Ctrl+Z\` desfaz. O botão direito mostra até três sugestões e a opção **Adicionar ao dicionário**, para nomes e termos que são seus.
 2. **Revisão de estilo** — marca palavras muito repetidas e frases longas ou prolixas com um traço âmbar. Para as frases, propõe uma refundição mais concisa, guiada pelo *mot juste*. A quantidade aparece no rodapé; clique nela para abrir a lista e depois clique em um aviso para ir ao trecho correspondente.
 3. **Classes gramaticais** — colore uma categoria de palavras e recua as demais. Isso permite observar como o texto foi construído.
 
@@ -2771,7 +2964,7 @@ Escolha uma classe por vez para analisá-la ou selecione **Todas as classes** pa
 
 ## A barra e os menus
 
-Em cima ficam **Notas**, **Foco** (o visor), **Realce** (o marca-texto), **Visualizar** (o olho, que vira caneta enquanto você lê), **Aa**, a tela cheia e o **⋯ Documento**. Os menus abrem no meio da tela, largos: as setas andam pelas opções em qualquer direção, \`Enter\` escolhe e \`Esc\` fecha. Nada acende sozinho, só o que está sob o ponteiro. Embaixo, o rodapé conta as palavras e o tempo de leitura, avisa os pontos de atenção e mostra se o texto está salvo.
+Em cima ficam **Notas**, **Foco** (o visor), **Realce** (o marca-texto), **Visualizar** (o olho, que vira caneta enquanto você lê), **Aa**, a tela cheia, a engrenagem das **Ferramentas** (buscar, sumário, comentários, Modo Poeta e o tamanho da tela) e o **⋯ Documento** (Arquivo, Exportar e Ajuda). As duas janelas têm o mesmo tamanho, e trocar de aba não mexe nelas. Os menus abrem no meio da tela, largos: as setas andam pelas opções em qualquer direção, \`Enter\` escolhe e \`Esc\` fecha. Nada acende sozinho, só o que está sob o ponteiro. Embaixo, o rodapé conta as palavras e o tempo de leitura, avisa os pontos de atenção e mostra se o texto está salvo.
 
 ## Personalizar — Aa
 
@@ -2787,7 +2980,7 @@ A busca no alto do painel (\`Ctrl+F\` com ele aberto) acha qualquer ajuste pelo 
 
 ## Visualizar
 
-**Visualizar** troca a área de edição por uma leitura limpa: oculta os sinais do Markdown e mostra títulos, listas, links, negrito e itálico já formatados. Clique novamente ou pressione \`Ctrl+E\` para voltar a editar.
+**Visualizar** troca a área de edição por uma leitura limpa: oculta os sinais do Markdown e mostra títulos, listas, links, negrito e itálico já formatados. A letra fica um pouco mais cheia do que na escrita, para você saber de relance que está lendo. Clique novamente ou pressione \`Ctrl+E\` para voltar a editar.
 
 ## Exportar
 
@@ -2820,7 +3013,7 @@ A gravação direta em pastas depende de um recurso que hoje existe no Chrome e 
 
 ## Rodapé
 
-Na parte inferior, o Escritor mostra a quantidade de palavras, o tempo estimado de leitura, o estado do salvamento e o número de observações da revisão. Quando uma correção ortográfica estiver disponível, ela também aparece ali.
+Na parte inferior, o Escritor mostra a quantidade de palavras, o tempo estimado de leitura, o estado do salvamento, o número de observações da revisão e quantos comentários o texto tem. Quando uma correção ortográfica estiver disponível, ela também aparece ali.
 
 **Clique no contador** para ver outras medidas do texto. Cada clique passa para a seguinte, em ordem, e volta ao começo:
 
@@ -2847,6 +3040,8 @@ A contagem escolhida continua ali na próxima vez que você abrir o Escritor. O 
 | \`Ctrl+G\` | classes gramaticais |
 | \`Ctrl+P\` | ortografia |
 | \`Ctrl+;\` | corrigir a palavra |
+| \`Ctrl+/\` | comentário |
+| \`Ctrl+Shift+/\` | lista de comentários |
 | \`Ctrl+R\` | revisão de estilo |
 | \`Ctrl+S\` | exportar Markdown |
 | \`Ctrl+O\` | abrir arquivo |
@@ -2858,17 +3053,13 @@ O botão **?** na barra substitui temporariamente a folha por este guia. Se houv
 
 ### Se quiser tudo maior
 
-O **Corpo**, no menu **Aa**, aumenta as letras do seu texto — e só elas. Para ampliar a tela inteira (a barra, o rodapé, as margens e o texto, tudo junto), use o zoom do próprio navegador:
+O **Corpo**, no menu **Aa**, aumenta as letras do seu texto, e só elas. Para ampliar a tela inteira (a barra, o rodapé, os menus e o texto, tudo junto), abra a engrenagem das **Ferramentas**: em **Tamanho da tela**, o **+** e o **−** ampliam e reduzem nos mesmos degraus do navegador (de 50% a 300%), e **100%** volta ao normal. O tamanho escolhido fica guardado neste aparelho.
 
-- Segure \`Ctrl\` e pressione \`+\` para aumentar. Cada toque amplia mais um pouco; pode repetir.
-- Segure \`Ctrl\` e pressione \`-\` para diminuir.
-- Segure \`Ctrl\` e pressione \`0\` (o número zero) para voltar ao tamanho normal.
-
-Também funciona segurar \`Ctrl\` e girar a roda do mouse. No Mac, troque \`Ctrl\` por \`⌘\`.
+O zoom do próprio navegador continua valendo: \`Ctrl\` e \`+\` aumenta, \`Ctrl\` e \`-\` diminui e \`Ctrl\` e \`0\` volta ao normal (no Mac, \`⌘\` no lugar de \`Ctrl\`). Os dois se somam, então use um ou outro.
 
 Na barra, ao lado do **⋯**, fica o botão de **tela cheia**, com os quatro cantos (ou \`Ctrl+Shift+F\`): ele esconde as abas e a barra de endereço do navegador e deixa só a folha. Clique de novo ou pressione \`Esc\` para voltar. No iPhone, onde o navegador não tem tela cheia, a barra e o rodapé saem e fica um botão discreto no canto para voltar.
 
-O navegador guarda o zoom escolhido e o aplica sempre que você voltar ao Escritor, mesmo depois de fechar. Nada disso altera o documento: o arquivo salvo ou exportado sai igual, qualquer que seja o zoom da tela.
+O tamanho escolhido volta sempre que você abrir o Escritor, mesmo depois de fechar. Nada disso altera o documento: o arquivo salvo ou exportado sai igual, qualquer que seja o zoom da tela.
 `);
 
 /* ═══════════════════════════════════════════════════════════

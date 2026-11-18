@@ -1,7 +1,7 @@
 # VERO — Verificador Ortográfico Livre 3.2
 
-O arquivo `dicionario.js` na raiz deste aplicativo contém, em forma
-comprimida, os radicais e as regras de afixo do VERO.
+Os arquivos `orto/pt-BR.aff` e `orto/pt-BR.dic` deste aplicativo são o
+VERO, usado pelo corretor ortográfico (Hunspell, em `orto/`).
 
 ```
 VERO - Verificador Ortográfico Livre - Versão 3.2
@@ -18,5 +18,5 @@ pela Free Software Foundation, e pela Mozilla Public License, como
 publicado pela Mozilla Foundation.
 ```
 
-Nada do dicionário foi alterado: o empacotamento apenas reescreve as
-mesmas regras e os mesmos radicais num formato que o navegador lê.
+Nada do dicionário foi alterado: são os mesmos arquivos `.aff` e `.dic`
+do VERO, lidos pelo próprio Hunspell.

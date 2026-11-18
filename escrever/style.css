@@ -44,14 +44,21 @@
   src:url("fontes/Inter-SemiBold.woff2") format("woff2"); font-display:swap; }
 
 :root{
+  /* Alturas da janela já divididas pelo zoom da interface (Ferramentas →
+     Tamanho da tela): com o "zoom" do CSS, 100dvh continua valendo a
+     janela inteira por dentro e ficaria maior que ela na tela. */
+  --zoom:1;
+  --vh:calc(1vh / var(--zoom)); --dvh:calc(1dvh / var(--zoom)); --svh:calc(1svh / var(--zoom));
+}
+:root{
   --ui: "Inter",-apple-system,BlinkMacSystemFont,ui-sans-serif,system-ui,sans-serif;
   --doc: "iA Duo","Liberation Mono",ui-monospace,monospace;
 
   --tam: 18px;
   --altura: 1.75;
   --coluna: 46rem;
-  --pad-topo: 12vh;
-  --pad-base: 26vh;
+  --pad-topo: calc(12 * var(--vh));
+  --pad-base: calc(26 * var(--vh));
   --pad-lado: 1.6rem;
 
   --raio: 8px;
@@ -132,6 +139,9 @@ body{
   --preench-2: color-mix(in srgb, var(--tinta) 10%, transparent);
   --elev: var(--papel);
   --material: color-mix(in srgb, var(--papel) 80%, transparent);
+  /* pop-ups: quase opacos, para o texto de trás não vazar quando o
+     navegador não desenha o desfoque (o Firefox, às vezes) */
+  --material-pop: color-mix(in srgb, var(--papel) 96%, transparent);
   --sobre-acento: #fff;
   --sombra-pop: 0 0 0 .5px color-mix(in srgb, var(--tinta) 16%, transparent),
                 0 10px 28px -8px rgba(0,0,0,.18), 0 36px 90px -28px rgba(0,0,0,.34);
@@ -139,12 +149,13 @@ body{
 body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-theme="contraste"]){
   --elev: color-mix(in srgb, var(--tinta) 9%, var(--papel));
   --material: color-mix(in srgb, color-mix(in srgb, var(--tinta) 9%, var(--papel)) 82%, transparent);
+  --material-pop: color-mix(in srgb, color-mix(in srgb, var(--tinta) 9%, var(--papel)) 97%, transparent);
   --sombra-pop: 0 0 0 .5px rgba(255,255,255,.12), 0 0 0 1px rgba(0,0,0,.45),
                 0 36px 90px -28px rgba(0,0,0,.75);
 }
 body[data-theme="contraste"]{ --sobre-acento:#000; --fio:#4a4a4a; --r2:#d0d0d0; --r3:#a8a8a8; }
 
-html,body{ height:100%; height:100dvh; }
+html,body{ height:100%; height:calc(100 * var(--dvh)); }
 body{
   margin:0;
   display:flex; flex-direction:column;
@@ -159,7 +170,7 @@ button{ font:inherit; color:inherit; }
 
 /* No modo máquina de escrever a linha do cursor precisa alcançar o
    meio da tela — inclusive a primeira e a última do documento. */
-body[data-maquina="1"]{ --pad-topo:44vh; --pad-base:48vh; }
+body[data-maquina="1"]{ --pad-topo:calc(44 * var(--vh)); --pad-base:calc(48 * var(--vh)); }
 
 /* ══════════ barra superior ══════════ */
 .bar{
@@ -225,7 +236,7 @@ body[data-tela="1"] .btn-tela{ color:var(--caret); background:color-mix(in srgb,
 .tela-sair-flutua svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
 body[data-imersivo="1"] .tela-sair-flutua{ display:grid; }
 body[data-imersivo="1"] .bar,body[data-imersivo="1"] .stats{ display:none; }
-body[data-imersivo="1"]{ --pad-topo:9vh; }
+body[data-imersivo="1"]{ --pad-topo:calc(9 * var(--vh)); }
 .tog,.menu-btn{
   height:30px; padding:0 .65rem;
   font-size:13px; font-weight:500; letter-spacing:-.006em;
@@ -268,9 +279,9 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
 .menu{ position:relative; }
 .menu-pop{
   position:fixed; inset:0; margin:auto;
-  width:min(46rem, calc(100vw - 2rem)); height:fit-content; max-height:min(90dvh, 46rem);
+  width:min(46rem, calc(100vw - 2rem)); height:fit-content; max-height:min(calc(90 * var(--dvh)), 46rem);
   padding:0; border:0; border-radius:22px;
-  background:var(--material); color:var(--tinta);
+  background:var(--material-pop); color:var(--tinta);
   -webkit-backdrop-filter:blur(40px) saturate(180%); backdrop-filter:blur(40px) saturate(180%);
   box-shadow:var(--sombra-pop);
   font:400 14px/1.3 var(--ui); letter-spacing:-.006em; text-align:left;
@@ -422,8 +433,39 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
 .mp-abas button[aria-selected="true"]{ color:var(--tinta); }
 .mp-abas button:focus-visible{ box-shadow:0 0 0 3px color-mix(in srgb, var(--caret) 45%, transparent); }
 .mp-abas > .pilula{ border-radius:9px; background:var(--elev); box-shadow:0 0 0 .5px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.14); }
-.mp--doc .mp-corpo{ min-height:17.6rem; padding-top:6px; }
+/* Documento e Ferramentas têm o mesmo tamanho, e trocar de aba não
+   mexe na janela: as páginas ficam empilhadas na mesma célula e só a
+   escolhida aparece, então a altura é sempre a da maior. */
+.mp--doc .mp-corpo{ display:grid; align-content:start; min-height:var(--doc-h, 19rem); padding-top:6px; }
+.mp--doc .mp-pagina{ grid-area:1 / 1; align-content:start; }
+.mp--doc .mp-pagina[hidden]{ display:grid; visibility:hidden; }
+/* sem a fileira de abas (34px + 3px de cada lado + 10px de margem), o
+   corpo das Ferramentas ganha essa altura para as duas janelas baterem */
+.mp--ferr .mp-corpo{ min-height:calc(var(--doc-h, 19rem) + 50px); }
 .mp-pagina{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px 10px; }
+
+/* Ferramentas: o tamanho da tela, numa faixa larga embaixo */
+.mp-zoom{
+  grid-column:1 / -1; display:flex; align-items:center; gap:14px; min-height:64px; padding:10px 12px 10px 14px;
+  border-radius:14px; background:var(--preench);
+}
+.mp-zoom .mp-txt{ flex:1; min-width:0; }
+.mp-zoom .mp-txt > span{ font-weight:500; }
+.zoom-ctl{ display:flex; align-items:center; gap:6px; flex:none; }
+.zoom-b,.zoom-r{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px; height:38px; border:0;
+  background:var(--elev, var(--papel)); color:var(--tinta);
+  box-shadow:0 0 0 .5px var(--linha), 0 1px 2px rgba(0,0,0,.08);
+  transition:background 150ms, transform 120ms var(--mola), opacity 150ms;
+}
+.zoom-b{ width:38px; border-radius:50%; }
+.zoom-r{ padding:0 14px 0 12px; border-radius:999px; font-weight:500; margin-left:6px; }
+.zoom-b svg,.zoom-r svg{ width:17px; height:17px; }
+.zoom-b:hover,.zoom-r:hover{ background:var(--hover); }
+.zoom-b:active,.zoom-r:active{ transform:scale(.94); }
+.zoom-b:disabled,.zoom-r:disabled{ opacity:.4; }
+.zoom-b:focus-visible,.zoom-r:focus-visible{ box-shadow:0 0 0 3px color-mix(in srgb, var(--caret) 45%, transparent); }
+.zoom-valor{ min-width:4.2em; text-align:center; font-weight:600; font-size:15px; font-variant-numeric:tabular-nums; }
 .mp-tile{
   position:relative; display:flex; align-items:center; gap:14px; min-height:64px; padding:10px 14px;
   border:0; border-radius:14px; background:transparent; color:var(--tinta); text-align:left;
@@ -714,7 +756,36 @@ body[data-foco="1"] .t-cit{ color:var(--tinta-foco); }
   font-family:var(--doc);
   font-size:var(--tam); line-height:var(--altura);
   color:var(--tinta);
+  /* Lendo, a letra fica um pouco mais cheia que escrevendo: um traço
+     fino na cor do próprio texto, para se ver que saiu da escrita. As
+     fontes do Escritor só têm 400 e 700, então o peso não serve. */
+  -webkit-text-stroke:.016em currentColor;
 }
+.preview :is(code,pre,.math){ -webkit-text-stroke:.01em currentColor; }
+
+/* comentário na visualização: um balão discreto que se abre para baixo */
+.preview .coment-marca{
+  position:relative; display:inline-grid; place-items:center; vertical-align:-.12em;
+  width:1.25em; height:1.25em; margin:0 .12em; padding:0; border:0; border-radius:.35em;
+  background:color-mix(in srgb, var(--caret) 12%, transparent); color:var(--caret);
+  -webkit-text-stroke:0; cursor:pointer; transition:background 150ms;
+}
+.preview .coment-marca svg{ width:.8em; height:.8em; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.preview .coment-marca:hover,.preview .coment-marca.aberta{ background:color-mix(in srgb, var(--caret) 22%, transparent); }
+.preview .coment-marca:focus-visible{ outline:0; box-shadow:0 0 0 2px var(--caret); }
+.coment-balao{
+  position:absolute; z-index:5; top:calc(100% + 6px); left:50%;
+  width:max-content; max-width:min(22rem, 80vw); padding:9px 12px; border-radius:12px;
+  background:var(--elev, var(--papel)); color:var(--tinta);
+  box-shadow:0 0 0 .5px var(--linha), 0 8px 24px rgba(0,0,0,.14);
+  font:400 13.5px/1.45 var(--ui); text-align:left; white-space:normal; -webkit-text-stroke:0;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transform:translate(-50%, -6px); transition:opacity 160ms ease, transform 200ms var(--mola, ease), visibility 0s 200ms;
+}
+.coment-marca:hover .coment-balao,.coment-marca:focus-visible .coment-balao,.coment-marca.aberta .coment-balao{
+  opacity:1; visibility:visible; transform:translate(-50%, 0); transition-delay:0s;
+}
+@media (prefers-reduced-motion: reduce){ .coment-balao{ transition:opacity 120ms, visibility 0s 120ms; transform:translate(-50%, 0); } }
 .preview.poeta{
   padding-left:0;
 }
@@ -811,6 +882,15 @@ body[data-chrome="oculto"] .stats{ opacity:0; pointer-events:none; }
   background:color-mix(in srgb, var(--c-estilo) 14%, transparent);
 }
 .stats button.alerta:hover{ background:color-mix(in srgb, var(--c-estilo) 24%, transparent); }
+.stats button.coment{
+  display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 10px; border-radius:999px;
+  font-weight:500; white-space:nowrap; transition:background 150ms;
+  color:color-mix(in srgb, var(--caret) 80%, var(--tinta));
+  background:color-mix(in srgb, var(--caret) 11%, transparent);
+}
+.stats button.coment:hover{ background:color-mix(in srgb, var(--caret) 20%, transparent); }
+.stats button.coment b{ color:inherit; font-weight:600; }
+.stats button.coment svg{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .stats button.alerta b{ color:inherit; font-weight:600; }
 /* A dica de ortografia é um botão: clicar troca a palavra errada
    pela certa, ali mesmo, sem tirar o cursor do lugar. */
@@ -869,8 +949,8 @@ body.soltando::after{
 @media (max-width:720px){
   :root{
     --pad-lado:1rem;
-    --pad-topo:7vh;
-    --pad-base:22vh;
+    --pad-topo:calc(7 * var(--vh));
+    --pad-base:calc(22 * var(--vh));
   }
 
   /* Duas linhas impedem que os comandos sejam espremidos ou saiam
@@ -914,6 +994,9 @@ body.soltando::after{
   .mp-abas button{ flex:1 0 auto; padding:0 12px; height:38px; font-size:14px; }
   .mp-pagina{ grid-template-columns:minmax(0,1fr); }
   .mp--doc .mp-corpo{ min-height:0; }
+  .mp-zoom{ flex-wrap:wrap; }
+  .zoom-ctl{ width:100%; }
+  .zoom-ctl .zoom-valor{ flex:1; }
   .mp-txt > span{ font-size:15.5px; }
   .mp-txt small{ font-size:13.5px; }
   .menu-pop kbd{ display:none; }
@@ -929,7 +1012,7 @@ body.soltando::after{
   /* No Modo Poeta a margem esquerda abre um pouco: é ali que ficam os
      números dos versos, que de outro modo sairiam cortados. */
   body[data-poeta="1"]{ --pad-lado:1.9rem; }
-  body[data-maquina="1"]{ --pad-topo:36dvh; --pad-base:42dvh; }
+  body[data-maquina="1"]{ --pad-topo:calc(36 * var(--dvh)); --pad-base:calc(42 * var(--dvh)); }
 
   .stats{ padding-bottom:env(safe-area-inset-bottom); }
   .stats-inner{
@@ -948,7 +1031,7 @@ body.soltando::after{
 /* Telas pequenas: a letra recua um passo e o texto respira menos no
    topo. Vem depois do bloco acima para não brigar com ele. */
 @media (max-width:640px){
-  :root{ --tam:17px; --pad-topo:6vh; --pad-base:24vh; }
+  :root{ --tam:17px; --pad-topo:calc(6 * var(--vh)); --pad-base:calc(24 * var(--vh)); }
 
   /* "Modo Poeta" vira "Poeta" e "Visualizar" vira "Vis": os rótulos
      encurtam antes de a barra precisar quebrar em duas linhas. */
@@ -1003,8 +1086,8 @@ body.soltando::after{
 /* Celular deitado: sobra pouca altura, então as margens verticais
    encolhem e os painéis param de comer a tela inteira. */
 @media (orientation:landscape) and (max-height:520px){
-  :root{ --pad-topo:4vh; --pad-base:16vh; }
-  body[data-maquina="1"]{ --pad-topo:30dvh; --pad-base:36dvh; }
+  :root{ --pad-topo:calc(4 * var(--vh)); --pad-base:calc(16 * var(--vh)); }
+  body[data-maquina="1"]{ --pad-topo:calc(30 * var(--dvh)); --pad-base:calc(36 * var(--dvh)); }
 }
 
 /* Recorte da câmera na lateral, com o aparelho deitado. */
@@ -1142,7 +1225,7 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
    negrito, texto secundário e os botões embaixo, o principal na cor
    de destaque. */
 .folha-painel{
-  width:min(26rem,100%); max-height:85svh;
+  width:min(26rem,100%); max-height:calc(85 * var(--svh));
   display:flex; flex-direction:column; overflow:hidden;
   background:var(--elev); color:var(--tinta);
   border:0; border-radius:16px;
@@ -1253,7 +1336,7 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
 .sugestoes{
   position:fixed; left:0; top:0; z-index:60;
   display:flex; flex-direction:column; min-width:240px; max-width:min(380px, calc(100vw - 16px));
-  max-height:min(320px, 50vh); overflow:auto; padding:4px;
+  max-height:min(320px, calc(50 * var(--vh))); overflow:auto; padding:4px;
   background:var(--papel); color:var(--tinta);
   border:0; border-radius:12px;
   box-shadow:var(--sombra-pop);
@@ -1836,7 +1919,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 /* ── amostra ao vivo ── */
 .aj-amostra{ display:flex; flex-direction:column; gap:12px; }
 .aj-folha{
-  height:clamp(18rem, 52vh, 30rem); overflow:hidden; position:relative;
+  height:clamp(18rem, calc(52 * var(--vh)), 30rem); overflow:hidden; position:relative;
   padding:2rem 2.2rem; border-radius:14px; background:var(--papel); color:var(--tinta);
   box-shadow:0 0 0 .5px var(--aj-fio), 0 18px 40px -18px rgba(0,0,0,.28);
   font-family:var(--doc); font-size:var(--tam); line-height:var(--altura);
@@ -1987,8 +2070,8 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 .ctx[hidden]{ display:none; }
 .ctx-painel{
   position:fixed; left:0; top:0; pointer-events:auto;
-  width:min(44rem, calc(100vw - 16px)); max-height:calc(100dvh - 16px); overflow:auto;
-  padding:8px; border-radius:16px; background:var(--material); color:var(--tinta);
+  width:min(44rem, calc(100vw - 16px)); max-height:calc(calc(100 * var(--dvh)) - 16px); overflow:auto;
+  padding:8px; border-radius:16px; background:var(--material-pop); color:var(--tinta);
   -webkit-backdrop-filter:blur(40px) saturate(180%); backdrop-filter:blur(40px) saturate(180%);
   box-shadow:var(--sombra-pop);
   font:400 14px/1.25 var(--ui); letter-spacing:-.006em; user-select:none;
@@ -2136,6 +2219,17 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   font-family:var(--doc); font-size:12.5px; color:var(--c-estilo);
 }
 .ponto-texto{ color:var(--r2); }
+.ponto--coment{ align-items:flex-start; gap:12px; padding:11px 12px; }
+.coment-ic{ flex:none; width:30px; height:30px; display:grid; place-items:center; border-radius:9px;
+  background:color-mix(in srgb, var(--caret) 12%, transparent); color:var(--caret); }
+.coment-ic svg{ width:16px; height:16px; }
+.coment-corpo{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.coment-txt{ font-size:14px; font-weight:500; color:var(--tinta); }
+.coment-ctx{ font-family:var(--doc); font-size:12px; color:var(--r2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.coment-linha{ flex:none; padding-top:2px; font-size:11.5px; color:var(--r3); font-variant-numeric:tabular-nums; }
+.ponto--coment:focus-visible :is(.coment-txt,.coment-ctx,.coment-linha){ color:inherit; }
+.ponto--coment:focus-visible .coment-ic{ background:rgba(255,255,255,.2); color:inherit; }
+.revisao-vazio kbd{ padding:1px 6px; border-radius:5px; background:var(--preench-2); font:500 11px/1.4 var(--ui); }
 .revisao-vazio{ padding:1.4rem; text-align:center; font-size:13px; color:var(--r2); }
 
 /* ══ celular: a tela inteira para o Personalizar ══
@@ -2164,7 +2258,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   .aj-ic{ width:28px; height:28px; border-radius:999px; }
   .aj-ic svg{ width:15px; height:15px; }
 
-  .aj-folha{ height:min(24rem, 56svh); padding:1.3rem 1.2rem; font-size:max(var(--tam), 16px); }
+  .aj-folha{ height:min(24rem, calc(56 * var(--svh))); padding:1.3rem 1.2rem; font-size:max(var(--tam), 16px); }
   .aj-topo{ padding:10px 12px 2px; }
   .aj-procura{ padding:6px 14px 12px; }
   .aj-busca{ height:40px; }
@@ -2236,7 +2330,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   .notas-grade{ grid-template-columns:minmax(0,1fr); gap:12px; }
   .nota-abrir,.nota-apagada{ min-height:0; }
   .aj--sumario,.aj--lista{ place-items:center; padding:12px; }
-  .aj--sumario .aj-painel,.aj--lista .aj-painel{ height:auto; max-height:82svh; border-radius:18px; padding-top:0; }
+  .aj--sumario .aj-painel,.aj--lista .aj-painel{ height:auto; max-height:calc(82 * var(--svh)); border-radius:18px; padding-top:0; }
   .sumario button,.ponto{ min-height:48px; font-size:16px; }
 }
 @media (hover:none) and (pointer:coarse){

@@ -602,14 +602,42 @@ function contextuais(){
     } });
     itens.push({ id: 'del-nota', ico: 'apagar', label: 'Excluir nota e referência', perigo: true, acao: () => excluirNotaDeRodape(id) });
   }
-  // palavra da lista de erros: a troca vem primeiro, como no corretor do sistema
-  atualizarDica(editor.value, editor.selectionStart);
-  if (typeof correcaoAtual !== 'undefined' && correcaoAtual){
-    const certa = comOMesmoMolde(correcaoAtual.errada, correcaoAtual.certa);
-    itens.unshift({ id: 'corrigir', ico: 'ok', label: `Trocar por “${certa}”`, kbd: 'Ctrl+;', acao: () => corrigirNoCursor() });
+  /* Palavra errada debaixo do cursor: as trocas vêm primeiro, como no
+     corretor do sistema. A da lista de erros clássicos, ou até três
+     sugestões do dicionário; e a opção de ensinar a palavra a ele. */
+  const errada = palavraErradaNoCursor();
+  if (errada){
+    const trocas = [];
+    const daLista = ERROS.get(errada.p.toLowerCase());
+    if (daLista) trocas.push(daLista);
+    for (const s of ORTO.sugestoesProntas(errada.p) || []) if (trocas.length < 3 && !trocas.includes(s)) trocas.push(s);
+    const novas = trocas.map((t, i) => {
+      const certa = comOMesmoMolde(errada.p, t);
+      return { id: 'corrigir', ico: 'ok', label: `Trocar por “${certa}”`, kbd: i ? '' : 'Ctrl+;', acao: () => trocarPalavra(errada, certa) };
+    });
+    if (!daLista) novas.push({ id: 'aprender', ico: 'mais', label: 'Adicionar ao dicionário', acao: () => { ORTO.adicionar(errada.p); avisar(`“${errada.p}” entrou no seu dicionário`); } });
+    itens.unshift(...novas);
   }
   if (itens.length) itens.push('sep');
   return itens;
+}
+function palavraErradaNoCursor(){
+  const v = editor.value, c = editor.selectionStart;
+  if (!prefs.ortografia || c !== editor.selectionEnd) return null;
+  const ini = acharInicioPalavra(v, c);
+  if (ini === -1) return null;
+  RE_PALAVRA.lastIndex = ini;
+  const m = RE_PALAVRA.exec(v);
+  if (!m || m.index !== ini) return null;
+  if (!ERROS.has(m[0].toLowerCase()) && !ORTO.errada(m[0])) return null;
+  return { a: ini, b: ini + m[0].length, p: m[0] };
+}
+function trocarPalavra(w, nova){
+  if (editor.value.slice(w.a, w.b) !== w.p) return;
+  editor.focus();
+  editor.setSelectionRange(w.a, w.b);
+  inserirComoEdicao(w.a, w.b, nova);
+  avisar(`${w.p} → ${nova}`);
 }
 function excluirNotaDeRodape(id){
   const esc = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -753,16 +781,20 @@ function painelCtx(){
 }
 function posicionar(p, x, y){
   p.style.left = '0px'; p.style.top = '0px';
+  // com a tela ampliada o painel pode passar da janela: aí ele rola por dentro
+  p.style.maxHeight = (innerHeight - 16) / escalaZoom() + 'px';
+  p.style.overflowY = 'auto';
   const r = p.getBoundingClientRect(), m = 8;
   // abre colado ao clique; sem espaço, encosta na borda da janela
   let px = x + r.width + m > innerWidth ? x - r.width : x;
   let py = y + r.height + m > innerHeight ? y - r.height : y;
   px = Math.max(m, Math.min(px, innerWidth - r.width - m));
   py = Math.max(m, Math.min(py, innerHeight - r.height - m));
-  p.style.left = px + 'px';
-  p.style.top = py + 'px';
-  p.style.setProperty('--ox', (x - px) + 'px');
-  p.style.setProperty('--oy', (y - py) + 'px');
+  const z = escalaZoom();   // a conta é em pixels de tela; o left, em pixels da página
+  p.style.left = px / z + 'px';
+  p.style.top = py / z + 'px';
+  p.style.setProperty('--ox', (x - px) / z + 'px');
+  p.style.setProperty('--oy', (y - py) / z + 'px');
 }
 function fecharCtx(){
   if (ctx.hidden) return;
@@ -777,10 +809,15 @@ function abrirCtx(x, y){
   posicionar(p, x, y);
   requestAnimationFrame(() => p.classList.add('vivo'));
 }
-editor.addEventListener('contextmenu', (e) => {
+editor.addEventListener('contextmenu', async (e) => {
   // no dedo (toque longo) fica o menu do sistema, que já sabe selecionar
   if (ultimoPonteiro === 'touch' || prefs.visualizando) return;
   e.preventDefault();
+  /* Sobre uma palavra errada, o painel espera as sugestões do dicionário
+     (costumam vir em poucos milissegundos; no máximo meio segundo). */
+  const errada = palavraErradaNoCursor();
+  if (errada && !ORTO.sugestoesProntas(errada.p) && !ERROS.has(errada.p.toLowerCase()))
+    await Promise.race([ORTO.sugerir(errada.p), new Promise(r => setTimeout(r, 500))]);
   abrirCtx(e.clientX, e.clientY);
 });
 // clicar no menu não tira o foco nem a seleção do texto
@@ -1031,11 +1068,12 @@ if (!PONTE){
     sugPintar();
     sug.hidden = false;
     const r = caretRect();
-    const W = sug.offsetWidth, H = sug.offsetHeight;
+    const z = escalaZoom();
+    const W = sug.offsetWidth * z, H = sug.offsetHeight * z;
     let x = Math.max(8, Math.min(innerWidth - W - 8, r.left - 12));
     let y = r.bottom + 6;
     if (y + H > innerHeight - 8) y = Math.max(8, r.top - H - 6);
-    sug.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
+    sug.style.transform = `translate(${Math.round(x / z)}px,${Math.round(y / z)}px)`;
   }
   function escolher(i){
     const it = itens[i];
@@ -1075,3 +1113,82 @@ if (!PONTE){
     if (a){ e.preventDefault(); seguirLigacao(a.dataset.nota); }
   });
 }
+
+/* ══════════ 5. Comentários ══════════
+   O %%comentário%% fica no arquivo e some na leitura e na exportação.
+   Para não ficarem perdidos: o rodapé conta quantos há, a lista
+   central (Ferramentas → Comentários, ou Ctrl+Shift+/) mostra todos
+   com o trecho em volta e leva até cada um, e a visualização deixa um
+   balão no lugar, que se abre ao passar o mouse ou tocar. */
+let comentariosAchados = [];
+function acharComentarios(texto){
+  const lista = [];
+  let base = 0, emCodigo = false;
+  const linhas = texto.split('\n');
+  for (let n = 0; n < linhas.length; n++){
+    const l = linhas[n];
+    if (/^\s*(```|~~~)/.test(l)) emCodigo = !emCodigo;
+    else if (!emCodigo && l.includes('%%')){
+      for (const m of l.matchAll(/%%([^%\n]*)%%/g)){
+        const txt = m[1].trim();
+        if (!txt) continue;
+        // o trecho em volta, sem os comentários, para saber onde ele está
+        const antes = l.slice(0, m.index).replace(/%%[^%\n]*%%/g, '').replace(/^\s*(#{1,6}|>+|[-*+]|\d+[.)])\s+/, '');
+        const depois = l.slice(m.index + m[0].length).replace(/%%[^%\n]*%%/g, '');
+        const ctx = (antes.length > 70 ? '…' + antes.slice(-70) : antes) + ' ◆ ' + (depois.length > 40 ? depois.slice(0, 40) + '…' : depois);
+        lista.push({ a: base + m.index, b: base + m.index + m[0].length, txt, linha: n + 1, ctx: ctx.trim() });
+      }
+    }
+    base += l.length + 1;
+  }
+  return lista;
+}
+function contarComentarios(texto){
+  comentariosAchados = acharComentarios(texto);
+  const n = comentariosAchados.length, b = $('#stComent');
+  b.hidden = n === 0;
+  b.innerHTML = `${ico('comentario')}<b>${n}</b> comentário${n > 1 ? 's' : ''}`;
+  if ($('#comentarios').open) preencherComentarios();
+}
+function preencherComentarios(){
+  const lista = comentariosAchados;
+  $('#comConta').textContent = lista.length ? lista.length.toLocaleString('pt-BR') : '';
+  $('#comLista').innerHTML = lista.length ? lista.map((c, i) => `
+    <button class="ponto ponto--coment" type="button" data-coment="${i}">
+      <i class="coment-ic">${ico('comentario')}</i>
+      <span class="coment-corpo"><span class="coment-txt">${escapar(c.txt)}</span><span class="coment-ctx">${escapar(c.ctx)}</span></span>
+      <span class="coment-linha">linha ${c.linha}</span>
+    </button>`).join('')
+    : `<p class="revisao-vazio">Nenhum comentário neste texto.<br>Selecione um trecho e use o botão direito → Comentário, ou <kbd>${escapar(paraSO('Ctrl+/'))}</kbd>.</p>`;
+}
+function abrirComentarios(){
+  comentariosAchados = acharComentarios(editor.value);
+  preencherComentarios();
+  const d = $('#comentarios');
+  if (!d.open) abrirDialogo(d);
+  d.querySelector('.ponto')?.focus({ preventScroll: true });
+}
+$('#btnComentarios').onclick = abrirComentarios;
+$('#stComent').onclick = abrirComentarios;
+$('#comFechar').onclick = () => fecharDialogo($('#comentarios'));
+$('#comLista').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-coment]');
+  const c = b && comentariosAchados[+b.dataset.coment];
+  if (!c) return;
+  const d = $('#comentarios');
+  if (d.open){ d.classList.remove('saindo'); d.close(); }
+  if (prefs.visualizando) definirVisualizacao(false);
+  // seleciona o texto do comentário, sem os %%, pronto para editar
+  const ini = c.a + 2, fim = c.b - 2;
+  alvoRevisao = ini;
+  editor.focus({ preventScroll: true });
+  editor.setSelectionRange(ini, fim);
+  desenhar();
+  requestAnimationFrame(() => { rolarAte(ini); requestAnimationFrame(() => rolarAte(ini)); });
+});
+/* Na visualização, o balão abre ao tocar e fecha ao tocar fora */
+preview.addEventListener('click', (e) => {
+  const m = e.target.closest('.coment-marca');
+  preview.querySelectorAll('.coment-marca.aberta').forEach(x => { if (x !== m) x.classList.remove('aberta'); });
+  if (m) m.classList.toggle('aberta');
+});

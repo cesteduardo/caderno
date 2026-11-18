@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#ffffff">
 <title>Escritor · Caderno</title>
-<link rel="icon" href="icons/favicon.svg?v=2.4.1" type="image/svg+xml">
+<link rel="icon" href="icons/favicon.svg?v=2.5.0" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="claro" data-fonte="duo" data-chrome="visivel">
@@ -69,15 +69,40 @@
     <div class="grupo grupo--app">
       <button class="ico btn-tela" id="btnTelaBarra" aria-pressed="false" title="Tela cheia (Ctrl+Shift+F)" aria-label="Tela cheia"><i class="tela-entrar" data-ico="tela-cheia"></i><i class="tela-sair" data-ico="tela-sair"></i>
       </button>
+      <div class="menu" id="menuFerr">
+        <button class="ico menu-btn" id="btnFerr" aria-haspopup="dialog" title="Ferramentas" aria-label="Ferramentas"><i data-ico="engrenagem"></i>
+        </button>
+        <dialog class="menu-pop mp--doc mp--ferr" aria-labelledby="menuFerrT">
+          <header class="mp-topo"><span class="mp-sq" style="--c:#8e8e93" aria-hidden="true"><i data-ico="engrenagem"></i></span><div><h2 id="menuFerrT">Ferramentas</h2><p>Buscar, navegar, comentar e o tamanho da tela.</p></div><button type="button" class="mp-x" data-fecha aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></header>
+          <div class="mp-corpo" role="menu" aria-labelledby="menuFerrT">
+            <div class="mp-pagina">
+                <button class="mp-tile" role="menuitem" id="btnBusca"><i class="mp-ti" data-ico="buscar"></i><span class="mp-txt"><span>Buscar e substituir</span><small>Acha e troca palavras no texto</small></span><kbd>Ctrl+F</kbd></button>
+                <button class="mp-tile" role="menuitem" id="btnSumario"><i class="mp-ti" data-ico="sumario"></i><span class="mp-txt"><span>Sumário</span><small>Pula de um título para outro</small></span><kbd>Ctrl+Shift+O</kbd></button>
+                <button class="mp-tile" role="menuitem" id="btnComentarios"><i class="mp-ti" data-ico="comentarios"></i><span class="mp-txt"><span>Comentários</span><small>Todos os do texto, num lugar só</small></span><kbd>Ctrl+Shift+/</kbd></button>
+                <button class="mp-tile" role="menuitemcheckbox" id="togPoeta" aria-pressed="false" title="Alinhar e recuar versos"><i class="mp-ti" data-ico="poeta"></i><span class="mp-txt"><span>Modo Poeta</span><small>Régua de recuo e versos numerados</small></span></button>
+                <button class="mp-tile" role="menuitemcheckbox" id="btnTela" aria-pressed="false"><i class="mp-ti" data-ico="tela-cheia"></i><span class="mp-txt"><span>Tela cheia</span><small>Some tudo, sobra a folha</small></span><kbd>Ctrl+Shift+F</kbd></button>
+                <div class="mp-zoom" role="group" aria-labelledby="zoomT">
+                  <i class="mp-ti" data-ico="zoom-mais"></i>
+                  <span class="mp-txt"><span id="zoomT">Tamanho da tela</span><small>Aumenta tudo, como o zoom do navegador</small></span>
+                  <span class="zoom-ctl">
+                    <button type="button" class="zoom-b" data-fica data-zoom="-1" aria-label="Diminuir" title="Diminuir"><i data-ico="zoom-menos"></i></button>
+                    <output class="zoom-valor" id="zoomValor" aria-live="polite">100%</output>
+                    <button type="button" class="zoom-b" data-fica data-zoom="1" aria-label="Aumentar" title="Aumentar"><i data-ico="zoom-mais"></i></button>
+                    <button type="button" class="zoom-r" data-fica data-zoom="0" title="Voltar a 100%"><i data-ico="redefinir"></i><span>100%</span></button>
+                  </span>
+                </div>
+            </div>
+          </div>
+        </dialog>
+      </div>
       <div class="menu" id="menuMais">
         <button class="ico menu-btn" id="btnMais" aria-haspopup="dialog" title="Mais" aria-label="Mais opções"><i data-ico="menu-mais"></i>
         </button>
         <dialog class="menu-pop mp--doc" aria-labelledby="menuMaisT">
-          <header class="mp-topo"><span class="mp-sq" style="--c:#5856d6" aria-hidden="true"><i data-ico="documento"></i></span><div><h2 id="menuMaisT">Documento</h2><p>Notas, arquivos, exportação, ferramentas e ajuda.</p></div><button type="button" class="mp-x" data-fecha aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></header>
+          <header class="mp-topo"><span class="mp-sq" style="--c:#5856d6" aria-hidden="true"><i data-ico="documento"></i></span><div><h2 id="menuMaisT">Documento</h2><p>Notas, arquivos, exportação e ajuda.</p></div><button type="button" class="mp-x" data-fecha aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></header>
           <div class="mp-abas" role="tablist" aria-label="Seções do menu Documento">
             <button type="button" role="tab" data-fica data-aba="arquivo" aria-selected="true">Arquivo</button>
             <button type="button" role="tab" data-fica data-aba="exportar" aria-selected="false">Exportar</button>
-            <button type="button" role="tab" data-fica data-aba="ferramentas" aria-selected="false">Ferramentas</button>
             <button type="button" role="tab" data-fica data-aba="ajuda" aria-selected="false">Ajuda</button>
           </div>
           <div class="mp-corpo" role="menu" aria-labelledby="menuMaisT">
@@ -95,12 +120,6 @@
                 <button class="mp-tile" role="menuitem" data-exp="pdf"><i class="mp-ti" data-ico="pdf"></i><span class="mp-txt"><span>PDF</span><small>Pela janela de impressão</small></span><i>imprimir</i></button>
                 <button class="mp-tile" role="menuitem" data-exp="copy"><i class="mp-ti" data-ico="copiar"></i><span class="mp-txt"><span>Copiar Markdown</span><small>Para colar em outro editor</small></span></button>
                 <button class="mp-tile" role="menuitem" data-exp="copyhtml"><i class="mp-ti" data-ico="copiar"></i><span class="mp-txt"><span>Copiar HTML</span><small>Formatado, para e-mail e documentos</small></span></button>
-            </div>
-            <div class="mp-pagina" data-aba="ferramentas" hidden>
-                <button class="mp-tile" role="menuitem" id="btnBusca"><i class="mp-ti" data-ico="buscar"></i><span class="mp-txt"><span>Buscar e substituir</span><small>Acha e troca palavras no texto</small></span><kbd>Ctrl+F</kbd></button>
-                <button class="mp-tile" role="menuitem" id="btnSumario"><i class="mp-ti" data-ico="sumario"></i><span class="mp-txt"><span>Sumário</span><small>Pula de um título para outro</small></span><kbd>Ctrl+Shift+O</kbd></button>
-                <button class="mp-tile" role="menuitemcheckbox" id="togPoeta" aria-pressed="false" title="Alinhar e recuar versos"><i class="mp-ti" data-ico="poeta"></i><span class="mp-txt"><span>Modo Poeta</span><small>Régua de recuo e versos numerados</small></span></button>
-                <button class="mp-tile" role="menuitemcheckbox" id="btnTela" aria-pressed="false"><i class="mp-ti" data-ico="tela-cheia"></i><span class="mp-txt"><span>Tela cheia</span><small>Some tudo, sobra a folha</small></span><kbd>Ctrl+Shift+F</kbd></button>
             </div>
             <div class="mp-pagina" data-aba="ajuda" hidden>
                 <button class="mp-tile" role="menuitem" id="btnGuia"><i class="mp-ti" data-ico="guia"></i><span class="mp-txt"><span>Guia do Escritor</span><small>Tudo o que o Escritor faz, num texto</small></span></button>
@@ -446,6 +465,19 @@
   </div>
 </dialog>
 
+<!-- ══ comentários: lista central (Ctrl+Shift+/) ══ -->
+<dialog class="aj aj--lista comentarios" id="comentarios" aria-labelledby="comTitulo">
+  <div class="aj-painel">
+    <header class="aj-topo">
+      <span class="aj-topo-esq"></span>
+      <h2 class="aj-titulo" id="comTitulo">Comentários <span class="aj-conta" id="comConta"></span></h2>
+      <span class="aj-topo-dir"><button type="button" class="aj-x" id="comFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
+    </header>
+    <div class="revisao-inner" id="comLista"></div>
+    <footer class="aj-pe aj-pe--dica"><span>Clique num comentário para ir até ele no texto</span><span><kbd>Esc</kbd> fechar</span></footer>
+  </div>
+</dialog>
+
 <!-- ══ rodapé de estatísticas ══ -->
 <footer class="stats" id="stats">
   <div class="stats-inner">
@@ -456,6 +488,7 @@
     <span class="cresce"></span>
     <button class="stat dica" id="stDica" hidden title="Corrigir a palavra (Ctrl+;)"></button>
     <button class="stat alerta" id="stRevisao" hidden aria-expanded="false" aria-controls="revisao"></button>
+    <button class="stat coment" id="stComent" hidden aria-controls="comentarios" title="Ver os comentários (Ctrl+Shift+/)"></button>
     <span class="stat meta" id="stMeta" hidden><i class="meta-barra"><i id="metaFill"></i></i><span id="metaTexto"></span></span>
     <span class="stat quieto" id="stSalvo" data-estado="salvo">salvo</span>
   </div>

@@ -121,12 +121,13 @@ if (PONTE) (() => {
     sugPintar();
     sug.hidden = false;
     const r = caretRect();
-    const W = sug.offsetWidth, H = sug.offsetHeight;
+    const z = escalaZoom();
+    const W = sug.offsetWidth * z, H = sug.offsetHeight * z;
     const vh = window.visualViewport ? window.visualViewport.height : innerHeight;
     let x = Math.max(8, Math.min(innerWidth - W - 8, r.left - 12));
     let y = r.bottom + 6;
     if (y + H > vh - 8) y = Math.max(8, r.top - H - 6);
-    sug.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
+    sug.style.transform = `translate(${Math.round(x / z)}px,${Math.round(y / z)}px)`;
   }
   /* Onde está o cursor: o espelho (overlay) tem os mesmos caracteres da
      caixa de texto, linha por linha, então basta medir lá. */
