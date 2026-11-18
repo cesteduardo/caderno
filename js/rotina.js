@@ -537,7 +537,7 @@ function renderToday(){
   const n = Math.floor((d - fromKey(PLAN_START)) / 864e5) + 1;
 
   $('#dayIndicator').textContent = n >= 1 ? `${DAY_NAMES[wd]} · dia ${n}` : `${DAY_NAMES[wd]} · o plano começa em ${fromKey(PLAN_START).getDate()} de ${MONTHS[fromKey(PLAN_START).getMonth()]}`;
-  $('#t-hoje').textContent = isToday ? 'Hoje.' : DAY_NAMES[wd] + '.';
+  $('#t-hoje').textContent = isToday ? 'Hoje' : DAY_NAMES[wd];
   $('#dateLabel').textContent = `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
   $('#backToday').hidden = isToday;
 
@@ -595,7 +595,8 @@ function renderToday(){
 // Anel e números do topo da aba Hoje
 function paintTodayStats(){
   const st = dayStats(viewDay);
-  $('#ringFill').style.strokeDashoffset = 2 * Math.PI * 52 * (1 - st.ratio);
+  $('#ringFill').style.setProperty('--p', st.ratio);
+  $('#diaCard').classList.toggle('completo', st.ratio >= 1);
   countTo($('#ringPct'), Math.round(st.ratio * 100), '%');
   countTo($('#minDone'), st.completed);
   countTo($('#minPlanned'), st.planned);

@@ -7,13 +7,26 @@ no espírito do GR Notes/Obsidian e o Escritor como editor de texto.
 O visual é o do Escritor: Inter em tudo, papel branco, preenchimentos de meio tom,
 o azul do Escritor como destaque, ícones Lucide (`js/icones.js`) e uma barra de
 vidro no topo com as seções, **Ir para** (Ctrl+O) e **Foco**. No celular a barra
-vira a barra de abas embaixo. A página usa até 1440 px de largura; campos e
+vira a barra de abas embaixo. **Modo escuro**: segue o sistema; o botão de tema
+na barra alterna automático, claro e escuro (o leitor no tema Auto acompanha).
+Todo controle de alternar (abas, segmentados, filtros) usa a mesma pílula que
+desliza da barra (`js/pilula.js`). O app busca a versão nova na rede primeiro
+e só usa a cópia guardada sem internet. A página usa até 1440 px de largura; campos e
 botões têm uma altura só (`--ctl`, 40 px), seletores e buscas no mesmo desenho
 (seta e lupa finas), e o leitor usa as mesmas peças do resto (barra, segmentados,
 botões de ícone).
 
-- **Hoje**: tarefas do dia, diário (abre também no Escritor) e atalhos de estudo
-  (revisar, continuar lendo, última aula, foco).
+- **Hoje**: a data como título, os dias numa navegação compacta (‹ Hoje ›) e o
+  progresso do dia numa barra larga com os números ao lado (minutos feitos,
+  restantes e tarefas). Tarefas do dia, diário (abre também no Escritor) e
+  atalhos de estudo (revisar, continuar lendo, última aula, foco).
+- **Foco** (na barra do topo ou no atalho do Hoje): Pomodoro (25 + 5, quatro
+  ciclos com pausa longa), Foco profundo (50 + 10), Sessão longa (90), Livre
+  (você escolhe os minutos) e Cronômetro. Intenção do bloco, ligação a uma
+  tarefa de hoje, som ambiente gerado no aparelho (ruído marrom, rosa ou
+  branco, com volume), sino entre as etapas e tela cheia. Na tela de foco:
+  pausar (Espaço), +5 min, pular etapa, silenciar, encerrar e minimizar (Esc);
+  minimizado, o tempo aparece no título da aba. Os minutos ficam no dia.
 - **Ler**: EPUB, PDF e TXT.
   - Uma página por vez é o padrão. Em Aa → Página dá para escolher **duas lado a
     lado** (só em tela larga) ou **rolagem** contínua, e a largura da linha.

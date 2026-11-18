@@ -13,6 +13,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Caderno">
 <title>Caderno</title>
+<script>/* tema antes de pintar: nada de clarão branco no modo escuro */
+try { const t = localStorage.getItem('caderno-tema'); if (t === 'claro' || t === 'escuro') document.documentElement.dataset.tema = t; } catch (e) {}</script>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="estudo.css">
 </head>
@@ -32,6 +34,7 @@
   <div class="nav-extra">
     <button type="button" id="navIr" data-ic="search" title="Ir para um livro, nota ou aula (Ctrl+O)"><span>Ir para</span><kbd>Ctrl O</kbd></button>
     <button type="button" id="navFoco" data-ic="timer" title="Foco: um bloco cronometrado, tela limpa"><span>Foco</span></button>
+    <button type="button" id="navTema" class="so-ico" title="Tema" aria-label="Tema"></button>
   </div>
 </nav>
 
@@ -39,34 +42,31 @@
 
   <!-- ============ HOJE ============ -->
   <section class="view" id="v-hoje">
+    <!-- Cabeçalho do dia: a data como título, os dias numa navegação
+         compacta e o progresso numa barra larga com os números ao lado -->
     <header class="hero">
-      <div class="hero-top">
-        <span class="status"><i></i><span id="dayIndicator"></span></span>
-        <div class="daynav">
-          <button class="round" id="prevDay" aria-label="Dia anterior">←</button>
-          <span id="dateLabel"></span>
-          <button class="round" id="nextDay" aria-label="Próximo dia">→</button>
+      <div class="hero-linha">
+        <div class="hero-titulo">
+          <span class="status"><i></i><span id="dayIndicator"></span></span>
+          <h1><span id="t-hoje">Hoje</span><span class="hero-data" id="dateLabel"></span></h1>
+        </div>
+        <div class="daynav" role="group" aria-label="Trocar de dia">
+          <button class="round" id="prevDay" aria-label="Dia anterior" title="Dia anterior" data-ic="chevron-left"></button>
+          <button class="daynav-hoje" id="backToday" hidden>Hoje</button>
+          <button class="round" id="nextDay" aria-label="Próximo dia" title="Próximo dia" data-ic="chevron-right"></button>
         </div>
       </div>
-
-      <div class="hero-main">
-        <h1 id="t-hoje">Hoje.</h1>
-        <div class="ring" aria-hidden="true">
-          <svg viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="52" class="ring-track"/>
-            <circle cx="60" cy="60" r="52" class="ring-fill" id="ringFill"/>
-          </svg>
-          <span id="ringPct">0%</span>
+      <section class="dia" id="diaCard" aria-label="Progresso do dia">
+        <div class="dia-topo">
+          <div class="dia-pct"><b id="ringPct">0%</b><span>do dia</span></div>
+          <div class="dia-num">
+            <span><b id="minDone">0</b> de <b id="minPlanned">0</b> min</span>
+            <span><b id="minLeft">0</b> min restantes</span>
+            <span><b id="taskCount">0/0</b> tarefas</span>
+          </div>
         </div>
-      </div>
-
-      <div class="facts">
-        <div><b id="minDone">0</b>min concluídos</div>
-        <div><b id="minPlanned">0</b>min planejados</div>
-        <div><b id="minLeft">0</b>min restantes</div>
-        <div><b id="taskCount">0/0</b>tarefas</div>
-      </div>
-      <button class="btn-text" id="backToday" hidden>Voltar para hoje</button>
+        <div class="dia-barra" aria-hidden="true"><i id="ringFill"></i></div>
+      </section>
     </header>
 
     <div class="today-study" id="studyToday"></div>
@@ -253,6 +253,7 @@
       <button id="btnAntigo" title="Leva a rotina, o progresso e os planos do Caderno de grbrands.com.br/caderno">Trazer do Caderno antigo</button>
       <input type="file" id="fileImport" accept="application/json,.json" hidden>
     </span>
+    <a class="credito" href="https://grbrands.com.br" target="_blank" rel="noopener" aria-label="Desenvolvido por GR Brands, abrir o site">Desenvolvido por <svg class="gr-ico" viewBox="22.5 22 84 84" aria-hidden="true" focusable="false"><clipPath id="gr-ct"><rect x="-60" y="-60" width="220" height="107"/></clipPath><clipPath id="gr-cb"><rect x="-60" y="53" width="220" height="160"/></clipPath><g transform="translate(25.3 24) scale(1.00125) translate(-16 -8.2)"><g fill="currentColor" transform="rotate(-22 50 50)"><g clip-path="url(#gr-ct)"><circle cx="60" cy="50" r="38"/></g><g clip-path="url(#gr-cb)"><circle cx="50" cy="50" r="38"/></g></g></g></svg><b>GR Brands<span class="credito-ponto">.</span></b></a>
   </footer>
 </main>
 
@@ -268,6 +269,7 @@
 <div id="focus" class="focus" hidden></div>
 
 <script src="js/icones.js" defer></script>
+<script src="js/pilula.js" defer></script>
 <script src="vendor/jszip.min.js" defer></script>
 <script src="vendor/pdf.min.js" defer></script>
 <script src="js/rotina.js" defer></script>

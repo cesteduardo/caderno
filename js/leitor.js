@@ -17,8 +17,11 @@ try { Object.assign(RS, JSON.parse(localStorage.getItem(RS_KEY) || '{}')); } cat
 /* v2 da moldura: a tradução abre ao lado do texto (solta continua opção)
    e a barra lateral lembra a aba em que ficou. */
 if (!RS.moldura2){ RS.moldura2 = 1; RS.trDock = true; RS.lado = ''; }
+/* v3: o tema Auto acompanha o modo claro/escuro do Caderno */
+if (!RS.moldura3){ RS.moldura3 = 1; if (RS.theme === 'papel') RS.theme = 'auto'; }
 const saveRS = () => { try { localStorage.setItem(RS_KEY, JSON.stringify(RS)); } catch (e) {} };
 const THEMES = [
+  { id: 'auto',  name: 'Auto' },
   { id: 'papel', name: 'Papel' },
   { id: 'sepia', name: 'Sépia' },
   { id: 'noite', name: 'Noite' },
@@ -170,12 +173,14 @@ function buildReader(){
   $('#rdRange').addEventListener('change', e => RD.eng.gotoPct(e.target.value / 1000));
   $('#rdRange').addEventListener('input', e => { $('#rdPos').textContent = Math.round(e.target.value / 10) + '%'; });
   RD.lado = ''; RD.tr = false; RD.aa = false; RD.folha = '';
+  rdLayout.ultima = undefined;
 }
 
 function applyRS(){
   const el = RD.el;
-  el.dataset.theme = RS.theme;
-  document.body.dataset.rdtheme = RS.theme;
+  const tema = RS.theme === 'auto' ? (typeof escuroAtivo === 'function' && escuroAtivo() ? 'noite' : 'papel') : RS.theme;
+  el.dataset.theme = tema;
+  document.body.dataset.rdtheme = tema;
   el.style.setProperty('--rd-size', (RS.size + (RS.theme === 'sol' ? 1 : 0)) + 'px');
   el.style.setProperty('--rd-lh', RS.lh);
   el.style.setProperty('--rd-mx', { s: '14px', m: '26px', l: '48px' }[RS.margin] || '26px');
@@ -219,7 +224,7 @@ function closeReader(){
   document.body.classList.remove('reading');
   selbar.hide();
   wantAwake(false);
-  document.querySelector('meta[name="theme-color"]').content = '#ffffff';
+  document.querySelector('meta[name="theme-color"]').content = typeof escuroAtivo === 'function' && escuroAtivo() ? '#191a1c' : '#ffffff';
   if (currentView === 'ler') renderBooks();
   if (currentView === 'hoje') renderStudyToday();
 }
@@ -288,7 +293,13 @@ function ladoFechar(doVoltar){
 function rdNavegou(){ if (RD.folha === 'lado') popLayer(); }
 /* Redesenha uma aba aberta (marcação nova, nota editada, página virada) */
 function rdRefresh(tab){
-  if (tab === 'tr'){ if (RD.tr) traducao(true); return; }
+  if (tab === 'tr'){
+    if (!RD.tr) return;
+    const corpo = $('#rdTr .rt-body'), velho = corpo && corpo.querySelector('.tr-page');
+    if (!corpo || !velho){ traducao(true); return; }
+    corpo.replaceChildren(panelTr(velho));
+    return;
+  }
   if (RD.lado === tab){ const st = $('#rdLado .rl-body')?.scrollTop || 0; lado(tab, true); const b = $('#rdLado .rl-body'); if (b) b.scrollTop = st; }
 }
 const panelSwap = k => k === 'tr' ? rdRefresh('tr') : k === 'aa' ? aaAbrir(true) : rdRefresh(k);
@@ -333,7 +344,14 @@ function rdLayout(){
   for (const [id, on] of [['rdBtoc', RD.lado === 'toc'], ['rdBhl', RD.lado === 'hl'], ['rdBbusca', RD.lado === 'busca'], ['rdBtr', RD.tr], ['rdBaa', RD.aa]]){
     const b = document.getElementById(id); if (b) b.setAttribute('aria-pressed', String(on));
   }
-  /* os motores refazem as páginas sozinhos (ResizeObserver no palco) */
+  /* os motores refazem as páginas sozinhos (ResizeObserver no palco);
+     o texto some por um instante enquanto isso, em vez de pular à vista */
+  const assin = (RD.lado && larga ? 'L' : '') + (RD.tr && RS.trDock ? 'T' : '');
+  if (rdLayout.ultima !== undefined && rdLayout.ultima !== assin){
+    const st = $('#rdStage');
+    if (st){ st.classList.add('refaz'); clearTimeout(rdLayout.f); rdLayout.f = setTimeout(() => st.classList.remove('refaz'), 380); }
+  }
+  rdLayout.ultima = assin;
 }
 addEventListener('resize', () => { if (RD.eng){ clearTimeout(rdLayout.t); rdLayout.t = setTimeout(rdLayout, 120); } });
 
@@ -457,23 +475,28 @@ function clearMarks(b, shown){
 }
 
 /* Traduzir a página que está na tela */
-function panelTr(){
+function panelTr(anterior){
   const to = RS.trTo || 'pt-BR';
-  const out = h('div', { class: 'tr-page' }, h('p', { class: 'muted pad', text: 'Traduzindo a página…' }));
-  const sel = h('select', { 'aria-label': 'Traduzir para', onchange: e => { RS.trTo = e.target.value; saveRS(); panelSwap('tr'); } },
+  /* ao virar a página, a tradução anterior fica (esmaecida) até a nova
+     chegar: nada de piscar "Traduzindo…" a cada página */
+  const out = anterior || h('div', { class: 'tr-page' }, h('p', { class: 'muted pad', text: 'Traduzindo a página…' }));
+  if (anterior) out.classList.add('atualizando');
+  const sel = h('select', { 'aria-label': 'Traduzir para', onchange: e => { RS.trTo = e.target.value; saveRS(); rdRefresh('tr'); } },
     TR_LANGS.map(([c, n]) => h('option', { value: c, selected: c === to, text: n })));
-  const nav = (dir) => async () => { await (dir > 0 ? RD.eng.next() : RD.eng.prev()); panelSwap('tr'); };
+  const nav = (dir) => async () => { await (dir > 0 ? RD.eng.next() : RD.eng.prev()); rdRefresh('tr'); };
   const blocks = RD.eng.visibleBlocks ? RD.eng.visibleBlocks() : [];
   (async () => {
     if (!blocks.length){ out.replaceChildren(h('p', { class: 'muted pad', text: 'Não achei texto nesta página. Se for um PDF escaneado, ele não tem texto para traduzir.' })); return; }
     try {
       const r = await translateMany(blocks, to);
+      out.classList.remove('atualizando');
       out.replaceChildren(
         h('p', { class: 'muted small pad-x', text: r.via === 'mesma' ? `O texto já está em ${trLangName(to)}.` : `${trLangName(r.from)} → ${trLangName(to)} · ${r.via}` }),
         ...blocks.map((b0, i) => h('div', { class: 'tr-pair' },
           h('p', { class: 'tr-o', text: b0 }),
           h('p', { class: 'tr-t', text: r.out[i] }))));
     } catch (e) {
+      out.classList.remove('atualizando');
       out.replaceChildren(h('p', { class: 'muted pad', text: e.message && !/fetch|network/i.test(e.message) ? e.message : 'Sem internet, e este navegador não tem tradutor no aparelho.' }));
     }
   })();

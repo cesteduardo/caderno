@@ -1,13 +1,12 @@
 /* Caderno — service worker
    Guarda os arquivos do app para abrir rápido e funcionar sem internet.
-   "Stale-while-revalidate": responde do cache na hora e atualiza em
-   segundo plano; uma versão nova aparece na abertura seguinte.
+   Rede primeiro (versão nova na hora); o cache serve sem internet.
    A sincronização (api.github.com) e o modelo do Whisper (Hugging Face,
    guardado pela própria biblioteca) não passam por aqui. */
-const CACHE = 'caderno-v17';
+const CACHE = 'caderno-v20';
 const FILES = [
   './', 'index.html', 'style.css', 'estudo.css', 'manifest.webmanifest',
-  'js/icones.js', 'js/rotina.js', 'js/base.js', 'js/formatos.js', 'js/leitor.js', 'js/pdf.js', 'js/analise.js',
+  'js/icones.js', 'js/pilula.js', 'js/rotina.js', 'js/base.js', 'js/formatos.js', 'js/leitor.js', 'js/pdf.js', 'js/analise.js',
   'js/aulas.js', 'js/revisar.js', 'js/traduzir.js', 'js/escrever.js', 'js/notas.js', 'js/app.js', 'js/whisper.js',
   'escrever/index.html', 'escrever/app.js', 'escrever/personalizar.js', 'escrever/estudo.js', 'escrever/icones.js', 'escrever/ponte.js', 'escrever/style.css', 'escrever/icons/favicon.svg',
   'escrever/fontes/Inter-Regular.woff2', 'escrever/fontes/Inter-Medium.woff2', 'escrever/fontes/Inter-SemiBold.woff2',
@@ -35,13 +34,19 @@ self.addEventListener('fetch', e => {
   // a biblioteca do Whisper (versão fixa) também fica guardada, para transcrever sem internet
   const lib = url.href.startsWith(CDN);
   if (url.origin !== location.origin && !lib) return;
+  /* Rede primeiro: com internet, sempre a versão nova (atualizar o site
+     chega na hora, sem precisar abrir duas vezes). Sem internet, ou se a
+     rede demorar mais de 4 s, a cópia guardada. A biblioteca do Whisper
+     tem versão fixa: vem do cache direto. */
   e.respondWith(caches.open(CACHE).then(async cache => {
     const cached = await cache.match(e.request, { ignoreSearch: !lib });
     if (cached && lib) return cached;
-    const fresh = fetch(e.request).then(res => {
+    const fresh = fetch(e.request, { cache: 'no-cache' }).then(res => {
       if (res.ok) cache.put(e.request, res.clone());
       return res;
-    }).catch(() => cached);
-    return cached || fresh;
+    });
+    if (!cached) return fresh;
+    const lento = new Promise(r => setTimeout(() => r(cached), 4000));
+    return Promise.race([fresh.catch(() => cached), lento]);
   }));
 });
