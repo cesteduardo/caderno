@@ -17,22 +17,28 @@
    --------------------------------------------------------------------- */
 
 const STORAGE_KEY = 'caderno-v6'; // v6: ids fixos (sincronização entre aparelhos)
-const PLAN_START  = '2026-10-06'; // terça-feira, 6 de outubro: primeiro dia do plano
+/* O que é pessoal (rotina, planos, trilha de música, recursos, textos e
+   o dia em que tudo começou) NÃO fica no código, que é público: fica no
+   estado de cada pessoa (state.perfil), salvo no aparelho, no Gist da
+   sincronização e no backup. Quem abre o link pela primeira vez começa
+   com um Caderno vazio. */
+const inicioPlano = () => state.inicio || (state.perfil && state.perfil.inicio) || Object.keys(state.log || {}).sort()[0] || todayKey();
 
-// Cores de acento por área, escolhidas para contraste sobre fundo claro
-const AREAS = [
-  { id: 'fe',     name: 'Oração',      color: '#8a6a4f' }, // terracota suave
-  { id: 'web',    name: 'Programação', color: '#2f6bed' }, // azul
-  { id: 'design', name: 'Design',      color: '#b07f1f' }, // dourado
-  { id: 'ilu',    name: 'Ilustração',  color: '#d24f8e' }, // rosa / magenta
-  { id: 'esc',    name: 'Escrita',     color: '#8650d8' }, // roxo
-  { id: 'en',     name: 'Inglês',      color: '#109c86' }, // verde-água
-  { id: 'zh',     name: 'Chinês',      color: '#de4040' }, // vermelho
-  { id: 'es',     name: 'Espanhol',    color: '#e2ac0a' }, // amarelo
-  { id: 'body',   name: 'Calistenia',  color: '#22a75a' }, // verde
-  { id: 'linux',  name: 'Linux',       color: '#5458d6' }, // roxo azulado
+/* Áreas: as de quem usa ficam no perfil (state.perfil.areas); quem chega
+   começa com esta lista genérica. Cores com contraste sobre fundo claro. */
+const AREAS_PADRAO = [
+  { id: 'estudo', name: 'Estudo',      color: '#2f6bed' },
+  { id: 'leit',   name: 'Leitura',     color: '#8a6a4f' },
+  { id: 'esc',    name: 'Escrita',     color: '#8650d8' },
+  { id: 'web',    name: 'Programação', color: '#5458d6' },
+  { id: 'design', name: 'Design',      color: '#b07f1f' },
+  { id: 'ilu',    name: 'Ilustração',  color: '#d24f8e' },
+  { id: 'idioma', name: 'Idiomas',     color: '#109c86' },
+  { id: 'musica', name: 'Música',      color: '#de4040' },
+  { id: 'saude',  name: 'Saúde',       color: '#22a75a' },
 ];
-const areaById = id => AREAS.find(a => a.id === id) || AREAS[0];
+const listaAreas = () => (state && state.perfil && state.perfil.areas && state.perfil.areas.length) ? state.perfil.areas : AREAS_PADRAO;
+const areaById = id => listaAreas().find(a => a.id === id) || { id, name: 'Outra', color: '#8a8a8f' };
 
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];  // segunda → domingo
 const DAY_NAMES  = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
@@ -40,173 +46,23 @@ const DAY_SHORT  = ['D','S','T','Q','Q','S','S'];
 const MONTHS     = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const MON_SHORT  = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
-/* Rotina padrão — trabalho das 8h às 18h (sai às 7h, volta às 19h30).
-   Cerca de 2 h por dia útil em casa:
-     · manhã, 5h00–6h40: terço, café e um bloco de foco
-       (treino, escrita ou aula da EFESC)
-     · noite, ~20h45: um bloco curto (programação ou escrita)
-   O trajeto é só música (ver TRILHA). Sexta à noite livre, sábado com
-   a sessão longa, domingo leve. Total ≈ 14h30 por semana.
-   when: 'manha' | 'noite' — aparece como etiqueta na aba Hoje.
+/* when: 'manha' | 'noite' aparece como etiqueta na aba Hoje.
    days: 0 = domingo … 6 = sábado. notes: detalhe por dia (opcional). */
 const EVERY = [0,1,2,3,4,5,6];
-const DEFAULT_ROUTINE = [
-  { key:'terco', area:'fe', name:'Rezar o terço', min:25, days:EVERY, required:true, when:'manha', notes:{ 6:'Se der, junto com sua mulher', 0:'Se der, junto com sua mulher' } },
-
-  // manhã, depois do terço e do café
-  { area:'esc',  name:'Escrita literária', min:40, days:[1], when:'manha', notes:{ 1:'Conto em andamento' } },
-  { area:'body', name:'Calistenia · força', min:45, days:[2,4,6], when:'manha', notes:{ 2:'Treino A', 4:'Treino B', 6:'Alterne A e B a cada semana' } },
-  { area:'esc',  name:'Aula da EFESC', min:40, days:[3,5], when:'manha', notes:{ 3:'Primeira metade da aula', 5:'Segunda metade da aula' } },
-  { area:'body', name:'Mobilidade', min:10, days:[1,3,5,0], when:'manha', notes:{ 0:'Alongamento leve' } },
-
-  // noite
-  { area:'web', name:'Programação · freeCodeCamp', min:45, days:[1,3], when:'noite', notes:{ 1:'Próxima lição', 3:'Próxima lição' } },
-  { area:'esc', name:'Escrita literária', min:40, days:[2,4], when:'noite', notes:{ 2:'Conto ou exercício da EFESC', 4:'Conto ou exercício da EFESC' } },
-  { area:'en',  name:'Inglês · Busuu', min:15, days:[2,4], when:'noite' },
-
-  // sábado
-  { area:'web',    name:'Programação · sessão longa', min:90, days:[6], notes:{ 6:'Curso ou projeto autoral, e subir no GitHub' } },
-  { area:'design', name:'Estudo de design', min:45, days:[6] },
-  { area:'en',     name:'Inglês · Busuu', min:20, days:[6] },
-  { area:'es',     name:'Espanhol · Busuu', min:20, days:[6] },
-
-  // domingo
-  { area:'esc', name:'Leitura de um conto', min:30, days:[0], notes:{ 0:'Ler com atenção e anotar o que funcionou' } },
-];
 const WHEN = { manha:'Manhã', noite:'Noite' };
-
-/* Trilha do trajeto: um álbum completo por dia útil, num ciclo de
-   4 semanas. Tema fixo por dia: seg Bach · ter piano · qua sinfonia ·
-   qui concerto · sex música sacra. Ouça na ida e repita na volta. */
-const TRILHA = [
-  [ { c:'J. S. Bach',  w:'Variações Goldberg',            p:'Glenn Gould (1981)' },
-    { c:'Chopin',      w:'Noturnos',                      p:'Arthur Rubinstein' },
-    { c:'Beethoven',   w:'Sinfonias nº 5 e nº 7',         p:'Carlos Kleiber, Filarmônica de Viena' },
-    { c:'Vivaldi',     w:'As Quatro Estações',            p:'Fabio Biondi, Europa Galante' },
-    { c:'Mozart',      w:'Réquiem',                       p:'Karl Böhm, Filarmônica de Viena' } ],
-  [ { c:'J. S. Bach',  w:'Suítes para violoncelo',        p:'Yo-Yo Ma, "Six Evolutions"' },
-    { c:'Schubert',    w:'Sonata para piano D. 960',      p:'Alfred Brendel' },
-    { c:'Brahms',      w:'Sinfonia nº 4',                 p:'Carlos Kleiber, Filarmônica de Viena' },
-    { c:'Rachmaninoff',w:'Concerto para piano nº 2',      p:'Sviatoslav Richter' },
-    { c:'Palestrina',  w:'Missa Papae Marcelli',          p:'The Tallis Scholars' } ],
-  [ { c:'J. S. Bach',  w:'Concertos de Brandemburgo',     p:'Trevor Pinnock, The English Concert' },
-    { c:'Debussy',     w:'Prelúdios',                     p:'Krystian Zimerman' },
-    { c:'Tchaikovsky', w:'Sinfonia nº 6, "Patética"',     p:'Evgeny Mravinsky, Filarmônica de Leningrado' },
-    { c:'Beethoven',   w:'Concerto para piano nº 5, "Imperador"', p:'Krystian Zimerman, Leonard Bernstein' },
-    { c:'Fauré',       w:'Réquiem',                       p:'Philippe Herreweghe' } ],
-  [ { c:'J. S. Bach',  w:'Missa em si menor',             p:'John Eliot Gardiner' },
-    { c:'Satie',       w:'Gymnopédies e Gnossiennes',     p:'Pascal Rogé' },
-    { c:'Dvořák',      w:'Sinfonia nº 9, "Do Novo Mundo"',p:'István Kertész, Sinfônica de Londres' },
-    { c:'Villa-Lobos', w:'Bachianas Brasileiras',         p:'regidas pelo próprio Villa-Lobos' },
-    { c:'Canto gregoriano', w:'Chant',                    p:'Monges de Santo Domingo de Silos' } ],
-];
-const TRILHA_TEMAS = ['Bach','Piano','Sinfonia','Concerto','Música sacra'];
-
-/* Planos. Cada fase: [nome, horas estimadas, etapas].
-   As horas são estimativas de estudo dedicado; a data prevista sai
-   de horas ÷ (minutos semanais da área na rotina). */
-const DEFAULT_PLANS = [
-  { area:'web', name:'Programador Web',
-    status:'prioridade',
-    goal:'Ficar pronto para o primeiro trabalho como dev web. Com 3 h por semana, é um caminho de cerca de 3 anos; é o primeiro plano a ganhar tempo quando algo for pausado.',
-    phases:[
-      ['Fundamentos', 90,  ['HTML semântico (freeCodeCamp)','CSS: box model, Flexbox e Grid','Página pessoal responsiva publicada','Git e GitHub: um commit por sessão']],
-      ['JavaScript', 140,  ['Tipos, funções, arrays e objetos','DOM e eventos','fetch, APIs e async/await','3 projetos: tarefas, clima e quiz']],
-      ['Front-end', 110,   ['npm e Vite','React: componentes, estado e efeitos','Acessibilidade e performance básicas','App em React publicado']],
-      ['Back-end e projetos', 140, ['Node.js e Express','Banco de dados SQL','API própria com autenticação','Projeto autoral full stack no portfólio']] ] },
-  { area:'design', name:'Designer',
-    status:'manutencao',
-    goal:'Projetar interfaces e identidades com intenção. Por enquanto, só aos sábados, como apoio à programação.',
-    phases:[
-      ['Fundamentos', 30, ['Hierarquia e contraste','Grid e composição','Tipografia: escala e pares','10 composições de estudo']],
-      ['Cor e interface', 30, ['Teoria da cor aplicada','Figma: auto layout e componentes','Redesenhar 3 telas de apps reais']],
-      ['Sistemas', 30, ['Identidade visual de uma marca fictícia','Mini design system','Estudo de caso escrito']],
-      ['Portfólio', 25, ['3 estudos de caso completos','Projetar e programar o mesmo projeto','Revisão com outra pessoa']] ] },
-  { area:'ilu', name:'Ilustrador',
-    status:'pausado',
-    goal:'Desenhar com construção sólida e terminar ilustrações completas. Pausado até o conto ficar pronto.',
-    phases:[
-      ['Forma', 30, ['Drawabox: lição 1','Drawabox: lição 2','250 caixas, divididas em sessões']],
-      ['Construção', 30, ['Perspectiva de 1, 2 e 3 pontos','Drawabox: lições 3 e 4','20 objetos do cotidiano construídos']],
-      ['Figura', 40, ['Gesto: 10 poses de 1 min por sessão','Proporções do corpo','Cabeça pelo método Loomis','Mãos e pés']],
-      ['Valor e cor', 40, ['Valor em escala de cinza','Luz e sombra em formas simples','Pintura digital no Krita','Ilustração final: capa do seu conto']] ] },
-  { area:'esc', name:'Escritor',
-    status:'prioridade',
-    goal:'Em cerca de 8 meses, um conto revisado e pronto para envio, com as aulas da EFESC nas manhãs de quarta e sexta. O livro fica para o próximo ciclo.',
-    phases:[
-      ['Ofício', 30, ['Diário de observação 3x por semana','Ler e analisar 10 contos','Exercícios da EFESC do mês']],
-      ['Contos curtos', 40, ['3 contos de 1.000 a 2.000 palavras','Ficha de personagem: desejo, medo, contradição','Levar um conto para a turma da EFESC']],
-      ['Conto principal', 35, ['Escolher a ideia e esboçar o arco','Primeiro rascunho completo, sem revisar no meio']],
-      ['Revisão e envio', 30, ['Deixar o rascunho descansar uma semana','Reescrita estrutural','Leitura crítica na EFESC','Enviar a um concurso ou revista']] ] },
-  { area:'en', name:'Inglês',
-    status:'manutencao',
-    goal:'Manter o contato: 15 min em duas noites e 20 min no sábado. Comece pelo teste de nível: as fases que você já domina podem ser marcadas de cara.',
-    phases:[
-      ['A1', 40,  ['Teste de nível no Busuu','Unidades do A1','Teste de fim de nível']],
-      ['A2', 60,  ['Unidades do A2','Exercícios corrigidos por nativos','Teste de fim de nível']],
-      ['B1', 120, ['Unidades do B1','Ler documentação do MDN em inglês','Teste de fim de nível']],
-      ['B2', 160, ['Unidades do B2','Assistir a uma série sem legenda','Conversa de 10 min com um nativo']] ] },
-  { area:'zh', name:'Chinês',
-    status:'pausado',
-    goal:'Do pinyin ao HSK 3. Pausado por enquanto: retome quando a rotina tiver espaço.',
-    phases:[
-      ['Pinyin', 15,  ['Os 4 tons e pares de tons','Teclado pinyin no Linux (fcitx5)','Pleco instalado']],
-      ['HSK 1', 60,   ['Unidades iniciais no Busuu','Vocabulário do HSK 1','Primeiros 100 caracteres à mão','Simulado do HSK 1']],
-      ['HSK 2', 90,   ['Vocabulário do HSK 2','Gramática: 了, 过, 在 e comparações','Simulado do HSK 2']],
-      ['HSK 3', 130,  ['Vocabulário do HSK 3','Mandarin Corner sem legenda em inglês','Simulado do HSK 3']] ] },
-  { area:'es', name:'Espanhol',
-    status:'manutencao',
-    goal:'Manter contato aos sábados, aproveitando a proximidade com o português.',
-    phases:[
-      ['A1', 15, ['Teste de nível no Busuu','Unidades do A1','Falsos cognatos mais comuns']],
-      ['A2', 25, ['Unidades do A2','Exercícios corrigidos por nativos']],
-      ['B1', 50, ['Unidades do B1','Dreaming Spanish: 50 horas de input']],
-      ['B2', 70, ['Unidades do B2','Um livro inteiro em espanhol','Conversa de 10 min com um nativo']] ] },
-  { area:'body', name:'Calistenia', status:'base',
-    goal:'1,75 m e 55 kg: ganhar força e massa aos poucos. Três treinos de 45 min de manhã (ter, qui, sáb), depois do café, e 10 min de mobilidade nos outros dias.',
-    phases:[
-      ['Adaptação · 4 sem', 12,  ['Aprender a técnica dos treinos A e B','Flexão: 3×8 com corpo reto','Remada australiana: 3×8','Pendurar na barra: 3×20 s','Pesar-se 1x por semana, mesmo horário']],
-      ['Base · 12 sem', 35,      ['Primeira barra fixa','Flexão: 3×12','Dips com apoio: 3×8','Agachamento búlgaro: 3×8 por perna','Ganhar peso aos poucos (≈ 0,5 kg por mês)']],
-      ['Força · 12 sem', 35,     ['5 barras seguidas','20 flexões seguidas','10 dips','Pistol assistido: 5 por perna']],
-      ['Habilidades · 16 sem', 47, ['10 barras seguidas','Parada de mão na parede: 30 s','Tuck L-sit: 15 s','Testar máximos e montar o próximo ciclo']] ],
-    guide:[
-      ['Aquecimento · 5 min', ['Punhos, ombros e quadril','1 série leve do primeiro exercício']],
-      ['Treino A · 40 min', ['Barra fixa (ou negativas de 5 s) + Dips com apoio: 3×5–8 cada','Agachamento búlgaro + Remada australiana: 3×8–12 cada','Flexão + Hollow hold: 3×8–12 e 3×20 s']],
-      ['Treino B · 40 min', ['Remada australiana + Pike push-up: 3×8–12 e 3×5–8','Agachamento (rumo ao pistol) + Ponte de glúteo com uma perna: 3×10 cada','Flexão inclinada + Prancha lateral: 3×8–12 e 3×30 s']],
-      ['Mobilidade · 10 min', ['Punhos, ombros e quadril','A partir da fase Base: 2×20 s de parada de mão na parede']],
-      ['Regras', ['Exercícios em pares (superséries): faz um, descansa 60 s, faz o outro','Fez todas as séries no topo da faixa com boa técnica? Avance a variação','Dor articular aguda: pare e troque o exercício','Coma bem: refeições regulares, com proteína em todas','Durma 7 a 9 horas: é na recuperação que a força cresce']] ] },
-  { area:'linux', name:'Linux',
-    status:'manutencao',
-    goal:'Aprender usando: o terminal entra nas sessões de programação, sem horário próprio por enquanto.',
-    phases:[
-      ['Base', 10,          ['Navegação, caminhos e permissões','Pipes e redirecionamento','grep, find e less']],
-      ['Shell', 15,         ['Variáveis, condicionais e laços em Bash','3 scripts úteis para o seu dia']],
-      ['Administração', 15, ['systemd e journalctl','Processos e recursos','Rede e SSH com chaves']],
-      ['Automação', 10,     ['Backup com rsync e um timer do systemd','Dotfiles versionados no Git']] ] },
-];
 
 // Agrupamento usado pelo filtro da aba Planos
 /* Status de cada plano. Com pouco tempo livre, só dois planos andam
    como prioridade; os outros ficam em manutenção ou pausados. */
 const STATUS = {
-  base:       { name:'Base',       order:0 }, // hábitos fixos, como a calistenia
+  base:       { name:'Base',       order:0 }, // hábitos fixos
   prioridade: { name:'Prioridade', order:1 },
   manutencao: { name:'Manutenção', order:2 },
   pausado:    { name:'Pausado',    order:3 },
 };
-/* Tarefa sugerida ao retomar um plano que não tem tarefas guardadas.
-   Pensadas para caber na rotina de quem trabalha das 8h às 18h. */
-const SUGGESTED = {
-  web:    { name:'Programação · freeCodeCamp', min:45, days:[1,3], when:'noite' },
-  design: { name:'Estudo de design',           min:45, days:[6] },
-  ilu:    { name:'Estudo de desenho',          min:30, days:[0], notes:{ 0:'Drawabox' } },
-  esc:    { name:'Escrita literária',          min:40, days:[2,4], when:'noite' },
-  en:     { name:'Inglês · Busuu',             min:15, days:[2,4], when:'noite' },
-  zh:     { name:'Chinês · Busuu',             min:20, days:[6,0] },
-  es:     { name:'Espanhol · Busuu',           min:20, days:[6] },
-  body:   { name:'Calistenia · força',         min:45, days:[2,4,6], when:'manha' },
-  linux:  { name:'Linux no terminal',          min:30, days:[6] },
-};
+/* Tarefa sugerida ao retomar um plano que não tem tarefas guardadas:
+   a do perfil, se houver; senão uma genérica. */
+const sugerida = (area, nome) => (state.perfil && state.perfil.sugeridas && state.perfil.sugeridas[area]) || { name: nome || areaById(area).name, min: 30, days: [6] };
 
 const PLAN_GROUPS = [
   { id:'all',        name:'Todos' },
@@ -217,25 +73,6 @@ const PLAN_GROUPS = [
 
 /* Biblioteca. Canais abrem a busca do YouTube (links que não quebram). */
 const yt = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
-const RESOURCES = [
-  { area:'web',    name:'freeCodeCamp',       kind:'Curso principal', url:'https://www.freecodecamp.org/learn', desc:'Trilha completa, com projetos.' },
-  { area:'web',    name:'Kevin Powell',       kind:'YouTube', url:yt('Kevin Powell CSS'),     desc:'CSS, layout e front-end.' },
-  { area:'web',    name:'Web Dev Simplified', kind:'YouTube', url:yt('Web Dev Simplified'),   desc:'Desenvolvimento web prático.' },
-  { area:'web',    name:'Fireship',           kind:'YouTube', url:yt('Fireship'),             desc:'Tecnologia em formato rápido.' },
-  { area:'design', name:'The Futur',          kind:'YouTube', url:yt('The Futur'),            desc:'Design, negócio e direção criativa.' },
-  { area:'design', name:'Flux Academy',       kind:'YouTube', url:yt('Flux Academy'),         desc:'Web design e UI.' },
-  { area:'ilu',    name:'Drawabox',           kind:'Curso principal', url:'https://drawabox.com/', desc:'Fundamentos de desenho, gratuito.' },
-  { area:'ilu',    name:'Proko',              kind:'YouTube', url:yt('Proko'),                desc:'Desenho e anatomia.' },
-  { area:'ilu',    name:'Marc Brunet',        kind:'YouTube', url:yt('Marc Brunet'),          desc:'Arte digital e concept art.' },
-  { area:'esc',    name:'EFESC',              kind:'Curso principal', url:null,               desc:'Literatura. A rotina reserva tempo para os exercícios.' },
-  { area:'en',     name:'Busuu',              kind:'Curso principal', url:'https://www.busuu.com/', desc:'Inglês, chinês e espanhol, do A1 ao B2.' },
-  { area:'en',     name:'Rachel’s English',   kind:'YouTube', url:yt("Rachel's English"),     desc:'Pronúncia e inglês falado.' },
-  { area:'zh',     name:'Mandarin Corner',    kind:'YouTube', url:yt('Mandarin Corner'),      desc:'Chinês real e compreensão auditiva.' },
-  { area:'es',     name:'Dreaming Spanish',   kind:'YouTube', url:yt('Dreaming Spanish'),     desc:'Input compreensível.' },
-  { area:'body',   name:'FitnessFAQs',        kind:'YouTube', url:yt('FitnessFAQs'),          desc:'Força e calistenia.' },
-  { area:'linux',  name:'Learn Linux TV',     kind:'YouTube', url:yt('Learn Linux TV'),       desc:'Linux e administração de sistemas.' },
-];
-
 /* ---------------------------------------------------------------------
    2. STORE
    --------------------------------------------------------------------- */
@@ -243,35 +80,21 @@ const RESOURCES = [
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 function initialState(){
-  /* ids fixos para a rotina e os planos padrão: são iguais em todos os
-     aparelhos, então uma tarefa marcada no celular é a mesma no PC */
   return {
-    routine: DEFAULT_ROUTINE.map((t, i) => ({ id: t.key || 'r' + i, notes: {}, ...t, days: [...t.days] })),
-    plans: DEFAULT_PLANS.map(p => {
-      const pid = 'p-' + p.area;
-      return {
-        id: pid, area: p.area, name: p.name, goal: p.goal, guide: p.guide || null, status: p.status || 'manutencao',
-        phases: p.phases.map(([name, hours, steps], fi) => ({
-          name, hours, steps: steps.map((text, si) => ({ id: `${pid}-${fi}-${si}`, text, done: false })),
-        })),
-      };
-    }),
+    routine: [],
+    plans: [],
     // log['AAAA-MM-DD'] = { done: { tarefaId: { min, area } }, diary: '', t: carimbo }
     log: {},
     // tarefas de planos pausados, guardadas por área até a retomada
     parked: {},
     configAt: 0,
+    inicio: (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date()),
   };
 }
 
-/* Tarefas obrigatórias (required) existem sempre, todos os dias.
-   Se faltarem num estado salvo antigo, são adicionadas no topo. */
+/* Tarefas obrigatórias (required) valem todos os dias. */
 function ensureRequired(s){
-  for (const t of DEFAULT_ROUTINE.filter(t => t.required)){
-    const found = s.routine.find(r => r.key === t.key);
-    if (!found) s.routine.unshift({ id: t.key, notes: {}, ...t, days: [...EVERY] });
-    else { found.required = true; found.days = [...EVERY]; }
-  }
+  for (const t of s.routine || []) if (t.required) t.days = [...EVERY];
   return s;
 }
 
@@ -399,8 +222,9 @@ function investedMin(areaId){
 }
 
 // Fase atual = primeira fase com etapa em aberto (-1 = plano concluído)
-const currentPhase = plan => plan.phases.findIndex(ph => ph.steps.some(s => !s.done));
-const phaseRatio = ph => ph.steps.length ? ph.steps.filter(s => s.done).length / ph.steps.length : 1;
+/* fase sem etapas ainda não foi feita: conta como aberta */
+const currentPhase = plan => plan.phases.findIndex(ph => !ph.steps.length || ph.steps.some(s => !s.done));
+const phaseRatio = ph => ph.steps.length ? ph.steps.filter(s => s.done).length / ph.steps.length : 0;
 
 function planProgress(plan){
   const all = plan.phases.flatMap(ph => ph.steps);
@@ -419,7 +243,7 @@ function forecast(plan){
     accWeeks += perWeekH ? leftH / perWeekH : Infinity;
     return { weeks, endWeeks: accWeeks };
   });
-  const end = Number.isFinite(accWeeks) ? fromKey(shift(todayKey() > PLAN_START ? todayKey() : PLAN_START, Math.ceil(accWeeks * 7))) : null;
+  const end = Number.isFinite(accWeeks) ? fromKey(shift(todayKey() > inicioPlano() ? todayKey() : inicioPlano(), Math.ceil(accWeeks * 7))) : null;
   return { perWeekH, phases, end, totalH: plan.phases.reduce((s, p) => s + p.hours, 0) };
 }
 
@@ -428,7 +252,7 @@ const dayCounts = k => { const s = dayStats(k); return s.planned > 0 && s.ratio 
 function streak(){
   let k = todayKey(), n = 0;
   if (!dayCounts(k)) k = shift(k, -1);            // hoje ainda está em andamento
-  while (k >= PLAN_START && dayCounts(k)){ n++; k = shift(k, -1); }
+  while (k >= inicioPlano() && dayCounts(k)){ n++; k = shift(k, -1); }
   return n;
 }
 
@@ -464,7 +288,7 @@ function setPlanStatus(plan, next){
 
   if (prev === 'pausado'){
     let tasks = state.parked[plan.area] || [];
-    const suggested = !tasks.length && SUGGESTED[plan.area];
+    const suggested = !tasks.length && sugerida(plan.area, plan.name);
     if (suggested) tasks = [{ id: uid(), area: plan.area, notes: {}, ...JSON.parse(JSON.stringify(suggested)) }];
     delete state.parked[plan.area];
     state.routine.push(...tasks);
@@ -505,11 +329,13 @@ let viewDay = todayKey();
 /* Álbum do dia no trajeto (só dias úteis). A semana do ciclo conta a
    partir da semana de início do plano. */
 function albumFor(k){
+  const tr = state.perfil && state.perfil.trilha;
   const wd = fromKey(k).getDay();
-  if (wd < 1 || wd > 5) return null;
-  const weeks = Math.round((fromKey(mondayOf(k)) - fromKey(mondayOf(PLAN_START))) / (7 * 864e5));
-  const cycle = ((weeks % 4) + 4) % 4;
-  return { ...TRILHA[cycle][wd - 1], cycle, tema: TRILHA_TEMAS[wd - 1] };
+  if (!tr || !tr.semanas || !tr.semanas.length || wd < 1 || wd > 5) return null;
+  const weeks = Math.round((fromKey(mondayOf(k)) - fromKey(mondayOf(inicioPlano()))) / (7 * 864e5));
+  const n = tr.semanas.length, cycle = ((weeks % n) + n) % n;
+  const a = tr.semanas[cycle][wd - 1];
+  return a ? { ...a, cycle, n, tema: (tr.temas || [])[wd - 1] || '', rotulo: tr.rotuloDia || 'Música do dia' } : null;
 }
 const spotify = q => 'https://open.spotify.com/search/' + encodeURIComponent(q);
 
@@ -521,7 +347,7 @@ function renderTrack(){
   const q = `${a.c} ${a.w} ${a.p.replace(/"/g, '')}`;
   box.replaceChildren(
     h('div', { class: 'track-text' },
-      h('span', { class: 'eyebrow', text: `No trajeto · ${a.tema} · semana ${a.cycle + 1} de 4` }),
+      h('span', { class: 'eyebrow', text: [a.rotulo, a.tema, `semana ${a.cycle + 1} de ${a.n}`].filter(Boolean).join(' · ') }),
       h('b', { text: `${a.c} — ${a.w}` }),
       h('span', { class: 'track-by', text: a.p })),
     h('div', { class: 'track-links' },
@@ -534,9 +360,9 @@ function renderToday(){
   if (typeof renderStudyToday === 'function') renderStudyToday();
   const d = fromKey(viewDay), wd = d.getDay();
   const isToday = viewDay === todayKey();
-  const n = Math.floor((d - fromKey(PLAN_START)) / 864e5) + 1;
+  const n = Math.floor((d - fromKey(inicioPlano())) / 864e5) + 1;
 
-  $('#dayIndicator').textContent = n >= 1 ? `${DAY_NAMES[wd]} · dia ${n}` : `${DAY_NAMES[wd]} · o plano começa em ${fromKey(PLAN_START).getDate()} de ${MONTHS[fromKey(PLAN_START).getMonth()]}`;
+  $('#dayIndicator').textContent = n >= 1 ? `${DAY_NAMES[wd]} · dia ${n}` : `${DAY_NAMES[wd]} · o plano começa em ${fromKey(inicioPlano()).getDate()} de ${MONTHS[fromKey(inicioPlano()).getMonth()]}`;
   $('#t-hoje').textContent = isToday ? 'Hoje' : DAY_NAMES[wd];
   $('#dateLabel').textContent = `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
   $('#backToday').hidden = isToday;
@@ -546,15 +372,16 @@ function renderToday(){
   renderTrack();
   const list = $('#todayList');
   list.replaceChildren();
-  if (!st.tasks.length) list.append(h('p', { class: 'empty', text: 'Nada planejado para este dia.' }));
+  if (!state.routine.length) list.append(boasVindas());
+  else if (!st.tasks.length) list.append(h('p', { class: 'empty', text: 'Nada planejado para este dia.' }));
   const done = (state.log[viewDay] && state.log[viewDay].done) || {};
 
-  // tarefas agrupadas por área, na ordem de AREAS
+  // tarefas agrupadas por área, na ordem das áreas
   // grupos na ordem do dia: manhã, depois o que não tem período, depois noite
   const rank = t => ({ manha: 0, noite: 2 })[t.when] ?? 1;
   const groupRank = id => Math.min(...st.tasks.filter(t => t.area === id).map(rank));
-  const areas = AREAS.filter(a => st.tasks.some(t => t.area === a.id))
-                     .sort((a, b) => groupRank(a.id) - groupRank(b.id) || AREAS.indexOf(a) - AREAS.indexOf(b));
+  const areas = listaAreas().filter(a => st.tasks.some(t => t.area === a.id))
+                     .sort((a, b) => groupRank(a.id) - groupRank(b.id) || listaAreas().indexOf(a) - listaAreas().indexOf(b));
   for (const area of areas){
     const tasks = st.tasks.filter(t => t.area === area.id);
     if (!tasks.length) continue;
@@ -627,11 +454,14 @@ $('#backToday').addEventListener('click', () => { viewDay = todayKey(); renderTo
 
 /* ---------- SEMANA ---------- */
 function renderWeek(){
+  const ld = $('#semanaLead');
+  ld.dataset.padrao ||= ld.textContent;
+  ld.textContent = (state.perfil && state.perfil.textoSemana) || ld.dataset.padrao;
   const total = state.routine.reduce((s, t) => s + t.min * t.days.length, 0);
   $('#weekTotal').textContent = fmtHM(total);
 
   // barra de distribuição (como uma carteira de investimentos)
-  const per = AREAS.map(a => ({ a, m: weeklyMin(a.id) })).filter(x => x.m > 0);
+  const per = listaAreas().map(a => ({ a, m: weeklyMin(a.id) })).filter(x => x.m > 0);
   $('#allocTotal').textContent = `${fmtH(total)} por semana`;
   $('#allocBar').replaceChildren(...per.map(({ a, m }) =>
     h('span', { style: { ...tint(a.id), 'flex-grow': String(m) }, title: `${a.name}: ${fmtHM(m)}` })));
@@ -642,7 +472,7 @@ function renderWeek(){
   const week = $('#week');
   week.replaceChildren();
   const wdToday = new Date().getDay();
-  const order = id => AREAS.findIndex(a => a.id === id);
+  const order = id => listaAreas().findIndex(a => a.id === id);
   for (const wd of WEEK_ORDER){
     const tasks = state.routine.filter(t => t.days.includes(wd)).sort((a, b) => order(a.area) - order(b.area));
     const sum = tasks.reduce((s, t) => s + t.min, 0);
@@ -664,7 +494,7 @@ function renderEditor(){
     const name = h('input', { type: 'text', value: t.name, 'aria-label': 'Nome da tarefa' });
     name.addEventListener('change', () => { t.name = name.value.trim() || t.name; save(); renderWeek(); });
 
-    const area = h('select', { 'aria-label': 'Área' }, AREAS.map(a => h('option', { value: a.id, text: a.name })));
+    const area = h('select', { 'aria-label': 'Área' }, listaAreas().map(a => h('option', { value: a.id, text: a.name })));
     area.value = t.area;
     area.addEventListener('change', () => { t.area = area.value; save(); resumeIfPaused(t.area); renderWeek(); });
 
@@ -707,10 +537,45 @@ function renderPlans(){
   const inGroup = p => planGroup === 'all' || (p.status || 'manutencao') === planGroup || (planGroup === 'prioridade' && p.status === 'base');
   const list = state.plans.filter(inGroup).sort((a, b) => order(a) - order(b));
 
+  $('#planCount').textContent = state.plans.length || '';
   const wrap = $('#plans');
   const prev = barsOf(wrap);
-  wrap.replaceChildren(...(list.length ? list.map(planCard) : [h('p', { class: 'empty', text: 'Nenhum plano aqui.' })]));
+  wrap.replaceChildren(...(list.length ? list.map(planCard) : [h('p', { class: 'empty', text: state.plans.length ? 'Nenhum plano aqui.' : 'Nenhum plano ainda. Um plano é um objetivo longo dividido em fases com horas estimadas; a previsão sai do tempo que a rotina dá para a área.' })]),
+    h('div', { class: 'plan-novo' }, h('button', { class: 'btn', type: 'button', text: '+ Novo plano', onclick: novoPlano })));
   settleBars(wrap, prev);
+}
+
+/* Novo plano: nome, área, objetivo e a primeira fase (as etapas entram
+   no próprio cartão, no campo "adicionar etapa") */
+function novoPlano(){
+  const nome = h('input', { type: 'text', placeholder: 'Ex.: Ler os clássicos russos', maxlength: 80 });
+  const area = h('select', {}, listaAreas().map(a => h('option', { value: a.id, text: a.name })));
+  const meta = h('textarea', { rows: 3, placeholder: 'Aonde você quer chegar, e em quanto tempo' });
+  const fase = h('input', { type: 'text', value: 'Fase 1', maxlength: 60 });
+  const horas = h('input', { type: 'number', min: 1, max: 999, value: 20 });
+  modal('Novo plano', h('div', { class: 'form' },
+    h('label', {}, 'Nome', nome), h('label', {}, 'Área', area), h('label', {}, 'Objetivo', meta),
+    h('div', { class: 'form-row' }, h('label', {}, 'Primeira fase', fase), h('label', {}, 'Horas', horas))), [
+    { label: 'Cancelar' },
+    { label: 'Criar plano', primary: true, onclick: () => {
+      if (!nome.value.trim()){ nome.focus(); return false; }
+      const id = 'p-' + uid();
+      state.plans.push({ id, area: area.value, name: nome.value.trim(), goal: meta.value.trim(), guide: null, status: 'prioridade',
+        phases: [{ name: fase.value.trim() || 'Fase 1', hours: Math.max(1, +horas.value || 20), steps: [] }] });
+      save(); planGroup = 'all'; renderPlans();
+    } },
+  ]);
+}
+
+/* Caderno vazio (primeira visita): o que fazer primeiro */
+function boasVindas(){
+  return h('div', { class: 'boas-vindas' },
+    h('h2', { text: 'Seu Caderno começa vazio.' }),
+    h('p', { text: 'Tudo o que você puser aqui fica só neste aparelho (e, se quiser, no seu GitHub, pela sincronização). Comece pela rotina da semana, ou traga o que já tem.' }),
+    h('div', { class: 'row-btns' },
+      h('button', { class: 'btn', type: 'button', text: 'Montar a rotina', onclick: () => { go('semana'); setTimeout(() => $('#addTask')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200); } }),
+      h('button', { class: 'btn ghost', type: 'button', text: 'Importar um backup', onclick: () => $('#fileImport').click() }),
+      h('button', { class: 'btn ghost', type: 'button', text: 'Ligar a sincronização', onclick: () => go('progresso') })));
 }
 
 /* Redesenha só o cartão de um plano (marcar etapa, trocar de fase,
@@ -810,14 +675,34 @@ function planCard(plan){
 
 /* ---------- RECURSOS ---------- */
 function renderLibrary(){
+  /* tudo daqui vem do perfil de quem usa; sem perfil, a aba explica */
+  const pf = state.perfil || {};
   const days = ['Seg','Ter','Qua','Qui','Sex'];
-  $('#trackCycle').replaceChildren(...TRILHA.map((week, i) => h('div', { class: 'cycle-week' },
+  const adv = $('#v-recursos .advice'), cyc = $('#v-recursos .cycle');
+  if (pf.textoRecursos) $('#recursosLead').textContent = pf.textoRecursos;
+  adv.hidden = !pf.conselho;
+  if (pf.conselho){
+    adv.querySelector('.eyebrow').textContent = pf.conselho.rotulo || '';
+    adv.querySelector('h2').textContent = pf.conselho.titulo || '';
+    adv.querySelector('.advice-grid').replaceChildren(...(pf.conselho.itens || []).map(t => { const q = document.createElement('p'); q.innerHTML = t; return q; }));
+  }
+  const tr = pf.trilha;
+  cyc.hidden = !(tr && tr.semanas && tr.semanas.length);
+  if (!cyc.hidden){
+    cyc.querySelector('h2').textContent = tr.titulo || 'Música';
+    cyc.querySelector('.pill-muted').textContent = tr.etiqueta || '';
+    cyc.querySelector('.cycle-lead').textContent = tr.texto || '';
+  }
+  $('#trackCycle').replaceChildren(...(cyc.hidden ? [] : tr.semanas).map((week, i) => h('div', { class: 'cycle-week' },
     h('h3', { text: `Semana ${i + 1}` }),
     h('ol', {}, week.map((a, d) => h('li', {},
       h('span', { class: 'cycle-day', text: days[d] }),
       h('a', { href: spotify(`${a.c} ${a.w} ${a.p.replace(/"/g, '')}`), target: '_blank', rel: 'noopener' },
         h('b', { text: `${a.c} — ${a.w}` }), h('span', { text: a.p }))))))));
   const lib = $('#resourceList');
+  const RESOURCES = pf.recursos || [];
+  lib.hidden = !RESOURCES.length;
+  $('#recursosVazio').hidden = !!RESOURCES.length;
   lib.replaceChildren(...RESOURCES.map((r, i) => {
     const inner = [
       h('span', { class: 'idx-num', text: String(i + 1).padStart(2, '0') }),
@@ -871,7 +756,7 @@ function renderProgress(){
   const map = $('#weeksMap');
   map.replaceChildren();
   for (let w = 0; w < 26; w++){
-    const m = shift(mondayOf(PLAN_START), w * 7);
+    const m = shift(mondayOf(inicioPlano()), w * 7);
     let p = 0, c = 0;
     for (let d = 0; d < 7; d++){ const k = shift(m, d); if (k > tk) continue; const st = dayStats(k); p += st.planned; c += st.completed; }
     const r = p ? c / p : 0, future = m > mon;
@@ -880,7 +765,7 @@ function renderProgress(){
       title: `Semana ${w + 1} · ${fromKey(m).toLocaleDateString('pt-BR')}` + (future ? '' : ` · ${Math.round(r * 100)}%`) }));
   }
 
-  $('#hours').replaceChildren(...AREAS.filter(a => plan[a.id]).map(a => {
+  $('#hours').replaceChildren(...listaAreas().filter(a => plan[a.id]).map(a => {
     const v = done[a.id] || 0, p = plan[a.id];
     return h('div', { class: 'hrow', style: tint(a.id) },
       areaChip(a.id),
@@ -956,6 +841,12 @@ function mergeStates(a, b){
     const x = (a.log || {})[k], y = (b.log || {})[k];
     out.log[k] = JSON.parse(JSON.stringify(!y ? x : !x ? y : ((y.t || 0) > (x.t || 0) ? y : x)));
   }
+  /* perfil: vale o mais recente; quem não tem perfil não apaga o do outro */
+  const pa = a.perfil, pb = b.perfil;
+  out.perfil = pa && pb ? JSON.parse(JSON.stringify((pa.t || 0) > (pb.t || 0) ? pa : pb)) : JSON.parse(JSON.stringify(pa || pb || null));
+  if (!out.perfil) delete out.perfil;
+  const ini = [a.inicio, b.inicio, out.perfil && out.perfil.inicio].filter(Boolean).sort();
+  if (ini.length) out.inicio = ini[0];
   return ensureRequired({ parked: {}, ...out });
 }
 

@@ -16,6 +16,13 @@ botões têm uma altura só (`--ctl`, 40 px), seletores e buscas no mesmo desenh
 (seta e lupa finas), e o leitor usa as mesmas peças do resto (barra, segmentados,
 botões de ícone).
 
+**Nada pessoal no código.** O repositório é público, então rotina, planos,
+áreas, recursos, trilha de música, textos e o dia de início ficam no estado de
+cada pessoa (`state.perfil`, no aparelho, no Gist da sincronização e no
+backup). Quem abre o link pela primeira vez vê um Caderno vazio, com um convite
+para montar a rotina, importar um backup ou ligar a sincronização; as áreas
+começam numa lista genérica (`AREAS_PADRAO`).
+
 - **Hoje**: a data como título, os dias numa navegação compacta (‹ Hoje ›) e o
   progresso do dia numa barra larga com os números ao lado (minutos feitos,
   restantes e tarefas). Tarefas do dia, diário (abre também no Escritor) e

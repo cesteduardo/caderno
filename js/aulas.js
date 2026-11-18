@@ -304,7 +304,7 @@ function lessonRow(l){
 }
 
 /* ---------- nova aula ---------- */
-const lastCourse = () => (lessonsSorted()[0] || {}).course || 'EFESC';
+const lastCourse = () => (lessonsSorted()[0] || {}).course || '';
 function newLessonForm(fromFile){
   const f = {
     name: h('input', { type: 'text', placeholder: 'Ex.: Narrador e ponto de vista', 'aria-label': 'Nome da aula', autofocus: true }),

@@ -140,7 +140,7 @@ try { const t = localStorage.getItem('caderno-tema'); if (t === 'claro' || t ===
     <header class="page-head">
       <span class="eyebrow">Rotina</span>
       <h1>Semana<span class="sup" id="weekTotal"></span></h1>
-      <p class="lead">Trabalho das 8h às 18h: terço, café e um bloco de foco entre 5h e 6h40; um bloco curto à noite; o trajeto é só música. Sexta à noite livre para a sua mulher, sábado com a sessão longa. Constância por anos vale mais que intensidade por semanas.</p>
+      <p class="lead" id="semanaLead">A semana inteira num lugar: quanto tempo cada área recebe e o que cai em cada dia. Edite a rotina embaixo; o Hoje, os planos e o progresso acompanham.</p>
     </header>
 
     <section class="card alloc">
@@ -168,7 +168,7 @@ try { const t = localStorage.getItem('caderno-tema'); if (t === 'claro' || t ===
     <div class="subnav" data-sub></div>
     <header class="page-head">
       <span class="eyebrow">Longo prazo</span>
-      <h1>Planos<span class="sup">9</span></h1>
+      <h1>Planos<span class="sup" id="planCount"></span></h1>
       <p class="lead">Duas prioridades de cada vez; o resto em manutenção ou pausado. Cada fase tem horas estimadas, e a previsão usa o tempo que a rotina dá para cada área: se mudar a rotina, as datas mudam junto.</p>
     </header>
     <div class="filters" id="planFilters" role="group" aria-label="Filtrar planos"></div>
@@ -181,25 +181,23 @@ try { const t = localStorage.getItem('caderno-tema'); if (t === 'claro' || t ===
     <header class="page-head">
       <span class="eyebrow">Biblioteca</span>
       <h1>Recursos</h1>
-      <p class="lead">Poucos recursos, bem escolhidos. Os canais são em inglês, então também contam como prática de escuta.</p>
+      <p class="lead" id="recursosLead">Cursos, canais e referências de cada área, num lugar só.</p>
     </header>
-    <section class="card advice">
-      <span class="eyebrow">Idiomas</span>
-      <h2>Busuu como curso, Duolingo como hábito.</h2>
-      <div class="advice-grid">
-        <p><b>Busuu</b> organiza o curso por níveis, do A1 ao B2. Trabalha gramática e permite que falantes nativos corrijam seus exercícios escritos e falados.</p>
-        <p><b>Duolingo</b> é útil para criar hábito e manter contato diário. Fica como complemento gratuito, não como curso principal.</p>
-      </div>
+    <section class="card advice" hidden>
+      <span class="eyebrow"></span>
+      <h2></h2>
+      <div class="advice-grid"></div>
     </section>
-    <section class="card cycle">
+    <section class="card cycle" hidden>
       <div class="card-head">
-        <h2>Música no trajeto</h2>
-        <span class="pill-muted">um álbum por dia útil · ciclo de 4 semanas</span>
+        <h2>Música</h2>
+        <span class="pill-muted"></span>
       </div>
-      <p class="cycle-lead">Seg Bach · ter piano · qua sinfonia · qui concerto · sex música sacra. Ouça na ida e repita na volta: a segunda escuta é quando a obra começa a abrir.</p>
+      <p class="cycle-lead"></p>
       <div class="cycle-grid" id="trackCycle"></div>
     </section>
     <div class="panel index" id="resourceList"></div>
+    <section class="card empty" id="recursosVazio" hidden><h2>Nenhum recurso ainda.</h2><p>Os recursos vêm do seu perfil: importe o seu backup (rodapé → Importar) ou ligue a sincronização em Rotina → Progresso.</p></section>
   </section>
 
   <!-- ============ ROTINA: PROGRESSO ============ -->

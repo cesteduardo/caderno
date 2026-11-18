@@ -854,3 +854,10 @@ body[data-rdtheme="noite"] .toast button{color:#111}
 /* ---------- EPUB: frases que não quebram feio ---------- */
 .rd-sec p,.rd-sec li,.rd-sec blockquote{text-wrap:pretty;orphans:2;widows:2}
 .rd-sec h1,.rd-sec h2,.rd-sec h3{text-wrap:balance}
+
+/* ---------- Caderno vazio e novo plano ---------- */
+.boas-vindas{padding:clamp(22px,3vw,34px);display:grid;gap:10px;justify-items:start}
+.boas-vindas h2{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.boas-vindas p{max-width:62ch;color:var(--r2)}
+.boas-vindas .row-btns{margin-top:6px}
+.plan-novo{display:flex;justify-content:flex-start;margin-top:var(--gap)}
