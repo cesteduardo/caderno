@@ -1537,7 +1537,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.0.2';
+const VERSAO = '2.1.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -2696,17 +2696,17 @@ Escreva normalmente na folha. Para formatar, use Markdown ou os atalhos:
 
 Os sinais ficam visíveis durante a edição para você continuar no controle do texto. Use **Visualizar** quando quiser ver o resultado limpo e formatado.
 
-## Botão direito, como no Obsidian
+## Botão direito
 
-Clique com o botão direito no texto para formatar sem decorar atalhos. Os submenus abrem ao passar o mouse:
+Clique com o botão direito no texto para formatar sem decorar atalhos. Abre um painel só, sem submenus:
 
-- **Adicionar link** (\`Ctrl+K\`) liga a outra nota com \`[[Título]]\`; **Adicionar link externo** cria \`[texto](url)\`.
-- **Formatar**: negrito, itálico, riscado, **Realce** em sete cores (\`==🟨texto==\`), código, equação, comentário oculto (\`%%assim%%\`, \`Ctrl+/\`) e limpar formatação.
-- **Parágrafo**: listas (de marcadores, numerada, de tarefas), Título 1 a 6 e citação.
-- **Inserir**: nota de rodapé (a chamada \`[^1]\` fica no cursor e o texto vai para o fim), tabela, destaque (\`> [!note]\`), régua, imagem, bloco de código e equação em bloco.
-- E ainda cortar, copiar, colar, colar como texto simples e selecionar tudo.
+- **No alto**: recortar, copiar, colar, colar sem formato e selecionar tudo.
+- **Grifar** em sete cores (\`==🟥texto==\`, como no Obsidian).
+- **Formatar**: negrito, itálico, riscado, código, equação, comentário oculto (\`%%assim%%\`, \`Ctrl+/\`) e limpar formatação.
+- **Estudo**: link para nota (\`[[Título]]\`, \`Ctrl+K\`), link externo, nota de rodapé (a chamada \`[^1]\` fica no cursor e o texto vai para o fim), destaque (\`> [!note]\`), imagem, tabela e régua.
+- **Parágrafo**: títulos de H1 a H6 (¶ volta a texto), listas, tarefas, citação, bloco de código e equação em bloco.
 
-Em cima de uma ligação, de um link, de uma nota de rodapé ou de uma palavra com erro, o menu ganha as ações daquele lugar.
+Em cima de uma ligação, de um link, de uma nota de rodapé ou de uma palavra com erro, o painel ganha, no alto, as ações daquele lugar.
 
 ## Imagens
 

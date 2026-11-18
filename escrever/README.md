@@ -1,4 +1,4 @@
-# Escritor 2.0
+# Escritor 2.1
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -13,6 +13,13 @@ Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o apli
 
 ---
 
+## Na 2.1
+
+- **Botão direito num painel só:** a barra de Recortar/Copiar/Colar da 2.0 no alto, o grifo em sete cores e três colunas alinhadas (Formatar, Estudo, Parágrafo) com tudo o que o menu do Obsidian tinha.
+- **Máquina de escrever que só desce:** a folha anda para a frente enquanto se digita; clicar e selecionar não mexem na página.
+- **Realce alinhado:** as duas colunas do pop-up começam e terminam juntas.
+- **Ícone do Obsidian** na seção Obsidian do Personalizar.
+
 ## O que há de novo na 2.0
 
 ### Notas, sem barra lateral
@@ -22,21 +29,20 @@ O botão **Notas** (ou `Ctrl+O`) abre um pop-up no meio da tela com todas as sua
 
 Quem vinha da 1.x não perde nada: o documento único de antes vira a primeira nota na primeira abertura.
 
-### Botão direito, no modelo do Obsidian
-Clicar com o botão direito no texto abre um menu ao lado do mouse, com submenus que abrem ao passar o ponteiro (ou com a seta para a direita):
+### Botão direito: um painel só
+Clicar com o botão direito no texto abre, ao lado do mouse, um painel largo que junta o menu da 2.0 com o do Obsidian, sem submenus para caçar:
 
-| Item | O que faz |
+| Parte | O que tem |
 | --- | --- |
-| **Adicionar link** | ligação interna `[[nota]]` (`Ctrl+K`) |
-| **Adicionar link externo** | `[texto](url)` |
-| **Formatar ▸** | negrito, itálico, riscado, **Realce ▸** (padrão, vermelho, laranja, amarelo, verde, azul, roxo), código, equação, comentário (`Ctrl+/`), limpar formatação |
-| **Parágrafo ▸** | lista de marcadores, numerada e de tarefas; Título 1 a 6 e Texto; citação |
-| **Inserir ▸** | nota de rodapé, tabela, destaque (callout), régua horizontal, imagem, bloco de código, equação em bloco |
-| **Cortar, Copiar, Colar** | o Colar também traz imagens |
-| **Colar como texto simples** | `Ctrl+Shift+V` |
-| **Selecionar tudo** | `Ctrl+A` |
+| **Barra do alto** | Recortar, Copiar, Colar (também traz imagens), **Sem formato** (`Ctrl+Shift+V`) e **Tudo** (`Ctrl+A`) |
+| **Grifar** | sete cores numa fileira: a padrão do tema e vermelho, laranja, amarelo, verde, azul e roxo, gravadas como no Obsidian (`==🟥texto==`) |
+| **Formatar** | negrito, itálico, riscado, código, equação, comentário (`Ctrl+/`), limpar formatação |
+| **Estudo** | link para nota `[[nota]]` (`Ctrl+K`), link externo, nota de rodapé, destaque (callout), imagem, tabela, régua horizontal |
+| **Parágrafo** | fichas H1 a H6 e ¶ (texto), lista, lista numerada, lista de tarefas, citação, bloco de código, equação em bloco |
 
-E o que depende de onde está o cursor: sobre uma ligação, **Abrir**; sobre um link, **Abrir link**, **Editar link** e **Copiar URL**; sobre uma nota de rodapé, **Ir para a nota** e **Excluir nota e referência**; sobre uma palavra da lista de erros, **Trocar por** a forma certa.
+As três colunas têm sete linhas cada, alinhadas umas com as outras. Pelo teclado, as setas andam pelo painel como numa grade, Enter escolhe e Esc fecha.
+
+No alto, em pílulas, aparece o que depende de onde está o cursor: sobre uma ligação, **Abrir**; sobre um link, **Abrir link**, **Editar link** e **Copiar URL**; sobre uma nota de rodapé, **Ir para a nota** e **Excluir nota e referência**; sobre uma palavra da lista de erros, **Trocar por** a forma certa.
 
 O realce colorido é gravado como no Obsidian, com um emoji logo depois do `==` (`==🟥texto==`), para o arquivo continuar legível em qualquer editor. No Visualizar ele aparece na cor certa, o destaque (`> [!note]`) vira uma caixa e as equações saem em itálico matemático.
 
@@ -60,7 +66,7 @@ O painel **Aa** (`Ctrl+,`) segue o desenho de ajustes do RefBox: título no cent
 A seção **Obsidian** virou um módulo de verdade: estado da pasta, escolher, salvar agora, esquecer, salvar sozinho enquanto escreve e um passo a passo de como funciona.
 
 ### Um pacote de ícones só, e a letra Inter
-Todos os ícones (barra, menus, Personalizar, botão direito) vêm do **Lucide**, um pacote aberto de ícones de traço, com o mesmo traço e as mesmas pontas em todo lugar. A interface inteira usa a **Inter**. As cores dos quadradinhos do Personalizar continuam as mesmas.
+Todos os ícones (barra, menus, Personalizar, botão direito) vêm do **Lucide**, um pacote aberto de ícones de traço, com o mesmo traço e as mesmas pontas em todo lugar. A exceção é a seção Obsidian, que usa a marca do próprio Obsidian (do Simple Icons, CC0). A interface inteira usa a **Inter**. As cores dos quadradinhos do Personalizar continuam as mesmas.
 
 ### Correções
 - **Modo Foco:** a linha anterior piscava ao passar para a próxima. O destaque só era redesenhado quando a tecla subia; agora anda no mesmo instante que o cursor.

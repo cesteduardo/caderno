@@ -1919,8 +1919,8 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 .ctx[hidden]{ display:none; }
 .ctx-painel{
   position:fixed; left:0; top:0; pointer-events:auto;
-  min-width:15.5rem; max-width:min(20rem, calc(100vw - 16px)); padding:6px;
-  border-radius:14px; background:var(--material); color:var(--tinta);
+  width:min(41rem, calc(100vw - 16px)); max-height:calc(100dvh - 16px); overflow:auto;
+  padding:8px; border-radius:16px; background:var(--material); color:var(--tinta);
   -webkit-backdrop-filter:blur(40px) saturate(180%); backdrop-filter:blur(40px) saturate(180%);
   box-shadow:var(--sombra-pop);
   font:400 13px/1.25 var(--ui); letter-spacing:-.006em; user-select:none;
@@ -1929,24 +1929,65 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   transition:opacity 110ms ease, transform 170ms var(--mola);
 }
 .ctx-painel.vivo{ opacity:1; transform:none; }
-.ctx-item{
-  display:flex; align-items:center; gap:10px; width:100%; height:30px; padding:0 10px 0 8px;
-  border:0; border-radius:8px; background:transparent; color:inherit; font:inherit; text-align:left; cursor:default;
-  white-space:nowrap;
+.ctx-painel button{
+  border:0; background:transparent; color:inherit; font:inherit; cursor:default;
+  transition:background 120ms ease, transform 120ms var(--mola);
 }
-.ctx-item > span{ flex:1; overflow:hidden; text-overflow:ellipsis; }
-.ctx-item:hover:not(:disabled),.ctx-item:focus-visible,.ctx-item.aberto{ background:var(--hover); outline:0; }
-.ctx-item:disabled{ opacity:.35; }
+.ctx-painel button:hover:not(:disabled),
+.ctx-painel button:focus-visible{ background:var(--hover); outline:0; }
+.ctx-painel button:active:not(:disabled){ transform:scale(.97); }
+.ctx-painel button:disabled{ opacity:.35; }
+.ctx-painel i{ flex:none; display:grid; place-items:center; font-style:normal; color:var(--r2); }
+.ctx-painel i svg{ width:16px; height:16px; }
+.ctx-painel kbd{ font:500 11px/1 var(--ui); color:var(--r3); white-space:nowrap; }
+
+/* o que vale para onde o cursor está: pílulas no alto */
+.ctx-aqui{ display:flex; flex-wrap:wrap; gap:6px; padding:2px 2px 8px; margin-bottom:6px; border-bottom:1px solid var(--fio); }
+.ctx-pilula{ display:flex; align-items:center; gap:7px; height:30px; padding:0 12px 0 10px; border-radius:999px !important; background:var(--preench) !important; }
+.ctx-pilula:hover,.ctx-pilula:focus-visible{ background:var(--preench-2) !important; }
+.ctx-pilula.perigo, .ctx-pilula.perigo i{ color:var(--c-erro); }
+
+/* área de transferência: cinco botões iguais, ícone sobre o nome */
+.ctx-barra{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:4px; padding-bottom:6px; border-bottom:1px solid var(--fio); }
+.ctx-acao{ display:grid; justify-items:center; align-content:center; gap:6px; height:60px; padding:0 4px; border-radius:10px; }
+.ctx-acao i svg{ width:19px; height:19px; }
+.ctx-acao span{ font-size:12px; color:var(--r2); white-space:nowrap; }
+.ctx-acao:hover:not(:disabled) span{ color:var(--tinta); }
+
+/* grifo: as sete cores numa fileira */
+.ctx-grifo{ display:flex; align-items:center; gap:12px; height:46px; padding:0 10px; border-bottom:1px solid var(--fio); }
+.ctx-grifo-rot{ display:flex; align-items:center; gap:10px; width:7.4rem; flex:none; }
+.ctx-cores{ display:flex; gap:6px; flex:1; }
+.ctx-cor-b{ width:26px; height:26px; border-radius:8px; display:grid; place-items:center; }
+.ctx-cor-b::before{
+  content:""; width:16px; height:16px; border-radius:5px;
+  background:color-mix(in srgb, var(--cor) 72%, transparent); box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18);
+  transition:transform 140ms var(--mola);
+}
+.ctx-cor-b:hover::before,.ctx-cor-b:focus-visible::before{ transform:scale(1.15); }
+.ctx-cor-b.padrao{ position:relative; margin-right:13px; }
+.ctx-cor-b.padrao::after{ content:""; position:absolute; right:-10px; top:5px; bottom:5px; width:1px; background:var(--fio); }
+.ctx-grifo kbd{ margin-left:auto; }
+
+/* três colunas de sete linhas: cada linha mede o mesmo nas três */
+.ctx-cols{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0 6px; padding-top:4px; }
+.ctx-col{ display:grid; grid-auto-rows:32px; align-content:start; min-width:0; }
+.ctx-titulo{ display:flex; align-items:end; margin:0; padding:0 10px 5px; font-size:11px; font-weight:600; color:var(--r3); }
+.ctx-item{
+  display:flex; align-items:center; gap:10px; width:100%; height:32px; padding:0 10px;
+  border-radius:8px; text-align:left; white-space:nowrap;
+}
+.ctx-item > span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .ctx-item.perigo{ color:var(--c-erro); }
-.ctx-item i{ flex:none; width:18px; height:18px; display:grid; place-items:center; font-style:normal; color:var(--r2); }
-.ctx-item.perigo i{ color:inherit; }
-.ctx-item i svg{ width:16px; height:16px; }
-.ctx-item kbd{ margin-left:8px; font:500 11px/1 var(--ui); color:var(--r3); }
-.ctx-seta svg{ width:14px !important; height:14px !important; }
-.ctx-txt{ font-size:10.5px; font-weight:700; letter-spacing:-.02em; color:var(--r2); }
-.ctx-cor::before{ content:""; width:14px; height:14px; border-radius:4px; background:color-mix(in srgb, var(--cor) 70%, transparent); box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15); }
-.ctx-sep{ height:1px; margin:5px 8px; background:var(--fio); }
-.ctx-titulo{ margin:6px 10px 3px; font-size:11px; font-weight:600; color:var(--r3); }
+.ctx-fichas{ display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:3px; padding:2px 4px; }
+.ctx-ficha{ border-radius:7px; font-size:11px !important; font-weight:700 !important; letter-spacing:-.02em; color:var(--r2) !important; background:var(--preench) !important; }
+.ctx-ficha:hover,.ctx-ficha:focus-visible{ background:var(--preench-2) !important; color:var(--tinta) !important; }
+
+@media (max-width: 640px){
+  .ctx-cols{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 6px; }
+  .ctx-barra .ctx-acao span{ font-size:11px; }
+  .ctx-grifo kbd{ display:none; }
+}
 
 /* ══ grifo, comentário e nota de rodapé no texto ══ */
 .overlay .t-grifo,.aj-folha .t-grifo{ background:color-mix(in srgb, #ffd60a 42%, transparent); border-radius:2px; box-shadow:0 0 0 1px color-mix(in srgb, #ffd60a 42%, transparent); }

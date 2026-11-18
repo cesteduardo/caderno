@@ -411,12 +411,7 @@ window.addEventListener('drop', (e) => {
 $('#btnImagem').onclick = () => $('#imgInput').click();
 $('#imgInput').onchange = (e) => { inserirImagens(e.target.files); e.target.value = ''; };
 
-/* ══════════ 3. O botão direito ══════════
-   No modelo do Obsidian: no alto o que vale para onde o cursor está
-   (um link, uma nota de rodapé, uma palavra com erro), depois os
-   links, três submenus (Formatar, Parágrafo, Inserir) e a área de
-   transferência. Os submenus abrem ao passar o mouse ou com a seta
-   para a direita; Esc fecha um nível. */
+/* ══════════ 3. O botão direito ══════════ */
 
 const ctx = $('#ctx');
 let ultimoPonteiro = 'mouse';
@@ -475,138 +470,161 @@ function excluirNotaDeRodape(id){
   avisar(`Nota ${id} excluída · Ctrl+Z desfaz`);
 }
 
-/* ── o cardápio ── */
-function cardapio(){
-  const temSel = editor.selectionStart !== editor.selectionEnd;
-  return [
-    ...contextuais(),
-    { id: 'link', ico: 'link', label: 'Adicionar link', kbd: 'Ctrl+K' },
-    { id: 'link-ext', ico: 'link-externo', label: 'Adicionar link externo' },
-    'sep',
-    { ico: 'formatar', label: 'Formatar', sub: [
-      { titulo: 'Básico' },
-      { id: 'negrito', ico: 'negrito', label: 'Negrito', kbd: 'Ctrl+B' },
-      { id: 'italico', ico: 'italico', label: 'Itálico', kbd: 'Ctrl+I' },
-      { id: 'riscado', ico: 'riscado', label: 'Riscado' },
-      { ico: 'grifo', label: 'Realce', sub: CORES_REALCE.map(([e, nome, cor]) => ({ id: 'realce:' + e, cor, label: nome, kbd: e ? '' : 'Ctrl+Shift+H' })) },
-      'sep',
-      { titulo: 'Avançado' },
-      { id: 'codigo', ico: 'codigo', label: 'Código' },
-      { id: 'equacao', ico: 'equacao', label: 'Equação' },
-      { id: 'comentario', ico: 'comentario', label: 'Comentário', kbd: 'Ctrl+/' },
-      { id: 'limpar', ico: 'limpar', label: 'Limpar formatação' },
-    ] },
-    { ico: 'paragrafo', label: 'Parágrafo', sub: [
-      { titulo: 'Listas' },
-      { id: 'lista', ico: 'lista', label: 'Lista de marcadores' },
-      { id: 'lista-num', ico: 'lista-num', label: 'Lista numerada' },
-      { id: 'tarefa', ico: 'tarefa', label: 'Lista de tarefas' },
-      'sep',
-      { titulo: 'Títulos' },
-      ...[1, 2, 3, 4, 5, 6].map(n => ({ id: 'h' + n, txt: 'H' + n, label: 'Título ' + n })),
-      { id: 'texto', ico: 'paragrafo', label: 'Texto' },
-      'sep',
-      { titulo: 'Bloco' },
-      { id: 'citacao', ico: 'citacao', label: 'Citação' },
-    ] },
-    { ico: 'inserir', label: 'Inserir', sub: [
-      { titulo: 'Básico' },
-      { id: 'nota', ico: 'nota-rodape', label: 'Nota de rodapé' },
-      { id: 'tabela', ico: 'tabela', label: 'Tabela' },
-      { id: 'destaque', ico: 'destaque', label: 'Destaque' },
-      { id: 'regua', ico: 'regua', label: 'Régua horizontal' },
-      { id: 'imagem', ico: 'imagem', label: 'Imagem…' },
-      'sep',
-      { titulo: 'Avançado' },
-      { id: 'bloco-codigo', ico: 'bloco-codigo', label: 'Bloco de código' },
-      { id: 'equacao-bloco', ico: 'equacao-bloco', label: 'Equação em bloco' },
-    ] },
-    'sep',
-    { id: 'recortar', ico: 'recortar', label: 'Cortar', kbd: 'Ctrl+X', off: !temSel },
-    { id: 'copiar', ico: 'copiar', label: 'Copiar', kbd: 'Ctrl+C', off: !temSel },
-    { id: 'colar', ico: 'colar', label: 'Colar', kbd: 'Ctrl+V' },
-    { id: 'colar-texto', ico: 'colar-texto', label: 'Colar como texto simples', kbd: 'Ctrl+Shift+V' },
-    { id: 'tudo', ico: 'tudo', label: 'Selecionar tudo', kbd: 'Ctrl+A' },
-  ];
-}
+/* ── o painel ──
+   A mescla do menu de antes com o do Obsidian: um painel largo só,
+   sem submenus. No alto, o que vale para onde o cursor está (um link,
+   uma nota de rodapé, uma palavra com erro); depois a barra da área de
+   transferência, a fileira do grifo com as sete cores e três colunas
+   de sete linhas cada (Formatar, Estudo, Parágrafo), alinhadas linha
+   com linha. Os títulos de 1 a 6 cabem numa fileira de fichas. */
+const CTX_BARRA = [
+  { id: 'recortar', ico: 'recortar', label: 'Recortar', kbd: 'Ctrl+X', pedeSel: true },
+  { id: 'copiar', ico: 'copiar', label: 'Copiar', kbd: 'Ctrl+C', pedeSel: true },
+  { id: 'colar', ico: 'colar', label: 'Colar', kbd: 'Ctrl+V' },
+  { id: 'colar-texto', ico: 'colar-texto', label: 'Sem formato', dica: 'Colar como texto simples', kbd: 'Ctrl+Shift+V' },
+  { id: 'tudo', ico: 'tudo', label: 'Tudo', dica: 'Selecionar tudo', kbd: 'Ctrl+A' },
+];
+const CTX_COLUNAS = [
+  { titulo: 'Formatar', itens: [
+    { id: 'negrito', ico: 'negrito', label: 'Negrito', kbd: 'Ctrl+B' },
+    { id: 'italico', ico: 'italico', label: 'Itálico', kbd: 'Ctrl+I' },
+    { id: 'riscado', ico: 'riscado', label: 'Riscado' },
+    { id: 'codigo', ico: 'codigo', label: 'Código' },
+    { id: 'equacao', ico: 'equacao', label: 'Equação' },
+    { id: 'comentario', ico: 'comentario', label: 'Comentário', kbd: 'Ctrl+/' },
+    { id: 'limpar', ico: 'limpar', label: 'Limpar formatação' },
+  ] },
+  { titulo: 'Estudo', itens: [
+    { id: 'link', ico: 'link', label: 'Link para nota', kbd: 'Ctrl+K' },
+    { id: 'link-ext', ico: 'link-externo', label: 'Link externo' },
+    { id: 'nota', ico: 'nota-rodape', label: 'Nota de rodapé' },
+    { id: 'destaque', ico: 'destaque', label: 'Destaque' },
+    { id: 'imagem', ico: 'imagem', label: 'Imagem…' },
+    { id: 'tabela', ico: 'tabela', label: 'Tabela' },
+    { id: 'regua', ico: 'regua', label: 'Régua horizontal' },
+  ] },
+  { titulo: 'Parágrafo', itens: [
+    { fichas: [1, 2, 3, 4, 5, 6].map(n => ({ id: 'h' + n, txt: 'H' + n, label: 'Título ' + n })).concat({ id: 'texto', txt: '¶', label: 'Texto (sem título)' }) },
+    { id: 'lista', ico: 'lista', label: 'Lista' },
+    { id: 'lista-num', ico: 'lista-num', label: 'Lista numerada' },
+    { id: 'tarefa', ico: 'tarefa', label: 'Lista de tarefas' },
+    { id: 'citacao', ico: 'citacao', label: 'Citação' },
+    { id: 'bloco-codigo', ico: 'bloco-codigo', label: 'Bloco de código' },
+    { id: 'equacao-bloco', ico: 'equacao-bloco', label: 'Equação em bloco' },
+  ] },
+];
 
-/* ── desenhar e abrir os painéis ── */
-let paineis = [];
-let abrirSubRelogio = 0;
-function painelCtx(itens, nivel){
+function botaoCtx(it, classe){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.setAttribute('role', 'menuitem');
+  b.className = classe + (it.perigo ? ' perigo' : '');
+  if (it.off) b.disabled = true;
+  const dica = (it.dica || it.label) + (it.kbd ? ` (${paraSO(it.kbd)})` : '');
+  if (classe !== 'ctx-item' || it.dica) b.title = dica;
+  b.addEventListener('click', () => executar(it));
+  return b;
+}
+function painelCtx(){
+  const temSel = editor.selectionStart !== editor.selectionEnd;
   const p = document.createElement('div');
   p.className = 'ctx-painel';
   p.setAttribute('role', 'menu');
-  p.dataset.nivel = nivel;
-  for (const it of itens){
-    if (it === 'sep'){ p.append(Object.assign(document.createElement('div'), { className: 'ctx-sep' })); continue; }
-    if (it.titulo){ p.append(Object.assign(document.createElement('p'), { className: 'ctx-titulo', textContent: it.titulo })); continue; }
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.setAttribute('role', 'menuitem');
-    b.className = 'ctx-item' + (it.perigo ? ' perigo' : '') + (it.sub ? ' tem-sub' : '');
-    if (it.off) b.disabled = true;
-    const icone = it.cor ? `<i class="ctx-cor" style="--cor:${it.cor}"></i>`
-      : it.txt ? `<i class="ctx-txt">${it.txt}</i>`
-      : `<i>${ico(it.ico)}</i>`;
-    b.innerHTML = icone + `<span>${escapar(it.label)}</span>` +
-      (it.sub ? `<i class="ctx-seta">${ico('seta')}</i>` : it.kbd ? `<kbd>${escapar(paraSO(it.kbd))}</kbd>` : '');
-    if (it.sub){
-      b.setAttribute('aria-haspopup', 'menu');
-      b._sub = it.sub;
-      b.addEventListener('pointerenter', () => { clearTimeout(abrirSubRelogio); abrirSubRelogio = setTimeout(() => abrirSub(b, nivel), 110); });
-      b.addEventListener('click', () => abrirSub(b, nivel, true));
-    } else {
-      b.addEventListener('pointerenter', () => { clearTimeout(abrirSubRelogio); abrirSubRelogio = setTimeout(() => fecharDesde(nivel + 1), 160); });
-      b.addEventListener('click', () => executar(it));
+  p.setAttribute('aria-label', 'Texto');
+
+  // 1. o que vale para onde o cursor está
+  const aqui = contextuais().filter(it => it !== 'sep');
+  if (aqui.length){
+    const faixa = document.createElement('div');
+    faixa.className = 'ctx-aqui';
+    for (const it of aqui){
+      const b = botaoCtx(it, 'ctx-pilula');
+      b.innerHTML = `<i>${ico(it.ico)}</i><span>${escapar(it.label)}</span>`;
+      faixa.append(b);
     }
-    p.append(b);
+    p.append(faixa);
   }
+
+  // 2. a área de transferência, como no menu de antes
+  const barra = document.createElement('div');
+  barra.className = 'ctx-barra';
+  for (const it of CTX_BARRA){
+    const b = botaoCtx({ ...it, off: it.pedeSel && !temSel }, 'ctx-acao');
+    b.innerHTML = `<i>${ico(it.ico)}</i><span>${escapar(it.label)}</span>`;
+    barra.append(b);
+  }
+  p.append(barra);
+
+  // 3. grifo nas sete cores (gravadas como no Obsidian: ==🟥texto==)
+  const grifo = document.createElement('div');
+  grifo.className = 'ctx-grifo';
+  grifo.innerHTML = `<span class="ctx-grifo-rot"><i>${ico('grifo')}</i>Grifar</span>`;
+  const cores = document.createElement('div');
+  cores.className = 'ctx-cores';
+  for (const [e, nome, cor] of CORES_REALCE){
+    const b = botaoCtx({ id: 'realce:' + e, label: 'Grifar · ' + nome.toLowerCase(), kbd: e ? '' : 'Ctrl+Shift+H' }, 'ctx-cor-b');
+    b.style.setProperty('--cor', cor);
+    b.setAttribute('aria-label', 'Grifar em ' + nome.toLowerCase());
+    if (!e) b.classList.add('padrao');   // a cor do tema, separada das seis
+    cores.append(b);
+  }
+  grifo.append(cores);
+  grifo.insertAdjacentHTML('beforeend', `<kbd>${escapar(paraSO('Ctrl+Shift+H'))}</kbd>`);
+  p.append(grifo);
+
+  // 4. três colunas, sete linhas cada
+  const cols = document.createElement('div');
+  cols.className = 'ctx-cols';
+  for (const col of CTX_COLUNAS){
+    const c = document.createElement('div');
+    c.className = 'ctx-col';
+    c.append(Object.assign(document.createElement('p'), { className: 'ctx-titulo', textContent: col.titulo }));
+    for (const it of col.itens){
+      if (it.fichas){
+        const f = document.createElement('div');
+        f.className = 'ctx-fichas';
+        for (const h of it.fichas){
+          const b = botaoCtx(h, 'ctx-ficha');
+          b.textContent = h.txt;
+          b.setAttribute('aria-label', h.label);
+          f.append(b);
+        }
+        c.append(f);
+        continue;
+      }
+      const b = botaoCtx(it, 'ctx-item');
+      b.innerHTML = `<i>${ico(it.ico)}</i><span>${escapar(it.label)}</span>` +
+        (it.kbd ? `<kbd>${escapar(paraSO(it.kbd))}</kbd>` : '');
+      c.append(b);
+    }
+    cols.append(c);
+  }
+  p.append(cols);
   return p;
 }
-function posicionar(p, x, y, ancora){
+function posicionar(p, x, y){
   p.style.left = '0px'; p.style.top = '0px';
   const r = p.getBoundingClientRect(), m = 8;
-  let px = x, py = y;
-  if (ancora){
-    px = ancora.right + 2;
-    if (px + r.width > innerWidth - m) px = ancora.left - r.width - 2;   // sem espaço à direita: abre à esquerda
-    py = ancora.top - 6;
-  }
+  // abre colado ao clique; sem espaço, encosta na borda da janela
+  let px = x + r.width + m > innerWidth ? x - r.width : x;
+  let py = y + r.height + m > innerHeight ? y - r.height : y;
   px = Math.max(m, Math.min(px, innerWidth - r.width - m));
   py = Math.max(m, Math.min(py, innerHeight - r.height - m));
   p.style.left = px + 'px';
   p.style.top = py + 'px';
-  p.style.setProperty('--ox', ancora ? (px < ancora.left ? '100%' : '0') : (x - px) + 'px');
-  p.style.setProperty('--oy', ancora ? '12px' : (y - py) + 'px');
-}
-function abrirSub(botao, nivel, focar){
-  fecharDesde(nivel + 1);
-  botao.classList.add('aberto');
-  const p = painelCtx(botao._sub, nivel + 1);
-  ctx.append(p);
-  paineis[nivel + 1] = p;
-  posicionar(p, 0, 0, botao.getBoundingClientRect());
-  requestAnimationFrame(() => p.classList.add('vivo'));
-  if (focar) p.querySelector('.ctx-item:not(:disabled)')?.focus({ preventScroll: true });
-}
-function fecharDesde(nivel){
-  for (let n = paineis.length - 1; n >= nivel; n--){ paineis[n]?.remove(); paineis.length = n; }
-  paineis[nivel - 1]?.querySelectorAll('.ctx-item.aberto').forEach(b => b.classList.remove('aberto'));
+  p.style.setProperty('--ox', (x - px) + 'px');
+  p.style.setProperty('--oy', (y - py) + 'px');
 }
 function fecharCtx(){
   if (ctx.hidden) return;
-  clearTimeout(abrirSubRelogio);
   ctx.hidden = true;
   ctx.replaceChildren();
-  paineis = [];
 }
 function abrirCtx(x, y){
   fecharCtx();
   ctx.hidden = false;
-  const p = painelCtx(cardapio(), 0);
+  const p = painelCtx();
   ctx.append(p);
-  paineis = [p];
   posicionar(p, x, y);
   requestAnimationFrame(() => p.classList.add('vivo'));
 }
@@ -623,32 +641,35 @@ window.addEventListener('blur', fecharCtx);
 window.addEventListener('resize', fecharCtx);
 scroller.addEventListener('scroll', fecharCtx, { passive: true });
 
-/* teclado: setas andam, → abre o submenu, ← volta, Enter escolhe, Esc fecha um nível */
+/* Teclado: as setas andam pelo painel como numa grade (para o lado
+   troca de coluna, para baixo desce a linha), Enter escolhe, Esc fecha. */
+const DIRECOES = { ArrowDown: [0, 1], ArrowUp: [0, -1], ArrowRight: [1, 0], ArrowLeft: [-1, 0] };
 document.addEventListener('keydown', (e) => {
   if (ctx.hidden) return;
   const k = e.key;
   if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Escape', 'Enter', ' ', 'Home', 'End'].includes(k)) return;
   e.preventDefault(); e.stopPropagation();
-  const ativo = document.activeElement && document.activeElement.closest('.ctx-painel');
-  const nivel = ativo ? +ativo.dataset.nivel : paineis.length - 1;
-  const p = paineis[nivel];
-  const itens = [...p.querySelectorAll('.ctx-item:not(:disabled)')];
-  const i = itens.indexOf(document.activeElement);
-  if (k === 'Escape' || (k === 'ArrowLeft' && nivel > 0)){
-    if (nivel === 0) return fecharCtx();
-    fecharDesde(nivel);
-    paineis[nivel - 1].querySelector('.ctx-item.aberto, .ctx-item.tem-sub:focus')?.focus();
-    const dono = [...paineis[nivel - 1].querySelectorAll('.tem-sub')].find(b => b.classList.contains('aberto'));
-    (dono || paineis[nivel - 1].querySelector('.ctx-item'))?.focus();
-    return;
+  if (k === 'Escape') return fecharCtx();
+  const alvos = [...ctx.querySelectorAll('button:not(:disabled)')];
+  const atual = alvos.includes(document.activeElement) ? document.activeElement : null;
+  if (k === 'Home') return alvos[0]?.focus();
+  if (k === 'End') return alvos[alvos.length - 1]?.focus();
+  if (k === 'Enter' || k === ' '){ atual?.click(); return; }
+  if (!atual) return alvos[0]?.focus();
+  const [dx, dy] = DIRECOES[k];
+  const centro = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  const [ax, ay] = centro(atual);
+  let melhor = null, nota = Infinity;
+  for (const b of alvos){
+    if (b === atual) continue;
+    const [bx, by] = centro(b);
+    const ao = (bx - ax) * dx + (by - ay) * dy;          // quanto anda na direção pedida
+    if (ao <= 2) continue;
+    const lado = Math.abs((bx - ax) * dy) + Math.abs((by - ay) * dx);   // quanto desvia dela
+    const n = ao + lado * 2.5;
+    if (n < nota){ nota = n; melhor = b; }
   }
-  if (k === 'ArrowDown') return itens[(i + 1) % itens.length]?.focus();
-  if (k === 'ArrowUp') return itens[(i - 1 + itens.length) % itens.length]?.focus();
-  if (k === 'Home') return itens[0]?.focus();
-  if (k === 'End') return itens[itens.length - 1]?.focus();
-  const b = document.activeElement;
-  if (k === 'ArrowRight' && b && b._sub) return abrirSub(b, nivel, true);
-  if ((k === 'Enter' || k === ' ') && b && p.contains(b)) b.click();
+  melhor?.focus();
 }, true);
 
 /* ── as ações ── */
