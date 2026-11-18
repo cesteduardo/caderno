@@ -1318,26 +1318,22 @@ function tituloDoTexto(){
 
 /* ── assinatura do rodapé ───────────────────────
    Um filete curto abre o bloco; abaixo dele o título da obra em itálico,
-   a data em versalete e, por fim, a marca: o próprio favicon do Escritor
+   a data em versalete e, por fim, a marca: o próprio favicon do Escritor (o caderno com caneta)
    entre "Feito com" e o nome, levando ao endereço do aplicativo. */
 
 const ESCRITOR_URL = 'https://grbrands.com.br/escritor';
 
-/* O mesmo desenho de icons/favicon.svg, embutido para viajar dentro do
-   arquivo exportado. */
-const FOLHA_SVG =
-  `<svg class="folha" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" ` +
-  `role="img" focusable="false">` +
-  `<path d="M3.6 1.6h5.2l3.6 3.6v9.2a.6.6 0 0 1-.6.6H3.6a.6.6 0 0 1-.6-.6V2.2a.6.6 0 0 1 .6-.6z" ` +
-  `fill="#F7F7F7" stroke="#0E0E10" stroke-width="1.1" stroke-linejoin="round"/>` +
-  `<path d="M8.8 1.6v3.6h3.6" fill="none" stroke="#0E0E10" stroke-width="1.1" ` +
-  `stroke-linejoin="round"/>` +
-  `<path d="M5.4 8.2h5.2M5.4 10.6h5.2M5.4 13h3" stroke="#93939C" stroke-width="1" ` +
-  `stroke-linecap="round"/></svg>`;
+/* O mesmo desenho de icons/favicon.svg (o caderno com caneta), embutido
+   para viajar dentro do arquivo exportado. */
+const MARCA_SVG =
+  `<svg class="escritor-ic" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" ` +
+  `role="img" focusable="false" fill="none" stroke="#0E0E10" stroke-width="2" ` +
+  `stroke-linecap="round" stroke-linejoin="round">` +
+  `<path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>`;
 
-/* O Word não desenha SVG: para o .doc o mesmo favicon vai em PNG. */
-const FOLHA_PNG =
-  `<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAP1BMVEX///8VFRgZGRoWFhgcHB4vLzFUVFZeXmA6Ojw/P0Fvb3GKiowuLjBYWFqxsbPPz9Hf3+Hu7u9/f4A9PT++vsNzUJ+aAAAAAXRSTlMAQObYZgAAAftJREFUWMPtl8uagyAMhYXKpUECtr7/s84XdCwqQmxnZjVnUdzwNwknGLvuXzuJovjb5a0kyUUIeevVXn3fE4IHuCmltTaZtCYEkyCkvWsDbiO4QBCD9eAcYiAhrYgrgVEHMXgNDkPMFJAASvWcSorBG4cYx0wE0OqulWIQZkDYAZyhumqt2mUQg4c9ICYAABjfJpwCDDgARhY1gIMlC1EHUA3GUgoPykKruh/OAQYA3AOMqjuqdAoZgLKoE4qAQPuMIUQCkCdPAc8SAB1QT6XOuidXn4ZQqgE5CRIhKbX37RIgIrqEeHV3DQBHALXlq7lB1wDPAmCMS2/Pou6+CBjHrLlTd19LYYdC90YEO1/xIohbZRHwAPFEoZ7CauWYSn/QBUA4UwswXyi0fzroGmDCl9LzguAD8r/eRNA+hY9q8H0fvH2Mh1v50Jp/BKBg5+4L6xqWFDhFzHwQ3vQBFvUxYOL6IDlxmg24rMmLF4x04iT+Mf6AkUoX0hUjFfc3Ac88hfUW2hCYgG0N+YDhUwArAvObgNWJC2D6JvCPkUbdkF6imBs4rifTAFgatjGEQhsuE3z99S6tN0TIRwrnXEZyzui+BlCHD47d50d1QqEclE9DYVE0I/nqzC2EtNb6iqy1sjqzCymHupojf1Nd9xGhtT2H5A8d/Zb3fwFXSWyCqvd8NQAAAABJRU5ErkJggg==" ` +
+/* O Word não desenha SVG: para o .doc o mesmo ícone vai em PNG. */
+const MARCA_PNG =
+  `<img src="data:image/png;base64,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" ` +
   `width="13" height="13" alt="" border="0" ` +
   `style="border:0;vertical-align:middle">`;
 
@@ -1368,8 +1364,8 @@ function assinaturaHTML(paraWord){
   const autor = escapar(nomeDoAutor());
   const link = escapar(linkDoAutor());
   const feito = paraWord
-    ? `Feito com ${FOLHA_PNG} Escritor`
-    : `Feito com${FOLHA_SVG}Escritor`;   // o gap do flex faz os espaços
+    ? `Feito com ${MARCA_PNG} Escritor`
+    : `Feito com${MARCA_SVG}Escritor`;   // o gap do flex faz os espaços
 
   /* No Word não há flex, ::after nem folha de estilo confiável: o filete
      vira uma tabelinha centrada e cada linha carrega o próprio estilo. */
@@ -1457,7 +1453,7 @@ th,td{border:1px solid #e9ebef;padding:.45em .7em;text-align:left}
 .assinatura-marca a{color:#6f7681;text-decoration:none;
   display:inline-flex;align-items:center;gap:.45em}
 .assinatura-marca a:hover{color:#2f333b}
-.assinatura .folha{flex:none;vertical-align:middle}
+.assinatura .escritor-ic{flex:none;vertical-align:middle}
 `;
 
 async function exportar(tipo){
@@ -1564,7 +1560,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.2.0';
+const VERSAO = '2.3.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;

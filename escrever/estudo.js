@@ -235,14 +235,18 @@ function abrirNotas(){
   salvarJa();
   $('#notasBusca').value = '';
   selNota = 0;
+  delete dNotas.dataset.teclado;
   pintarNotas();
   abrirDialogo(dNotas);
   if (matchMedia('(pointer: fine)').matches) $('#notasBusca').focus({ preventScroll: true });
 }
 
-$('#notasBusca').addEventListener('input', () => { selNota = 0; pintarNotas(); });
+$('#notasBusca').addEventListener('input', () => { selNota = 0; dNotas.dataset.teclado = ''; pintarNotas(); });
+// o mouse de volta: o anel do teclado some
+dNotas.addEventListener('pointermove', () => { delete dNotas.dataset.teclado; });
 $('#notasBusca').addEventListener('keydown', (e) => {
   const vis = itensVisiveis();
+  if (/^Arrow/.test(e.key)) dNotas.dataset.teclado = '';
   if (e.key === 'ArrowDown' || e.key === 'ArrowRight'){ e.preventDefault(); selNota = Math.min(vis.length - 1, selNota + 1); pintarNotas(); }
   else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft'){ e.preventDefault(); selNota = Math.max(0, selNota - 1); pintarNotas(); }
   else if (e.key === 'Enter'){
@@ -254,6 +258,18 @@ $('#notasBusca').addEventListener('keydown', (e) => {
   }
 });
 $('#notasNova').onclick = () => { fecharDialogo(dNotas); novaNota(''); };
+/* Abrindo pelo Ctrl+O, a folha já tinha o foco quando o pop-up abriu.
+   Ao fechar, o navegador devolve o foco a ela, mas sem cursor de
+   verdade: as teclas chegavam e nada era escrito na nota nova. Quando
+   o pop-up termina de fechar, o foco é refeito. */
+dNotas.addEventListener('close', () => {
+  if (prefs.visualizando || PONTE) return;
+  requestAnimationFrame(() => {
+    if (document.querySelector('dialog[open]')) return;
+    editor.blur();
+    editor.focus({ preventScroll: true });
+  });
+});
 $('#notasFechar').onclick = () => fecharDialogo(dNotas);
 dNotas.addEventListener('close', () => {
   document.body.append($('#toast'));

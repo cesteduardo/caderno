@@ -39,6 +39,7 @@ const FONTES = [
   ['quattro', 'Quattro', 'Proporcional; itálico pela cor'],
   ['serifa', 'Serifa', 'De livro; ênfase pela cor'],
   ['sans', 'Inter', 'A da interface; ênfase pela cor'],
+  ['legivel', 'Legível', 'Atkinson, feita para ler sem esforço'],
 ];
 const SINAIS   = [['visiveis', 'Visíveis'], ['discretos', 'Discretos'], ['ocultos', 'Ocultos']];
 const TITULOS  = [['tinta', 'Tinta'], ['destaque', 'Destaque']];

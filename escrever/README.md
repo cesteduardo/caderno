@@ -1,4 +1,4 @@
-# Escritor 2.2
+# Escritor 2.3
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -12,6 +12,15 @@ python3 -m http.server 8000
 Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o aplicativo escrito nele mesmo. A primeira coisa que você escrever vira uma nota sua.
 
 ---
+
+## Na 2.3
+
+- **Sexta fonte, Legível:** a **Atkinson Hyperlegible**, do Braille Institute, desenhada para ser lida sem esforço (letras que não se confundem, como l, I e 1). Com ela as fontes fecham duas fileiras de três no Personalizar. Ênfase e títulos pela cor, como na Serifa e na Inter.
+- **Campos mais altos e com um contorno só:** busca, nome, link, meta e listas cresceram, e o foco virou uma borda nítida na cor de destaque, sem o halo borrado nem o contorno dobrado.
+- **Controles maiores em todos os pop-ups:** seletores, botões, fichas e textos do Personalizar, do Foco, do Realce, do Documento e do botão direito ficaram um pouco maiores, para ler e acertar com mais facilidade.
+- **Ícone novo:** o caderno com caneta, o mesmo das Notas do Super Caderno, virou o favicon do Escritor, a marca do "Feito com Escritor" nos arquivos exportados e o ícone das Notas.
+- **Notas sem contornos bugados:** cada estado do cartão (nota aberta, escolha pelo teclado, mouse em cima, clique) agora soma a sua camada sem apagar as outras. O anel da escolha só aparece quando se usa o teclado.
+- **Nota nova pelo teclado:** abrindo as Notas com `Ctrl+O` e criando uma nota, o que se digitava se perdia. Agora o cursor volta à folha.
 
 ## Na 2.2
 
@@ -154,9 +163,9 @@ As três fontes da iA (**Duo**, **Mono** e **Quattro**) são livres (Apache 2.0,
 | **Duo** | mesma largura | mesma largura | padrão, negrito e itálico reais |
 | **Mono** | mesma largura | mesma largura | monoespaçada de verdade |
 | **Quattro** | mesma largura | 3,6% mais larga | ênfase marcada pela cor |
-| **Serifa** e **Inter** | não usa | não usa | ênfase e títulos pela cor |
+| **Serifa**, **Inter** e **Legível** | não usa | não usa | ênfase e títulos pela cor |
 
-A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. Os ícones são do **Lucide** (licença ISC, [lucide.dev](https://lucide.dev)), em `icones.js`. As licenças estão em `fontes/LICENSE.md` e `fontes/LICENSE-INTER.md`.
+A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. Os ícones são do **Lucide** (licença ISC, [lucide.dev](https://lucide.dev)), em `icones.js`. A **Legível** é a Atkinson Hyperlegible (SIL Open Font License 1.1, Braille Institute). As licenças estão em `fontes/LICENSE.md`, `fontes/LICENSE-INTER.md` e `fontes/LICENSE-ATKINSON.md`.
 
 ---
 
