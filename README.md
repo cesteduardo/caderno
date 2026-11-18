@@ -7,7 +7,10 @@ no espírito do GR Notes/Obsidian e o Escritor como editor de texto.
 O visual é o do Escritor: Inter em tudo, papel branco, preenchimentos de meio tom,
 o azul do Escritor como destaque, ícones Lucide (`js/icones.js`) e uma barra de
 vidro no topo com as seções, **Ir para** (Ctrl+O) e **Foco**. No celular a barra
-vira a barra de abas embaixo.
+vira a barra de abas embaixo. A página usa até 1440 px de largura; campos e
+botões têm uma altura só (`--ctl`, 40 px), seletores e buscas no mesmo desenho
+(seta e lupa finas), e o leitor usa as mesmas peças do resto (barra, segmentados,
+botões de ícone).
 
 - **Hoje**: tarefas do dia, diário (abre também no Escritor) e atalhos de estudo
   (revisar, continuar lendo, última aula, foco).

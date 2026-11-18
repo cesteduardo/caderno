@@ -480,9 +480,9 @@ function panelTr(){
   return h('div', {},
     h('div', { class: 'rp-actions tr-bar' },
       sel,
-      RD.eng.paged || RD.book.type === 'PDF' ? h('span', { class: 'tr-nav' },
-        h('button', { class: 'btn ghost small', type: 'button', text: '‹', 'aria-label': 'Página anterior', onclick: nav(-1) }),
-        h('button', { class: 'btn ghost small', type: 'button', text: '›', 'aria-label': 'Próxima página', onclick: nav(1) })) : null),
+      RD.eng.paged || RD.book.type === 'PDF' ? h('span', { class: 'tr-nav pdf-zoom', role: 'group' },
+        h('button', { type: 'button', title: 'Página anterior', 'aria-label': 'Página anterior', onclick: nav(-1) }, ico('chevron-left')),
+        h('button', { type: 'button', title: 'Próxima página', 'aria-label': 'Próxima página', onclick: nav(1) }, ico('chevron-right'))) : null),
     out);
 }
 

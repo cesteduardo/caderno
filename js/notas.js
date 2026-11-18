@@ -47,9 +47,8 @@ function renderNotes(arg){
   box.replaceChildren(
     h('div', { class: 'toolbar notes-bar' },
       search,
-      h('button', { class: 'btn small', type: 'button', text: '+ Nova nota', onclick: () => newNote('') }),
-      h('button', { class: 'btn ghost small', type: 'button', text: 'Nota do dia', onclick: () => openDiary() }),
-      h('button', { class: 'btn ghost small', type: 'button', title: 'Ctrl+O', text: 'Ir para…', onclick: () => quickSwitch() })),
+      h('button', { class: 'btn', type: 'button', text: '+ Nova nota', onclick: () => newNote('') }),
+      h('button', { class: 'btn ghost', type: 'button', text: 'Nota do dia', onclick: () => openDiary() })),
     h('div', { class: 'toolbar notes-bar' }, tabs,
       h('span', { class: 'notes-exp' },
         h('button', { class: 'btn-text', type: 'button', text: 'Exportar para o Obsidian (.zip)', onclick: exportZip }))),

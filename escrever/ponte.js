@@ -22,7 +22,7 @@ if (PONTE) (() => {
   voltar.id = 'btnVoltar';
   voltar.title = 'Voltar para as notas';
   voltar.setAttribute('aria-label', 'Voltar para as notas');
-  voltar.innerHTML = SVG_VOLTAR + '<span>Notas</span>';
+  voltar.innerHTML = SVG_VOLTAR + '<span>Voltar</span>';
   voltar.onclick = () => { ponteFlush(); PONTE.fechar(); };
   grupoArq.prepend(voltar);
 

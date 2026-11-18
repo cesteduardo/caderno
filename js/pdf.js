@@ -97,10 +97,10 @@ const PdfEngine = {
     stage.replaceChildren(h('div', { class: 'pdf-scroll', id: 'pdfScroll' }, h('div', { class: 'pdf-pages', id: 'pdfPages' })));
     stageInput(stage, this);
     const bot = document.querySelector('.rd-bot');
-    bot.append(h('div', { class: 'pdf-zoom' },
-      h('button', { class: 'rd-btn', type: 'button', text: '−', 'aria-label': 'Diminuir', onclick: () => this.setZoom(this.zoom / 1.2) }),
-      h('button', { class: 'rd-btn', type: 'button', text: 'Ajustar', onclick: () => this.setZoom(1) }),
-      h('button', { class: 'rd-btn', type: 'button', text: '+', 'aria-label': 'Aumentar', onclick: () => this.setZoom(this.zoom * 1.2) })));
+    bot.append(h('div', { class: 'pdf-zoom', role: 'group', 'aria-label': 'Zoom da página' },
+      h('button', { type: 'button', title: 'Diminuir', 'aria-label': 'Diminuir', onclick: () => this.setZoom(this.zoom / 1.2) }, ico('zoom-out')),
+      h('button', { type: 'button', title: 'Ajustar à largura', onclick: () => this.setZoom(1) }, ico('move-horizontal'), h('span', { text: 'Ajustar' })),
+      h('button', { type: 'button', title: 'Aumentar', 'aria-label': 'Aumentar', onclick: () => this.setZoom(this.zoom * 1.2) }, ico('zoom-in'))));
 
     const sc = $('#pdfScroll');
     this.io = new IntersectionObserver(es => es.forEach(en => {
