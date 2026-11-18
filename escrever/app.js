@@ -1537,7 +1537,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.0.1';
+const VERSAO = '2.0.2';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;

@@ -378,14 +378,20 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
 /* Realce: revisão de um lado, classes do outro */
 .mp-colunas{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:22px; }
 .mp-col{ display:flex; flex-direction:column; min-width:0; }
+/* Alinhamento exato entre as colunas: os títulos têm a mesma altura
+   (com ou sem tecla de atalho), as duas colunas terminam juntas e o
+   vão entre os cartões é o mesmo da grade ao lado. Assim cada chave
+   da Revisão cobre exatamente duas fileiras das Classes. */
+.mp-colunas .mp-chave{ flex:1; }
+.mp-colunas .mp-fichas{ flex:1; grid-auto-rows:minmax(44px, 1fr); }
 .menu-titulo{
-  display:flex; align-items:center; gap:8px;
+  display:flex; align-items:center; gap:8px; height:22px;
   margin:2px 4px 10px; font-size:12px; font-weight:600; letter-spacing:-.003em; color:var(--r3);
 }
 .menu-titulo kbd{ margin-left:auto; }
 .mp-fichas{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .mp-ficha{
-  display:flex; align-items:center; gap:10px; height:44px; padding:0 14px;
+  display:flex; align-items:center; gap:10px; min-height:44px; padding:0 14px;
   border:0; border-radius:12px; background:var(--preench); color:var(--tinta); text-align:left;
   font-size:13.5px; transition:background 150ms, box-shadow 150ms, transform 120ms var(--mola);
 }
