@@ -357,6 +357,14 @@ body[data-imersivo="1"]{ --pad-topo:9vh; }
 .mp-chave:hover{ background:var(--preench-2); }
 .mp-chave:focus-visible{ box-shadow:0 0 0 3px color-mix(in srgb, var(--caret) 45%, transparent); }
 .mp-chave .mp-txt{ flex:1; }
+/* o atalho fica na linha do interruptor, centrado com ele */
+.mp-chave > .mp-atalho{ flex:none; margin-right:-6px; }
+.mp-ficha > .mp-atalho{ margin-left:auto; }
+/* Personalizar: o atalho ao lado do controle, na mesma altura */
+.aj-ctl{ display:flex; align-items:center; gap:10px; min-width:0; }
+.aj-ctl > kbd{ flex:none; }
+.aj-ctl--largo{ align-items:center; }
+.aj-ctl--largo > .aj-classes{ flex:1; min-width:0; }
 .mp-int{
   flex:none; position:relative; width:42px; height:25px; border-radius:999px;
   background:color-mix(in srgb, var(--tinta) 18%, var(--papel)); isolation:isolate;
@@ -1158,6 +1166,19 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
   border:0; border-radius:5px;
   font:500 11px/1.4 var(--ui); color:var(--r3);
 }
+/* Sobre: o crédito separado do texto, como link com o símbolo */
+.folha-credito{
+  display:flex; align-items:center; justify-content:center; gap:.45rem;
+  margin:1.1rem -22px 0; padding:14px 22px 6px; border-top:1px solid var(--fio);
+  font:400 12.5px/1 var(--ui); color:var(--r2); text-decoration:none;
+  transition:color 150ms ease;
+}
+.folha-corpo .folha-credito, .folha-corpo .folha-credito span{ color:var(--r2); }
+.folha-credito b{ display:inline-flex; align-items:center; gap:.4rem; font-weight:600; color:var(--tinta); letter-spacing:-.01em; }
+.folha-credito b i{ font-style:normal; color:#E3362E; margin-left:-.4rem; }
+.folha-credito .gr-ico{ width:18px; height:18px; flex:none; }
+.folha-credito:hover{ color:var(--tinta); }
+.folha-credito:hover b{ text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
 .folha-versao{
   flex:none; padding:2px 8px;
   border-radius:999px; background:var(--preench);
@@ -1180,7 +1201,7 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
 .folha-corpo a:hover{ text-decoration:underline; text-underline-offset:3px; }
 
 /* O cartão do repositório: uma linha inteira clicável. */
-.folha-corpo a.folha-link{ text-decoration:none; }
+.folha-corpo a.folha-link, .folha-corpo a.folha-credito:hover{ text-decoration:none; }
 .folha-link{
   display:flex; align-items:center; gap:.6rem;
   margin:.9rem 0 0; padding:.65rem .8rem;
@@ -1487,8 +1508,8 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
    Cada linha leva um fio embaixo e uma margem de -1px: a do fim cai
    para fora do cartão e o overflow a corta, sem precisar saber qual
    é a última linha visível (a busca esconde linhas no meio). */
-.aj-grupo{ padding:0; overflow:hidden; }
-.aj-grupo + .aj-grupo,.aj-estilos + .aj-grupo{ margin-top:14px; padding-top:14px; border-top:1px solid var(--aj-fio); overflow:visible; }
+.aj-grupo{ padding:0; }
+.aj-grupo + .aj-grupo,.aj-estilos + .aj-grupo{ margin-top:14px; padding-top:14px; border-top:1px solid var(--aj-fio); }
 .aj-grupo:not(:has(.aj-linha:not(.aj-fora,[hidden]), .aj-chave:not(.aj-fora,[hidden]), .aj-atalhos)){ display:none; }
 .aj-grupo :focus-visible{ outline-offset:-2px; }
 .aj-linha,.aj-chave{ border-bottom:0; }
@@ -1562,7 +1583,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 }
 .aj-estilos button:active,.aj-papeis [role=radio]:active,.aj-meu > button:active{ transform:scale(.97); }
 :is(.aj-estilos button[aria-pressed="true"],.aj-papeis [role=radio][aria-checked="true"],.aj-meu > button[aria-pressed="true"]) .aj-pg{
-  box-shadow:0 0 0 2px var(--aj-cartao), 0 0 0 4.5px var(--caret);
+  box-shadow:0 0 0 2px var(--aj-fundo), 0 0 0 4.5px var(--caret);
 }
 .aj-estilos .aj-pg{ box-shadow:inset 0 0 0 .5px rgba(128,128,128,.4), 0 1px 3px rgba(0,0,0,.08); }
 .aj-estilos button[aria-pressed="true"] .aj-pg{ box-shadow:0 0 0 2px var(--aj-fundo), 0 0 0 4.5px var(--caret); }
@@ -1904,6 +1925,18 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 .aj--notas .aj-bt--principal{ gap:6px; padding:0 14px 0 10px; }
 .aj--notas .aj-bt--principal svg{ width:14px; height:14px; }
 .notas-rolagem{ flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding:24px 24px 32px; }
+/* Notas | Lixeira, no alto da lista */
+.notas-abas{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.notas-abas .aj-seg small{ margin-left:.4rem; }
+.notas-esvaziar{ color:var(--c-erro) !important; }
+.notas-esvaziar[data-confirmar]{ background:var(--c-erro) !important; color:#fff !important; }
+.notas-esvaziar svg{ width:15px; height:15px; }
+.nota-lixo .nota-abrir{ cursor:default; }
+.nota-lixo .nota-abrir:hover{ transform:none; }
+.nota-lixo .nota-titulo{ color:var(--r2); }
+.nota-lixo-acoes{ display:flex; gap:6px; margin-top:6px; }
+.nota-perigo{ color:var(--c-erro) !important; }
+.nota-perigo:hover{ background:color-mix(in srgb, var(--c-erro) 12%, transparent) !important; }
 .notas-grade{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:16px; }
 .nota-cartao{ position:relative; min-width:0; }
 .nota-abrir{
@@ -2207,7 +2240,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   .sumario button,.ponto{ min-height:48px; font-size:16px; }
 }
 @media (hover:none) and (pointer:coarse){
-  .mp-lista kbd,.aj-busca kbd{ display:none; }
+  .mp-lista kbd,.aj-busca kbd,.aj-ctl > kbd,.mp-atalho{ display:none; }
   .aj-chave,.aj-linha{ padding-block:13px 14px; }
   .aj-salvar input,.aj-meta input,.aj-select{ height:36px; font-size:16px; }
 }

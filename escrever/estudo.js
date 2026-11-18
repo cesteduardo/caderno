@@ -39,6 +39,26 @@ function gravarNotas(){
   } catch { avisar('Sem espaço para guardar as notas'); }
 }
 
+/* A lixeira: quem apaga uma nota pode pegá-la de volta por 30 dias.
+   Cada item guarda a nota inteira e quando ela foi apagada; passado o
+   prazo, some sozinha na próxima vez que o Escritor abre. */
+const CHAVE_LIXEIRA = 'escritor:lixeira';
+const DIAS_NA_LIXEIRA = 30;
+let lixo = (() => {
+  try { const v = JSON.parse(localStorage.getItem(CHAVE_LIXEIRA)); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+})();
+function gravarLixo(){
+  try { localStorage.setItem(CHAVE_LIXEIRA, JSON.stringify(lixo)); }
+  catch { avisar('Sem espaço para guardar a lixeira'); }
+}
+{
+  const limite = Date.now() - DIAS_NA_LIXEIRA * 864e5;
+  const antes = lixo.length;
+  lixo = lixo.filter(x => x && x.nota && x.apagada > limite);
+  if (lixo.length !== antes) gravarLixo();
+}
+
 /* Primeira abertura do 2.0: o documento único de antes vira a primeira nota. */
 if (!PONTE && !notas){
   notas = [];
@@ -140,15 +160,123 @@ const contarPalavras = (t) => (t.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/g
 
 /* ── o pop-up ── */
 const dNotas = $('#notas');
-const lixeira = new Map();                  // id → { nota, indice, relogio }
+const lixeira = new Map();                  // apagadas há pouco, com o Desfazer no lugar: id → { nota, indice, relogio }
 let selNota = 0;
+let abaNotas = 'notas';                      // 'notas' ou 'lixeira'
 
 function itensVisiveis(){
   const q = normal($('#notasBusca').value.trim());
+  if (abaNotas === 'lixeira'){
+    const todos = [...lixo].sort((a, b) => b.apagada - a.apagada);
+    return q ? todos.filter(x => normal(x.nota.texto).includes(q)) : todos;
+  }
   const todas = [...notas].sort((a, b) => b.editada - a.editada);
   return q ? todas.filter(n => normal(n.texto).includes(q)) : todas;
 }
+function pintarAbas(){
+  document.querySelectorAll('#notasAbas [role=radio]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.aba === abaNotas)));
+  $('#lixConta').textContent = lixo.length ? String(lixo.length) : '';
+  $('#lixEsvaziar').hidden = abaNotas !== 'lixeira' || !lixo.length;
+  $('#notasBusca').placeholder = abaNotas === 'lixeira' ? 'Procurar na lixeira' : 'Procurar nas notas';
+  $('#notasDica').textContent = abaNotas === 'lixeira'
+    ? `As notas apagadas ficam aqui por ${DIAS_NA_LIXEIRA} dias e depois somem sozinhas.`
+    : 'As notas ficam neste navegador. Com uma pasta do Obsidian ligada, cada uma vira um arquivo .md.';
+  if (pilulaAbas) pilulaAbas.medir();
+}
+function pintarLixeira(){
+  const lista = $('#notasLista');
+  const vis = itensVisiveis();
+  selNota = Math.max(0, Math.min(selNota, vis.length - 1));
+  lista.replaceChildren(...vis.map((x, i) => {
+    const n = x.nota;
+    const li = document.createElement('li');
+    li.className = 'nota-cartao nota-lixo';
+    const corpo = document.createElement('div');
+    corpo.className = 'nota-abrir' + (i === selNota ? ' sel' : '');
+    const titulo = tituloDaNota(n.texto) || 'Nota sem título';
+    const trecho = trechoDaNota(n.texto);
+    const resta = Math.max(1, Math.ceil((x.apagada + DIAS_NA_LIXEIRA * 864e5 - Date.now()) / 864e5));
+    corpo.innerHTML =
+      `<b class="nota-titulo">${escapar(titulo)}</b>` +
+      `<span class="nota-trecho">${trecho ? escapar(trecho) : '<i>Vazia</i>'}</span>` +
+      `<span class="nota-meta"><span>apagada ${quando(x.apagada)}</span><span>some em ${resta} ${resta === 1 ? 'dia' : 'dias'}</span></span>`;
+    const acoes = document.createElement('span');
+    acoes.className = 'nota-lixo-acoes';
+    const voltar = Object.assign(document.createElement('button'), { type: 'button', className: 'aj-bt', textContent: 'Restaurar' });
+    voltar.onclick = () => restaurarDoLixo(n.id);
+    const fora = Object.assign(document.createElement('button'), { type: 'button', className: 'aj-bt aj-bt--leve nota-perigo', textContent: 'Apagar de vez' });
+    fora.onclick = () => apagarDeVez(n.id);
+    acoes.append(voltar, fora);
+    corpo.append(acoes);
+    li.append(corpo);
+    return li;
+  }));
+  const vazio = $('#notasVazio');
+  vazio.hidden = vis.length > 0;
+  vazio.textContent = $('#notasBusca').value.trim()
+    ? `Nada na lixeira com “${$('#notasBusca').value.trim()}”.`
+    : `A lixeira está vazia. Uma nota apagada fica aqui por ${DIAS_NA_LIXEIRA} dias, para você poder pegá-la de volta.`;
+}
+/* O aviso "foi para a lixeira · Desfazer" some junto: a nota voltou,
+   ou saiu de vez, e o aviso no lugar dela não vale mais. */
+function esquecerRecente(id){
+  const x = lixeira.get(id);
+  if (x){ clearTimeout(x.relogio); lixeira.delete(id); }
+}
+function restaurarDoLixo(id){
+  const i = lixo.findIndex(x => x.nota.id === id);
+  if (i < 0) return;
+  esquecerRecente(id);
+  const [x] = lixo.splice(i, 1);
+  if (!notas.some(n => n.id === id)) notas.push(x.nota);
+  gravarLixo();
+  gravarNotas();
+  pintarNotas();
+  avisar(`“${tituloDaNota(x.nota.texto) || 'Nota sem título'}” voltou para as notas`);
+}
+function apagarDeVez(id){
+  esquecerRecente(id);
+  lixo = lixo.filter(x => x.nota.id !== id);
+  gravarLixo();
+  pintarNotas();
+  avisar('Apagada de vez');
+}
+/* Esvaziar pede um segundo clique: o pop-up está aberto e uma janela de
+   confirmação por cima dele ficaria escondida. */
+let esvaziarRelogio = 0;
+$('#lixEsvaziar').onclick = () => {
+  const b = $('#lixEsvaziar');
+  const rotulo = b.querySelector('span');
+  if (!('confirmar' in b.dataset)){
+    b.dataset.confirmar = '';
+    rotulo.textContent = lixo.length === 1 ? 'Apagar a nota de vez?' : `Apagar as ${lixo.length} notas de vez?`;
+    clearTimeout(esvaziarRelogio);
+    esvaziarRelogio = setTimeout(() => { delete b.dataset.confirmar; rotulo.textContent = 'Esvaziar lixeira'; }, 4000);
+    return;
+  }
+  clearTimeout(esvaziarRelogio);
+  delete b.dataset.confirmar;
+  rotulo.textContent = 'Esvaziar lixeira';
+  const n = lixo.length;
+  for (const x of lixo) esquecerRecente(x.nota.id);
+  lixo = [];
+  gravarLixo();
+  pintarNotas();
+  avisar(n === 1 ? 'Lixeira esvaziada' : `Lixeira esvaziada: ${n} notas apagadas de vez`);
+};
+function trocarAba(aba){
+  if (aba === abaNotas) return;
+  abaNotas = aba;
+  selNota = 0;
+  pintarNotas();
+}
+document.querySelectorAll('#notasAbas [role=radio]').forEach(b => b.onclick = () => trocarAba(b.dataset.aba));
+const pilulaAbas = typeof criarPilula === 'function'
+  ? criarPilula($('#notasAbas'), (t) => t.querySelector('[aria-checked="true"]')) : null;
+
 function pintarNotas(){
+  pintarAbas();
+  if (abaNotas === 'lixeira') return pintarLixeira();
   const lista = $('#notasLista');
   const vis = itensVisiveis();
   selNota = Math.max(0, Math.min(selNota, vis.length - 1));
@@ -184,7 +312,7 @@ function pintarNotas(){
   for (const [id, x] of lixeira){
     const li = document.createElement('li');
     li.className = 'nota-cartao nota-apagada';
-    li.innerHTML = `<span>“${escapar(tituloDaNota(x.nota.texto) || 'Nota sem título')}” foi apagada.</span>`;
+    li.innerHTML = `<span>“${escapar(tituloDaNota(x.nota.texto) || 'Nota sem título')}” foi para a lixeira.</span>`;
     const volta = document.createElement('button');
     volta.type = 'button';
     volta.className = 'aj-bt';
@@ -215,6 +343,8 @@ function apagarNota(id){
     else { const n = { id: novoId(), texto: '', criada: Date.now(), editada: Date.now() }; notas.push(n); notaAtual = n.id; carregar(''); }
   }
   gravarNotas();
+  lixo.unshift({ nota, apagada: Date.now() });
+  gravarLixo();
   const relogio = setTimeout(() => { lixeira.delete(id); if (dNotas.open) pintarNotas(); }, 8000);
   lixeira.set(id, { nota, indice, relogio });
   pintarNotas();
@@ -224,7 +354,9 @@ function desfazerApagar(id){
   if (!x) return;
   clearTimeout(x.relogio);
   lixeira.delete(id);
-  notas.push(x.nota);
+  lixo = lixo.filter(y => y.nota.id !== id);
+  gravarLixo();
+  if (!notas.some(n => n.id === id)) notas.push(x.nota);
   gravarNotas();
   pintarNotas();
 }
@@ -235,6 +367,7 @@ function abrirNotas(){
   salvarJa();
   $('#notasBusca').value = '';
   selNota = 0;
+  abaNotas = 'notas';
   delete dNotas.dataset.teclado;
   pintarNotas();
   abrirDialogo(dNotas);
@@ -252,6 +385,7 @@ $('#notasBusca').addEventListener('keydown', (e) => {
   else if (e.key === 'Enter'){
     e.preventDefault();
     const n = vis[selNota];
+    if (abaNotas === 'lixeira'){ if (n) restaurarDoLixo(n.nota.id); return; }
     fecharDialogo(dNotas);
     if (n) abrirNota(n.id);
     else if ($('#notasBusca').value.trim()) novaNota(`# ${$('#notasBusca').value.trim()}\n\n`);

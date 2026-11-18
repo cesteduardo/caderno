@@ -1560,7 +1560,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.3.0';
+const VERSAO = '2.4.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -1629,6 +1629,9 @@ async function perguntar({ titulo, texto, acao, cancelar = 'Cancelar' }){
   return escolha === 'sim';
 }
 
+/* O símbolo da GR Brands, igual ao do crédito dos sites dela. */
+const GR_SIMBOLO = '<svg class="gr-ico" viewBox="22.5 22 84 84" aria-hidden="true" focusable="false"><clipPath id="gr-ct"><rect x="-60" y="-60" width="220" height="107"/></clipPath><clipPath id="gr-cb"><rect x="-60" y="53" width="220" height="160"/></clipPath><g transform="translate(25.3 24) scale(1.00125) translate(-16 -8.2)"><g fill="currentColor" transform="rotate(-22 50 50)"><g clip-path="url(#gr-ct)"><circle cx="60" cy="50" r="38"/></g><g clip-path="url(#gr-cb)"><circle cx="50" cy="50" r="38"/></g></g></g></svg>';
+
 const OCTOCAT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>';
 
 /* O painel Sobre. Não é um menu: é uma folha, porque o texto aqui é para
@@ -1653,8 +1656,10 @@ function abrirSobre(){
           OCTOCAT + '<b>cesteduardo/escritor</b><small>abrir ↗</small></a>' +
         '<p class="fraco" style="margin-top:.9rem">' +
           'As fontes do texto são as iA Writer (Duo, Mono e Quattro), sob licença Apache 2.0; ' +
-          'a da interface é a Inter (OFL) e os ícones são do Lucide (ISC). ' +
-          'Feito por GR Brands.</p>' +
+          'a da interface é a Inter (OFL), a Legível é a Atkinson Hyperlegible (OFL) ' +
+          'e os ícones são do Lucide (ISC).</p>' +
+        '<a class="folha-credito" href="https://grbrands.com.br" target="_blank" rel="noopener">' +
+          '<span>Desenvolvido por</span><b>' + GR_SIMBOLO + 'GR Brands<i>.</i></b></a>' +
       '</div>' +
       '<div class="folha-pe">' +
         '<button type="button" class="principal" data-valor="">Fechar</button>' +
@@ -2698,7 +2703,7 @@ Este é um editor para escrever e revisar textos sem distrações. Você pode ap
 
 ## Notas
 
-O Escritor guarda várias notas. O botão **Notas**, no canto esquerdo da barra (ou \`Ctrl+O\`), abre todas elas em cartões no meio da tela: procure, abra com \`Enter\`, crie uma **Nova nota** (\`Ctrl+Alt+N\`) ou apague, com **Desfazer** por alguns segundos. Não há barra lateral: a folha fica inteira para escrever.
+O Escritor guarda várias notas. O botão **Notas**, no canto esquerdo da barra (ou \`Ctrl+O\`), abre todas elas em cartões no meio da tela: procure, abra com \`Enter\`, crie uma **Nova nota** (\`Ctrl+Alt+N\`) ou apague, com **Desfazer** por alguns segundos. A nota apagada vai para a **Lixeira**, no alto do mesmo painel: ela fica lá por 30 dias, com **Restaurar** e **Apagar de vez**. Não há barra lateral: a folha fica inteira para escrever.
 
 No menu **⋯ Documento**, a aba **Arquivo** também abre arquivos \`.md\` e \`.txt\` do computador, cada um como uma nota nova. Arrastar um desses arquivos para a folha faz o mesmo.
 

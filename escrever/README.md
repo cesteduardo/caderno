@@ -1,4 +1,4 @@
-# Escritor 2.3
+# Escritor 2.4
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -12,6 +12,14 @@ python3 -m http.server 8000
 Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o aplicativo escrito nele mesmo. A primeira coisa que você escrever vira uma nota sua.
 
 ---
+
+## Na 2.4
+
+- **Lixeira das notas:** no painel de Notas, um seletor **Notas | Lixeira**. Apagar uma nota manda ela para a Lixeira (o **Desfazer** de alguns segundos continua no lugar do cartão). Lá ela fica por 30 dias, mostrando quando foi apagada e quantos dias faltam, com **Restaurar** e **Apagar de vez**. **Esvaziar lixeira** pede um segundo clique para confirmar. A busca procura também na lixeira, e `Enter` restaura a escolhida.
+- **Crédito no Sobre:** "Desenvolvido por GR Brands." saiu do parágrafo das licenças e virou uma linha própria, separada por um fio, com o símbolo da GR Brands e link para grbrands.com.br.
+- **Atalhos na linha dos botões:** nos pop-ups, a tecla fica ao lado do interruptor e centrada com ele (Máquina de escrever, Ortografia, Revisão de estilo), e o `Ctrl+G` foi para a ficha "Desligado" das classes. No Personalizar, o `Ctrl+D` fica ao lado do seletor do Modo Foco e o `Ctrl+G` na fileira das classes. No celular eles somem.
+- **Contornos inteiros:** os anéis de seleção que encostavam na borda de um grupo (o papel Automático, por exemplo) eram cortados. Agora nada corta contorno nenhum, e a folga entre a miniatura e o anel segue a cor do fundo. Conferido com uma varredura automática em todas as seções, nas Notas, nos pop-ups e no botão direito.
+- **Favicon novo de verdade:** o endereço do ícone ganhou a versão, para o navegador trocar o favicon antigo guardado.
 
 ## Na 2.3
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#ffffff">
 <title>Escritor · Caderno</title>
-<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon.svg?v=2.4" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="claro" data-fonte="duo" data-chrome="visivel">
@@ -31,7 +31,7 @@
               <button class="mp-cartao" role="menuitemradio" data-escopo="paragrafo"><i class="mp-ilus ilus-paragrafo" aria-hidden="true"><b></b><b></b><b></b><b></b></i><span class="mp-txt"><span>Parágrafo</span><small>O parágrafo inteiro em destaque</small></span></button>
               <button class="mp-cartao" role="menuitemradio" data-escopo="linha"><i class="mp-ilus ilus-linha" aria-hidden="true"><b></b><b></b><b></b><b></b></i><span class="mp-txt"><span>Linha</span><small>Apenas a linha em que você está</small></span></button>
             </div>
-            <div class="mp-faixa"><button class="mp-chave" role="menuitemcheckbox" data-alterna="maquina"><span class="mp-txt"><span>Máquina de escrever<kbd>Ctrl+T</kbd></span><small>A folha desce enquanto você digita; clicar numa linha não mexe na página.</small></span><i class="mp-int" aria-hidden="true"></i></button></div>
+            <div class="mp-faixa"><button class="mp-chave" role="menuitemcheckbox" data-alterna="maquina"><span class="mp-txt"><span>Máquina de escrever</span><small>A folha desce enquanto você digita; clicar numa linha não mexe na página.</small></span><kbd class="mp-atalho">Ctrl+T</kbd><i class="mp-int" aria-hidden="true"></i></button></div>
           </div>
         </dialog>
       </div>
@@ -43,13 +43,13 @@
           <div class="mp-corpo mp-colunas" role="menu" aria-labelledby="menuRealceT">
             <section class="mp-col">
               <p class="menu-titulo">Revisão</p>
-              <button class="mp-chave" role="menuitemcheckbox" data-alterna="ortografia"><span class="mp-txt"><span>Ortografia<kbd>Ctrl+P</kbd></span><small>Sublinha em vermelho as palavras suspeitas.</small></span><i class="mp-int" aria-hidden="true"></i></button>
-              <button class="mp-chave" role="menuitemcheckbox" data-alterna="estilo"><span class="mp-txt"><span>Revisão de estilo<kbd>Ctrl+R</kbd></span><small>Repetições, frases longas e vícios em âmbar.</small></span><i class="mp-int" aria-hidden="true"></i></button>
+              <button class="mp-chave" role="menuitemcheckbox" data-alterna="ortografia"><span class="mp-txt"><span>Ortografia</span><small>Sublinha em vermelho as palavras suspeitas.</small></span><kbd class="mp-atalho">Ctrl+P</kbd><i class="mp-int" aria-hidden="true"></i></button>
+              <button class="mp-chave" role="menuitemcheckbox" data-alterna="estilo"><span class="mp-txt"><span>Revisão de estilo</span><small>Repetições, frases longas e vícios em âmbar.</small></span><kbd class="mp-atalho">Ctrl+R</kbd><i class="mp-int" aria-hidden="true"></i></button>
             </section>
             <section class="mp-col">
-              <p class="menu-titulo">Classes gramaticais <kbd>Ctrl+G</kbd></p>
+              <p class="menu-titulo">Classes gramaticais</p>
               <div class="mp-fichas">
-                <button class="mp-ficha" role="menuitemradio" data-classe="nenhuma"><i class="mp-bola mp-bola--nenhuma" aria-hidden="true"></i><span>Desligado</span></button>
+                <button class="mp-ficha" role="menuitemradio" data-classe="nenhuma"><i class="mp-bola mp-bola--nenhuma" aria-hidden="true"></i><span>Desligado</span><kbd class="mp-atalho">Ctrl+G</kbd></button>
                 <button class="mp-ficha" role="menuitemradio" data-classe="g-subst" title="Nomes de seres, lugares, objetos, sentimentos e ideias"><i class="mp-bola mp-bola--g-subst" aria-hidden="true"></i><span>Substantivos</span></button>
                 <button class="mp-ficha" role="menuitemradio" data-classe="g-verbo" title="Ações, estados, mudanças e fenômenos"><i class="mp-bola mp-bola--g-verbo" aria-hidden="true"></i><span>Verbos</span></button>
                 <button class="mp-ficha" role="menuitemradio" data-classe="g-adj" title="Características ou qualidades atribuídas aos substantivos"><i class="mp-bola mp-bola--g-adj" aria-hidden="true"></i><span>Adjetivos</span></button>
@@ -251,8 +251,8 @@
             <h3 id="ajs-escrita">Escrita</h3>
             <div class="aj-grupo">
               <div class="aj-linha" data-busca="modo foco frase parágrafo linha concentração">
-                <div class="aj-rot"><b>Modo Foco</b><small>Só o trecho atual fica nítido. <kbd>Ctrl+D</kbd></small></div>
-                <div class="aj-seg" id="optEscopo" role="radiogroup" aria-label="Modo Foco"></div>
+                <div class="aj-rot"><b>Modo Foco</b><small>Só o trecho atual fica nítido.</small></div>
+                <div class="aj-ctl"><kbd>Ctrl+D</kbd><div class="aj-seg" id="optEscopo" role="radiogroup" aria-label="Modo Foco"></div></div>
               </div>
               <div class="aj-linha" data-busca="esmaecer intensidade do foco apagado contraste">
                 <div class="aj-rot"><b>Intensidade do foco</b><small>Quanto o resto do texto recua.</small></div>
@@ -267,8 +267,8 @@
             <div class="aj-grupo">
               <div class="aj-chaves" id="optRevisao"></div>
               <div class="aj-linha aj-linha--pilha" data-busca="classes gramaticais substantivos verbos adjetivos advérbios conectivos realce gramática">
-                <div class="aj-rot"><b>Classes gramaticais</b><small>Pinta uma classe por vez e recua o resto. <kbd>Ctrl+G</kbd></small></div>
-                <div class="aj-classes" id="optClasse" role="radiogroup" aria-label="Classes gramaticais"></div>
+                <div class="aj-rot"><b>Classes gramaticais</b><small>Pinta uma classe por vez e recua o resto.</small></div>
+                <div class="aj-ctl aj-ctl--largo"><div class="aj-classes" id="optClasse" role="radiogroup" aria-label="Classes gramaticais"></div><kbd>Ctrl+G</kbd></div>
               </div>
             </div>
           </section>
@@ -477,10 +477,17 @@
       </label>
     </div>
     <div class="notas-rolagem">
+      <div class="notas-abas">
+        <div class="aj-seg" id="notasAbas" role="radiogroup" aria-label="Mostrar">
+          <button type="button" role="radio" data-aba="notas" aria-checked="true">Notas</button>
+          <button type="button" role="radio" data-aba="lixeira" aria-checked="false">Lixeira<small id="lixConta"></small></button>
+        </div>
+        <button type="button" class="aj-bt aj-bt--leve notas-esvaziar" id="lixEsvaziar" hidden><i data-ico="apagar"></i><span>Esvaziar lixeira</span></button>
+      </div>
       <ul class="notas-grade" id="notasLista" aria-label="Suas notas"></ul>
       <p class="notas-vazio" id="notasVazio" hidden></p>
     </div>
-    <footer class="aj-pe aj-pe--dica"><span>As notas ficam neste navegador. Com uma pasta do Obsidian ligada, cada uma vira um arquivo .md.</span><span><kbd>Enter</kbd> abrir</span><span><kbd>Esc</kbd> fechar</span></footer>
+    <footer class="aj-pe aj-pe--dica"><span id="notasDica">As notas ficam neste navegador. Com uma pasta do Obsidian ligada, cada uma vira um arquivo .md.</span><span><kbd>Enter</kbd> abrir</span><span><kbd>Esc</kbd> fechar</span></footer>
   </div>
 </dialog>
 
