@@ -43,7 +43,7 @@
           <div class="mp-corpo mp-colunas" role="menu" aria-labelledby="menuRealceT">
             <section class="mp-col">
               <p class="menu-titulo">Revisão</p>
-              <button class="mp-chave" role="menuitemcheckbox" data-alterna="ortografia"><span class="mp-txt"><span>Ortografia</span><small>Sublinha em vermelho as palavras suspeitas.</small></span><kbd class="mp-atalho">Ctrl+P</kbd><i class="mp-int" aria-hidden="true"></i></button>
+              <button class="mp-chave" role="menuitemcheckbox" data-alterna="ortografia"><span class="mp-txt"><span>Ortografia</span><small>Palavras suspeitas em vermelho; porquês, mas e mais, mal e mau em azul.</small></span><kbd class="mp-atalho">Ctrl+P</kbd><i class="mp-int" aria-hidden="true"></i></button>
               <button class="mp-chave" role="menuitemcheckbox" data-alterna="estilo"><span class="mp-txt"><span>Revisão de estilo</span><small>Repetições, frases longas e vícios em âmbar.</small></span><kbd class="mp-atalho">Ctrl+R</kbd><i class="mp-int" aria-hidden="true"></i></button>
             </section>
             <section class="mp-col">
@@ -164,6 +164,7 @@
       <span class="aj-topo-esq"></span>
       <h2 class="aj-titulo" id="ajTitulo">Personalizar</h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="ajFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
+      <p class="aj-sub">Aparência, texto, escrita e revisão. Cada ajuste vale na hora.</p>
     </header>
     <div class="aj-procura">
       <label class="aj-busca">
@@ -405,6 +406,7 @@
       <span class="aj-topo-esq"></span>
       <h2 class="aj-titulo" id="sumTitulo">Sumário</h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="sumFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
+      <p class="aj-sub">Os títulos do texto, para pular de um a outro.</p>
     </header>
     <div class="aj-procura">
       <label class="aj-busca">
@@ -459,6 +461,7 @@
       <span class="aj-topo-esq"></span>
       <h2 class="aj-titulo" id="revTitulo">Pontos de atenção <span class="aj-conta" id="revConta"></span></h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="revFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
+      <p class="aj-sub">Repetições e frases longas que a revisão de estilo encontrou.</p>
     </header>
     <div class="revisao-inner" id="revisaoLista"></div>
     <footer class="aj-pe aj-pe--dica"><span>Clique num ponto para ir até ele no texto</span><span><kbd>Esc</kbd> fechar</span></footer>
@@ -472,6 +475,7 @@
       <span class="aj-topo-esq"></span>
       <h2 class="aj-titulo" id="comTitulo">Comentários <span class="aj-conta" id="comConta"></span></h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="comFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
+      <p class="aj-sub">Os comentários entre %% do texto. Somem na leitura e na exportação.</p>
     </header>
     <div class="revisao-inner" id="comLista"></div>
     <footer class="aj-pe aj-pe--dica"><span>Clique num comentário para ir até ele no texto</span><span><kbd>Esc</kbd> fechar</span></footer>
@@ -502,6 +506,7 @@
       <span class="aj-topo-esq"><button type="button" class="aj-bt aj-bt--principal" id="notasNova"><i data-ico="mais"></i>Nova nota</button></span>
       <h2 class="aj-titulo" id="notasTitulo">Notas <span class="aj-conta" id="notasConta"></span></h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="notasFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
+      <p class="aj-sub">Todas as suas notas, com busca e lixeira de 30 dias.</p>
     </header>
     <div class="aj-procura">
       <label class="aj-busca">
@@ -537,6 +542,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="icones.js"></script>
+<script src="usos.js"></script>
 <script src="app.js"></script>
 <script src="personalizar.js"></script>
 <script src="estudo.js"></script>

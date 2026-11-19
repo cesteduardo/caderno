@@ -815,6 +815,8 @@ function regiaoLinhaVisual(texto, cursor){
    ═══════════════════════════════════════════════════════════ */
 
 let apontamentos = [];
+/* Trocas de uso (usos.js): os porquês, mas e mais, mal e mau… */
+let usos = [];
 const proximaOcorrencia = new Map();
 let alvoRevisao = null;
 
@@ -1018,6 +1020,8 @@ function desenhar(){
   if (comFoco) [fa, fb] = regiaoAtiva(texto, cursor);
 
   apontamentos = revisar(texto);
+  usos = prefs.ortografia && typeof acharUsos === 'function'
+    ? acharUsos(texto, digitandoAgora ? cursor : -1) : [];
   // buscar e substituir (personalizar.js): onde o termo aparece
   const achados = typeof achadosDaBusca === 'function' ? achadosDaBusca(texto) : [];
   const achadoAtual = achados.length && typeof achadoDaVez === 'function' ? achadoDaVez() : null;
@@ -1039,6 +1043,10 @@ function desenhar(){
           .filter(([a, b]) => a < fim && b > ini);
         if (faixas.length) pedacos = aplicarFaixas(pedacos, ini, faixas, 'estilo', false);
       }
+      if (usos.length){
+        const aqui = usos.filter(u => u.ini < fim && u.fim > ini).map(u => [u.ini, u.fim]);
+        if (aqui.length) pedacos = aplicarFaixas(pedacos, ini, aqui, 'uso', false);
+      }
       if (achados.length){
         const aqui = achados.filter(([a, b]) => a < fim && b > ini);
         if (aqui.length) pedacos = aplicarFaixas(pedacos, ini, aqui, 'achado', false);
@@ -1047,7 +1055,7 @@ function desenhar(){
       if (comFoco) pedacos = aplicarFaixas(pedacos, ini, [[fa, fb]], 'dim', true);
       const posicaoMarca = alvoRevisao !== null
         ? alvoRevisao
-        : (prefs.maquina ? cursor : null);
+        : (prefs.maquina ? pontaDaSelecao() : null);
       const cursorAqui = posicaoMarca !== null && posicaoMarca >= ini && posicaoMarca <= fim;
       saida.push(`<span class="linha-fonte" data-linha="${numeroLinha}">` +
         renderizar(pedacos, ini, cursorAqui ? posicaoMarca : null) + '</span>');
@@ -1121,6 +1129,13 @@ function desenharNumerosLinha(texto, cursor){
 /* Centraliza de uma vez: só quando o modo liga ou quando a folha
    muda de medida (fonte, corpo, coluna), porque aí a linha mudou de
    lugar sem ninguém ter mexido nela. */
+/* A ponta da seleção é onde o cursor pisca: o fim dela quando se
+   seleciona para a frente (Shift+→, Shift+↓) e o começo quando se
+   seleciona para trás. É ela que a máquina de escrever acompanha; antes
+   ia sempre o começo, e com Shift+↓ a seleção sumia embaixo da tela. */
+function pontaDaSelecao(){
+  return editor.selectionDirection === 'backward' ? editor.selectionStart : editor.selectionEnd;
+}
 const alvoDoCentro = (marca) => Math.max(0, marca.offsetTop - scroller.clientHeight / 2 + 12);
 function centralizarCursor(){
   const marca = document.getElementById('marcaCursor');
@@ -1142,7 +1157,10 @@ function descerAteOCentro(){
   const alvo = alvoDoCentro(marca);
   const indo = descida ? descida.alvo : scroller.scrollTop;
   const topo = marca.offsetTop - scroller.scrollTop;
-  const escondida = topo < (document.getElementById('bar')?.offsetHeight || 56) + 8;
+  const barraH = document.getElementById('bar')?.offsetHeight || 56;
+  const rodapeH = document.getElementById('stats')?.offsetHeight || 40;
+  // fora da vista, em cima (atrás da barra) ou embaixo (atrás do rodapé)
+  const escondida = topo < barraH + 8 || topo > scroller.clientHeight - rodapeH - 24;
   if (!escondida && alvo <= indo + 1) return;
   const longe = Math.abs(alvo - scroller.scrollTop) > scroller.clientHeight * 0.4;
   if (escondida || longe || matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -1210,8 +1228,24 @@ let correcaoAtual = null;   // { ini, fim, errada, certa }
 function atualizarDica(texto, cursor){
   const dica = $('#stDica');
   dica.hidden = true;
+  dica.removeAttribute('data-uso');
+  dica.title = 'Corrigir a palavra (Ctrl+;)';
   correcaoAtual = null;
   if (!prefs.ortografia) return;
+
+  /* Uma troca de uso debaixo do cursor ("por que" → "porque") vem
+     antes da palavra errada: o rodapé mostra a troca e um lembrete
+     curto da regra; a explicação inteira fica no title e no botão
+     direito. */
+  const uso = usos.find(u => cursor >= u.ini && cursor <= u.fim);
+  if (uso){
+    correcaoAtual = { ini: uso.ini, fim: uso.fim, errada: uso.errada, certa: uso.certa };
+    dica.innerHTML = `${escapar(uso.errada)} → <b>${escapar(comOMesmoMolde(uso.errada, uso.certa))}</b><span class="dica-por">${escapar(uso.dica)}</span><kbd>${paraSO('Ctrl+;')}</kbd>`;
+    dica.title = uso.msg;
+    dica.dataset.uso = '1';
+    dica.hidden = false;
+    return;
+  }
 
   const ini = acharInicioPalavra(texto, cursor);
   if (ini === -1) return;
@@ -1716,7 +1750,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.5.0';
+const VERSAO = '2.6.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -1768,15 +1802,20 @@ function focaveisDaFolha(){
 const escapaHTML = (t) => String(t).replace(/[&<>"]/g,
   (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 
-/* Uma pergunta de sim ou não. Devolve true só se a ação foi confirmada. */
+/* O X de toda folha, igual ao dos outros pop-ups. */
+const FOLHA_X = () => '<button type="button" class="folha-x" data-valor="" aria-label="Fechar (Esc)" title="Fechar (Esc)">' +
+  (typeof ico === 'function' ? ico('x') : '×') + '</button>';
+
+/* Uma pergunta de sim ou não. Devolve true só se a ação foi confirmada.
+   O texto é a linha de contexto, logo abaixo do título. */
 async function perguntar({ titulo, texto, acao, cancelar = 'Cancelar' }){
   const escolha = await abrirFolha(
     '<div class="folha-painel" role="dialog" aria-modal="true" aria-label="' + escapaHTML(titulo) + '">' +
       '<div class="folha-topo">' +
         '<h2 class="folha-titulo">' + escapaHTML(titulo) + '</h2>' +
-        '<kbd>esc</kbd>' +
+        '<p class="folha-sub">' + escapaHTML(texto) + '</p>' +
+        FOLHA_X() +
       '</div>' +
-      '<div class="folha-corpo"><p>' + escapaHTML(texto) + '</p></div>' +
       '<div class="folha-pe">' +
         '<button type="button" data-valor="">' + escapaHTML(cancelar) + '</button>' +
         '<button type="button" class="principal" data-valor="sim">' + escapaHTML(acao) + '</button>' +
@@ -1798,7 +1837,8 @@ function abrirSobre(){
       '<div class="folha-topo">' +
         '<h2 class="folha-titulo">Escritor</h2>' +
         '<span class="folha-versao">v' + VERSAO + '</span>' +
-        '<kbd>esc</kbd>' +
+        '<p class="folha-sub">Versão, licenças e código aberto.</p>' +
+        FOLHA_X() +
       '</div>' +
       '<div class="folha-corpo">' +
         '<p>Um caderno de escrita e estudo em Markdown, no espírito do iA Writer: ' +
@@ -2785,12 +2825,15 @@ editor.addEventListener('input', aoDigitar);
    o próximo quadro e só acontece se o cursor de fato mudou de lugar. */
 let ultimoDesenho = '';
 let rafCursor = 0;
-/* Só as teclas que andam para baixo levam a folha: subir com a seta,
-   clicar ou arrastar o mouse mudam o cursor e deixam a página quieta. */
+/* Só o teclado leva a folha, e só para baixo: a ponta que passa do meio
+   (digitando, com as setas, selecionando com Shift ou Ctrl+Shift) puxa a
+   página; subir não mexe nela, a não ser que a ponta suma da tela.
+   Clicar, dar duplo ou triplo clique e arrastar o mouse escolhem o
+   trecho e deixam a página quieta. O Ctrl+A também não rola. */
 let desceuPeloTeclado = false;
-const TECLAS_QUE_DESCEM = new Set(['ArrowDown', 'PageDown', 'Enter']);
+const TECLAS_QUE_ANDAM = new Set(['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'PageDown', 'PageUp', 'Home', 'End', 'Enter']);
 editor.addEventListener('keydown', (e) => {
-  desceuPeloTeclado = TECLAS_QUE_DESCEM.has(e.key) || (e.key === 'End' && (e.ctrlKey || e.metaKey));
+  desceuPeloTeclado = TECLAS_QUE_ANDAM.has(e.key);
 });
 editor.addEventListener('pointerdown', () => { desceuPeloTeclado = false; });
 function redesenharCursor(){
@@ -2948,7 +2991,7 @@ No mesmo menu, **Máquina de escrever** funciona como a máquina de verdade: a f
 
 O menu **Realce** ajuda a encontrar problemas sem alterar o conteúdo automaticamente:
 
-1. **Ortografia** — palavras que não existem recebem um sublinhado vermelho assim que você sai delas (a palavra que você ainda está digitando não é julgada). O Escritor traz o próprio corretor, com o dicionário VERO, o mesmo do LibreOffice, e não depende do dicionário do navegador. Coloque o cursor sobre a palavra e a correção aparece no rodapé: clique nela ou pressione \`Ctrl+;\` para substituir, e \`Ctrl+Z\` desfaz. O botão direito mostra até três sugestões e a opção **Adicionar ao dicionário**, para nomes e termos que são seus.
+1. **Ortografia** — palavras que não existem recebem um sublinhado vermelho assim que você sai delas (a palavra que você ainda está digitando não é julgada). O Escritor traz o próprio corretor, com o dicionário VERO, o mesmo do LibreOffice, e não depende do dicionário do navegador. Coloque o cursor sobre a palavra e a correção aparece no rodapé: clique nela ou pressione \`Ctrl+;\` para substituir, e \`Ctrl+Z\` desfaz. O botão direito mostra até três sugestões e a opção **Adicionar ao dicionário**, para nomes e termos que são seus. Quando a palavra existe mas o lugar pede a outra, o sublinhado é azul: os quatro porquês (por que, porque, por quê, porquê), senão e se não, demais e de mais, a fim e afim, onde e aonde, mas e mais, mal e mau, tampouco e tão pouco, ao encontro de e de encontro a. A troca é a mesma, pelo rodapé ou \`Ctrl+;\`, e o botão direito explica a regra com um exemplo.
 2. **Revisão de estilo** — marca palavras muito repetidas e frases longas ou prolixas com um traço âmbar. Para as frases, propõe uma refundição mais concisa, guiada pelo *mot juste*. A quantidade aparece no rodapé; clique nela para abrir a lista e depois clique em um aviso para ir ao trecho correspondente.
 3. **Classes gramaticais** — colore uma categoria de palavras e recua as demais. Isso permite observar como o texto foi construído.
 

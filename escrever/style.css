@@ -33,6 +33,22 @@
 @font-face{ font-family:"iA Quattro"; font-weight:700; font-style:normal;
   src:url("fontes/iAWriterQuattroS-Bold.woff2") format("woff2"); font-display:block; }
 
+/* As mesmas iA Writer em versão variável (peso de 400 a 700, métricas
+   iguais às estáticas). Só a Visualização usa: lendo, a letra fica
+   um tico mais cheia que escrevendo, com o peso de verdade da fonte. */
+@font-face{ font-family:"iA Duo Ler"; font-weight:400 700; font-style:normal;
+  src:url("fontes/iAWriterDuoV.woff2") format("woff2"); font-display:swap; }
+@font-face{ font-family:"iA Duo Ler"; font-weight:400 700; font-style:italic;
+  src:url("fontes/iAWriterDuoV-Italic.woff2") format("woff2"); font-display:swap; }
+@font-face{ font-family:"iA Mono Ler"; font-weight:400 700; font-style:normal;
+  src:url("fontes/iAWriterMonoV.woff2") format("woff2"); font-display:swap; }
+@font-face{ font-family:"iA Mono Ler"; font-weight:400 700; font-style:italic;
+  src:url("fontes/iAWriterMonoV-Italic.woff2") format("woff2"); font-display:swap; }
+@font-face{ font-family:"iA Quattro Ler"; font-weight:400 700; font-style:normal;
+  src:url("fontes/iAWriterQuattroV.woff2") format("woff2"); font-display:swap; }
+@font-face{ font-family:"iA Quattro Ler"; font-weight:400 700; font-style:italic;
+  src:url("fontes/iAWriterQuattroV-Italic.woff2") format("woff2"); font-display:swap; }
+
 /* Inter, a letra de toda a interface: menus, painéis, rodapé. Os
    arquivos são os mesmos do Caderno (../fonts), então já estão no
    cache quando o Escritor abre. */
@@ -53,6 +69,7 @@
 :root{
   --ui: "Inter",-apple-system,BlinkMacSystemFont,ui-sans-serif,system-ui,sans-serif;
   --doc: "iA Duo","Liberation Mono",ui-monospace,monospace;
+  --doc-ler: "iA Duo Ler",var(--doc);
 
   --tam: 18px;
   --altura: 1.75;
@@ -67,9 +84,9 @@
   /* a pílula que desliza: passa um tico do ponto e assenta (a do GR Vagas) */
   --desliza: cubic-bezier(.34,1.16,.5,1);
 }
-[data-fonte="duo"]     { --doc:"iA Duo","Liberation Mono",ui-monospace,monospace; }
-[data-fonte="mono"]    { --doc:"iA Mono","Liberation Mono",ui-monospace,monospace; }
-[data-fonte="quattro"] { --doc:"iA Quattro","Liberation Mono",ui-monospace,monospace; }
+[data-fonte="duo"]     { --doc:"iA Duo","Liberation Mono",ui-monospace,monospace;     --doc-ler:"iA Duo Ler",var(--doc); }
+[data-fonte="mono"]    { --doc:"iA Mono","Liberation Mono",ui-monospace,monospace;    --doc-ler:"iA Mono Ler",var(--doc); }
+[data-fonte="quattro"] { --doc:"iA Quattro","Liberation Mono",ui-monospace,monospace; --doc-ler:"iA Quattro Ler",var(--doc); }
 
 /* Com o Quattro não há arquivo itálico de mesma largura. Em vez de
    deixar o navegador inclinar a fonte (o que moveria o cursor), a
@@ -707,6 +724,15 @@ body[data-poeta="1"] .numeros-linha{ display:block; }
   text-underline-offset:3px;
 }
 .erro.estilo{ text-decoration:underline wavy var(--c-erro); }
+/* Troca de uso: a palavra existe, mas é a outra (por que / porque,
+   mas / mais, mal / mau). Ondulado como o erro, na cor de destaque:
+   pede atenção sem dizer que a palavra não existe. */
+.uso{
+  text-decoration:underline wavy var(--c-uso, var(--caret));
+  text-decoration-thickness:1px;
+  text-underline-offset:3px;
+}
+.dim.uso{ text-decoration-color:var(--apagado); }
 
 /* ══════════ Modo Foco ══════════
    Tudo recua; só o trecho ativo permanece nítido. Como o recuo é
@@ -746,29 +772,32 @@ body[data-foco="1"] .t-cit{ color:var(--tinta-foco); }
 /* o recuo do foco vence o realce gramatical */
 .dim.g-subst,.dim.g-verbo,.dim.g-adj,.dim.g-adv,.dim.g-conj{ color:var(--apagado) !important; }
 
-/* marcador invisível usado pelo modo máquina de escrever */
-.caret-mark{ display:inline-block; width:0; height:1em; vertical-align:baseline; }
+/* Marcador invisível usado pelo modo máquina de escrever. Fica inline e
+   vazio: como inline-block ele abria um ponto de quebra no meio da
+   palavra, a linha do desenho quebrava num lugar e a da caixa de texto
+   em outro, e a seleção deixava de cair em cima das letras. */
+.caret-mark{ display:inline; }
 
 /* ══════════ Visualização limpa ══════════ */
 .preview{
   max-width:var(--coluna); margin:0 auto;
   padding:var(--pad-topo) var(--pad-lado) var(--pad-base);
-  font-family:var(--doc);
+  font-family:var(--doc-ler, var(--doc));
   font-size:var(--tam); line-height:var(--altura);
   color:var(--tinta);
-  /* Lendo, a letra fica um pouco mais cheia que escrevendo: um traço
-     fino na cor do próprio texto, para se ver que saiu da escrita. As
-     fontes do Escritor só têm 400 e 700, então o peso não serve. */
-  -webkit-text-stroke:.016em currentColor;
+  /* Lendo, a letra fica um pouco mais cheia que escrevendo. É o peso
+     da própria fonte (as iA variáveis vão de 400 a 700); nada de traço
+     por cima, que só engordava a letra desenhando-a duas vezes. Onde a
+     família só tem 400 e 700 (Legível), o navegador fica no 400. */
+  font-weight:460;
 }
-.preview :is(code,pre,.math){ -webkit-text-stroke:.01em currentColor; }
 
 /* comentário na visualização: um balão discreto que se abre para baixo */
 .preview .coment-marca{
   position:relative; display:inline-grid; place-items:center; vertical-align:-.12em;
   width:1.25em; height:1.25em; margin:0 .12em; padding:0; border:0; border-radius:.35em;
   background:color-mix(in srgb, var(--caret) 12%, transparent); color:var(--caret);
-  -webkit-text-stroke:0; cursor:pointer; transition:background 150ms;
+  cursor:pointer; transition:background 150ms;
 }
 .preview .coment-marca svg{ width:.8em; height:.8em; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
 .preview .coment-marca:hover,.preview .coment-marca.aberta{ background:color-mix(in srgb, var(--caret) 22%, transparent); }
@@ -778,7 +807,7 @@ body[data-foco="1"] .t-cit{ color:var(--tinta-foco); }
   width:max-content; max-width:min(22rem, 80vw); padding:9px 12px; border-radius:12px;
   background:var(--elev, var(--papel)); color:var(--tinta);
   box-shadow:0 0 0 .5px var(--linha), 0 8px 24px rgba(0,0,0,.14);
-  font:400 13.5px/1.45 var(--ui); text-align:left; white-space:normal; -webkit-text-stroke:0;
+  font:400 13.5px/1.45 var(--ui); text-align:left; white-space:normal;
   opacity:0; visibility:hidden; pointer-events:none;
   transform:translate(-50%, -6px); transition:opacity 160ms ease, transform 200ms var(--mola, ease), visibility 0s 200ms;
 }
@@ -901,6 +930,10 @@ body[data-chrome="oculto"] .stats{ opacity:0; pointer-events:none; }
 }
 .stats button.dica:hover{ background:color-mix(in srgb, var(--c-erro) 20%, transparent); }
 .dica kbd{ margin-left:.4rem; opacity:.65; font:inherit; font-size:.92em; }
+.dica-por{ margin-left:.45rem; font-weight:400; opacity:.75; }
+.dica-por::before{ content:"·"; margin-right:.45rem; }
+.stats button.dica[data-uso]{ color:var(--caret); background:color-mix(in srgb, var(--caret) 11%, transparent); }
+.stats button.dica[data-uso]:hover{ background:color-mix(in srgb, var(--caret) 19%, transparent); }
 .stats [hidden]{ display:none !important; }
 /* tempo de leitura com um relógio; o "salvo" com um ponto de estado */
 .st-ico{ display:inline-block; width:12px; height:12px; margin-right:5px; vertical-align:-1.5px; background:currentColor; }
@@ -1244,10 +1277,19 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
   margin:0; flex:1; min-width:0;
   font-family:var(--ui); font-size:15px; font-weight:600; letter-spacing:-.012em; line-height:1.3;
 }
-.folha-topo kbd{
-  flex:none; padding:2px 6px; background:var(--preench);
-  border:0; border-radius:5px;
-  font:500 11px/1.4 var(--ui); color:var(--r3);
+.folha-topo{ position:relative; padding-right:58px; flex-wrap:wrap; }
+.folha-x{
+  position:absolute; top:14px; right:14px; width:30px; height:30px; display:grid; place-items:center;
+  border:0; border-radius:50%; background:var(--preench-2); color:var(--r2); cursor:pointer;
+  transition:background var(--transicao), color var(--transicao), transform 120ms var(--mola);
+}
+.folha-x:hover{ background:color-mix(in srgb, var(--tinta) 16%, transparent); color:var(--tinta); }
+.folha-x:active{ transform:scale(.92); }
+.folha-x svg{ width:16px; height:16px; stroke-width:2; }
+.folha-x:focus-visible{ outline:3px solid color-mix(in srgb, var(--caret) 45%, transparent); outline-offset:1px; }
+.folha-sub{
+  flex-basis:100%; margin:2px 0 0;
+  font:400 13px/1.45 var(--ui); color:var(--r2); letter-spacing:-.003em;
 }
 /* Sobre: o crédito separado do texto, como link com o símbolo */
 .folha-credito{
@@ -1322,6 +1364,7 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
   .folha-painel,.folha-larga{ width:min(24rem,100%); }
   .folha-pe button{ flex:1; height:44px; font-size:15px; border-radius:12px; }
   .folha-titulo{ font-size:17px; }
+  .folha-sub{ font-size:14.5px; }
   .folha-corpo p{ font-size:15px; }
 }
 /* Com a folha aberta a página atrás não rola. */
@@ -1372,11 +1415,12 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
 
 /* ══ fontes sem negrito/itálico de mesma largura: ênfase pela cor ══ */
 @font-face{ font-family:"Inter Escritor"; font-weight:400; src:url("fontes/Inter-Regular.woff2") format("woff2"); font-display:swap; }
-[data-fonte="serifa"]{ --doc:"Iowan Old Style","Palatino Linotype",Palatino,"Noto Serif",Georgia,serif; }
-[data-fonte="sans"]  { --doc:"Inter Escritor",Inter,ui-sans-serif,system-ui,sans-serif; }
+[data-fonte="serifa"]{ --doc:"Iowan Old Style","Palatino Linotype",Palatino,"Noto Serif",Georgia,serif; --doc-ler:var(--doc); }
+@font-face{ font-family:"Inter Escritor"; font-weight:500; src:url("fontes/Inter-Medium.woff2") format("woff2"); font-display:swap; }
+[data-fonte="sans"]  { --doc:"Inter Escritor",Inter,ui-sans-serif,system-ui,sans-serif; --doc-ler:var(--doc); }
 @font-face{ font-family:"Atkinson Escritor"; font-weight:400; src:url("fontes/AtkinsonHyperlegible-Regular.woff2") format("woff2"); font-display:swap; }
 @font-face{ font-family:"Atkinson Escritor"; font-weight:700; src:url("fontes/AtkinsonHyperlegible-Bold.woff2") format("woff2"); font-display:swap; }
-[data-fonte="legivel"]{ --doc:"Atkinson Escritor","Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif; }
+[data-fonte="legivel"]{ --doc:"Atkinson Escritor","Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif; --doc-ler:var(--doc); }
 [data-fonte="serifa"] .overlay .t-h,[data-fonte="sans"] .overlay .t-h,[data-fonte="legivel"] .overlay .t-h,
 [data-fonte="serifa"] .overlay .t-forte,[data-fonte="sans"] .overlay .t-forte,[data-fonte="legivel"] .overlay .t-forte{ font-weight:400; color:var(--tinta-foco); }
 [data-fonte="serifa"] .overlay .t-h,[data-fonte="sans"] .overlay .t-h,[data-fonte="legivel"] .overlay .t-h{ color:var(--caret); }
@@ -1505,6 +1549,12 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   font-size:12px; font-weight:500; color:var(--r2); font-variant-numeric:tabular-nums;
 }
 .aj-conta:empty{ display:none; }
+/* Todo pop-up tem as mesmas três coisas: o X em cima, uma linha que
+   diz para que ele serve e o Esc fechando. Esta é a linha. */
+.aj-sub{
+  grid-column:1 / -1; margin:-6px 0 0; text-align:center;
+  font-size:13px; line-height:1.4; color:var(--r2); letter-spacing:-.003em;
+}
 /* toda busca fica no meio, logo abaixo do título */
 .aj-procura{ flex:none; display:flex; justify-content:center; padding:4px 24px 10px; }
 .aj-procura:not(:has(+ .aj-nav)){ box-shadow:inset 0 -1px 0 var(--aj-fio); padding-bottom:14px; }
@@ -2097,6 +2147,8 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 .ctx-pilula{ display:flex; align-items:center; gap:8px; height:34px; padding:0 12px 0 10px; border-radius:999px !important; background:var(--preench) !important; }
 .ctx-pilula:hover,.ctx-pilula:focus-visible{ background:var(--preench-2) !important; }
 .ctx-pilula.perigo, .ctx-pilula.perigo i{ color:var(--c-erro); }
+/* a regra da troca de uso, logo abaixo do botão que troca */
+.ctx-explica{ flex-basis:100%; max-width:34rem; margin:2px 4px 0; font:400 13px/1.45 var(--ui); color:var(--r2); }
 
 /* área de transferência: cinco botões iguais, ícone sobre o nome */
 .ctx-barra{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:4px; padding-bottom:6px; border-bottom:1px solid var(--fio); }
@@ -2244,7 +2296,8 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   }
   .aj[open] .aj-painel{ animation-name:aj-entra-cel; }
   @keyframes aj-entra-cel{ from{ opacity:0; transform:translateY(24px); } }
-  .aj-topo{ height:60px; padding:0 12px 0 20px; gap:.6rem; }
+  .aj-topo{ min-height:60px; padding:8px 12px 6px 20px; gap:.6rem; row-gap:6px; }
+  .aj-sub{ margin:0; font-size:13.5px; }
   .aj-titulo{ font-size:20px; letter-spacing:-.02em; }
   .aj-busca{ height:38px; border-radius:11px; max-width:none; }
   .aj-busca input{ font-size:16px; }

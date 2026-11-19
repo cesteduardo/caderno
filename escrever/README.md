@@ -1,4 +1,4 @@
-# Escritor 2.5
+# Escritor 2.6
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -13,6 +13,13 @@ Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o apli
 
 ---
 
+## Na 2.6
+
+- **Porquês e outras trocas:** o corretor agora também acha palavras que existem, mas estão no lugar da outra. São os quatro porquês (por que, porque, por quê, porquê) e as expressões que mudam de sentido conforme a escrita: senão e se não, demais e de mais, a fim e afim, onde e aonde, mas e mais, mal e mau, tampouco e tão pouco, ao encontro de e de encontro a. Elas ganham um ondulado azul (o vermelho continua para palavra que não existe). Com o cursor em cima, o rodapé mostra a troca e um lembrete curto da regra, e `Ctrl+;` troca. O botão direito traz a troca e a explicação inteira, com exemplo. Cada regra só dispara quando o contexto deixa claro qual forma era a certa; a frase que você ainda está escrevendo espera o ponto final. As regras ficam em `usos.js`.
+- **Pop-ups padronizados:** todos têm as mesmas três coisas: o **X** em cima, uma linha dizendo para que servem e o **Esc** fechando. Personalizar, Sumário, Pontos de atenção, Comentários e Notas ganharam a linha de contexto; as perguntas de confirmação e o Sobre trocaram o chip "esc" pelo X.
+- **Visualizar com peso de verdade:** a leitura "um pouco mais cheia" da 2.5 era um traço desenhado por cima da letra, o que só a duplicava. Saiu. O Visualizar usa agora as iA Writer **variáveis** (o mesmo desenho, com peso de 400 a 700) no peso 460, levemente mais encorpado que a escrita. Na fonte Sans vai a Inter Medium; a Legível só tem 400 e 700 e fica no 400.
+- **Máquina de escrever:** a marca invisível que a máquina põe no cursor era um `inline-block`, e isso abria um ponto de quebra no meio da palavra. Perto do fim da linha, a palavra pulava de linha só no desenho, e a seleção (por letra, por palavra) deixava de cair em cima das letras. Agora a marca não interfere na quebra. E a folha passou a acompanhar a **ponta** da seleção, e não o começo: com `Shift+↓` ou `Ctrl+Shift+→` a seleção não some mais embaixo da tela, e depois de `Ctrl+A` e uma seta o cursor volta para a vista. Clique, duplo clique, triplo clique, arrastar e `Ctrl+A` continuam sem mexer na página.
+
 ## Na 2.5
 
 - **Corretor ortográfico de verdade:** antes o sublinhado vermelho vinha do corretor do navegador, que só funciona com um dicionário de português instalado no sistema. Sem ele, "onibus" passava sem marca. Agora o Escritor traz o próprio corretor: o **Hunspell** (o do LibreOffice e do Firefox) em WebAssembly, com o dicionário **VERO** de português do Brasil, rodando num Web Worker para a digitação nunca esperar. Ele carrega sozinho ao abrir (cerca de 1,3 MB comprimido, guardado para funcionar offline).
@@ -25,7 +32,7 @@ Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o apli
 - **Engrenagem das Ferramentas:** na barra, entre a tela cheia e o **⋯**, uma engrenagem abre as **Ferramentas** (Buscar e substituir, Sumário, Comentários, Modo Poeta, Tela cheia e Tamanho da tela). O **⋯ Documento** ficou com três abas: Arquivo, Exportar e Ajuda.
 - **Mesmo tamanho sempre:** Ferramentas e Documento abrem com a mesma largura e a mesma altura, e trocar de aba no Documento não estica nem encolhe a janela (as páginas ficam empilhadas e a altura é a da maior).
 - **Tamanho da tela (zoom):** nas Ferramentas, **−** e **+** ampliam a interface inteira nos mesmos degraus do zoom do navegador, de 50% a 300% (175% está lá), e **100%** volta ao normal. Fica guardado neste aparelho. Como o navegador não deixa um site mudar o zoom dele, é o `zoom` do CSS na página toda; as contas que misturam medidas de tela com rolagem (máquina de escrever, botão direito, sugestões de `[[`, régua do Poeta) e as alturas em `vh` foram corrigidas para ele.
-- **Leitura um pouco mais cheia:** no **Visualizar**, a letra fica levemente mais encorpada do que na escrita, para se ver de relance que saiu da edição. As fontes só têm os pesos 400 e 700, então o efeito é um traço finíssimo na cor do próprio texto.
+- **Leitura um pouco mais cheia:** no **Visualizar**, a letra fica levemente mais encorpada do que na escrita (trocado na 2.6 pelo peso da fonte variável).
 - **Menus sem texto vazando:** o fundo dos pop-ups da barra e do botão direito ficou quase opaco; no Firefox, quando o desfoque não era desenhado, o texto de trás aparecia através deles.
 
 ## Na 2.4
@@ -206,12 +213,13 @@ A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. O
 | `index.html` | a página: barra, menus, painéis, notas, botão direito |
 | `style.css` | fontes, papéis, cores, interface, impressão |
 | `app.js` | pedaços, foco, gramática, ortografia, estilo, Markdown, exportação, guia, menus |
+| `usos.js` | as trocas de uso: os porquês, mas e mais, mal e mau, onde e aonde… |
 | `personalizar.js` | o painel Aa, estilos, sumário, buscar e substituir, pílulas |
 | `estudo.js` | notas e ligações, botão direito, imagens coladas |
 | `icones.js` | os ícones Lucide |
 | `ponte.js` | a ligação com o [Caderno](https://cesteduardo.github.io/caderno/) (só age lá dentro) |
 | `orto/` | o corretor: Hunspell em WebAssembly, o worker e o dicionário VERO |
-| `fontes/` | iA Writer e Inter em `woff2`, com as licenças |
+| `fontes/` | iA Writer (estáticas e variáveis), Inter e Atkinson em `woff2`, com as licenças |
 
 As notas, o texto aberto e as preferências ficam no `localStorage` do navegador (`escritor:notas`, `escritor:texto`, `escritor:prefs`, e as palavras que você ensinou ao corretor em `escritor:dicionario`); as imagens ficam no IndexedDB (`escritor-anexos`). Trocar de navegador ou limpar os dados do site apaga tudo: para guardar de verdade, ligue uma pasta do Obsidian ou exporte.
 

@@ -380,6 +380,8 @@ dNotas.addEventListener('pointermove', () => { delete dNotas.dataset.teclado; })
 $('#notasBusca').addEventListener('keydown', (e) => {
   const vis = itensVisiveis();
   if (/^Arrow/.test(e.key)) dNotas.dataset.teclado = '';
+  // o campo de busca do navegador gastava o Esc limpando o texto; aqui ele fecha
+  if (e.key === 'Escape'){ e.preventDefault(); fecharDialogo(dNotas); return; }
   if (e.key === 'ArrowDown' || e.key === 'ArrowRight'){ e.preventDefault(); selNota = Math.min(vis.length - 1, selNota + 1); pintarNotas(); }
   else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft'){ e.preventDefault(); selNota = Math.max(0, selNota - 1); pintarNotas(); }
   else if (e.key === 'Enter'){
@@ -605,7 +607,15 @@ function contextuais(){
   /* Palavra errada debaixo do cursor: as trocas vêm primeiro, como no
      corretor do sistema. A da lista de erros clássicos, ou até três
      sugestões do dicionário; e a opção de ensinar a palavra a ele. */
-  const errada = palavraErradaNoCursor();
+  /* Troca de uso (usos.js): a palavra existe, mas o lugar pede a outra.
+     Vem com a explicação da regra, para se aprender de uma vez. */
+  const uso = usoNoCursor();
+  if (uso){
+    const certa = comOMesmoMolde(uso.errada, uso.certa);
+    itens.unshift({ id: 'corrigir-uso', ico: 'ok', label: `Trocar por “${certa}”`, kbd: 'Ctrl+;', explica: uso.msg,
+      acao: () => trocarPalavra({ a: uso.ini, b: uso.fim, p: uso.errada }, certa) });
+  }
+  const errada = uso ? null : palavraErradaNoCursor();
   if (errada){
     const trocas = [];
     const daLista = ERROS.get(errada.p.toLowerCase());
@@ -620,6 +630,11 @@ function contextuais(){
   }
   if (itens.length) itens.push('sep');
   return itens;
+}
+function usoNoCursor(){
+  const c = editor.selectionStart;
+  if (!prefs.ortografia || c !== editor.selectionEnd || typeof usos === 'undefined') return null;
+  return usos.find(u => c >= u.ini && c <= u.fim && editor.value.slice(u.ini, u.fim) === u.errada) || null;
 }
 function palavraErradaNoCursor(){
   const v = editor.value, c = editor.selectionStart;
@@ -720,6 +735,8 @@ function painelCtx(){
       b.innerHTML = `<i>${ico(it.ico)}</i><span>${escapar(it.label)}</span>`;
       faixa.append(b);
     }
+    for (const it of aqui) if (it.explica)
+      faixa.append(Object.assign(document.createElement('p'), { className: 'ctx-explica', textContent: it.explica }));
     p.append(faixa);
   }
 

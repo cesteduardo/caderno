@@ -282,7 +282,9 @@ function paintWrPanel(){
   const quote = x => `> ${x.text.replace(/\s+/g, ' ').trim()}` + (x.page ? ` (p. ${x.page})` : x.ms != null && x.lesson ? ` (${fmtClock(x.ms)})` : '') + (x.note ? `\n\n${x.note}` : '');
   const item = (label, sub, onclick) => h('li', {}, h('button', { type: 'button', onclick }, h('span', { text: label }), sub ? h('i', { text: sub }) : null));
   p.replaceChildren(
-    h('div', { class: 'wp-head' }, h('b', { text: 'Ligações' }), h('button', { class: 'x', type: 'button', 'aria-label': 'Fechar', text: '×', onclick: () => CadernoPonte.painel() })),
+    h('div', { class: 'wp-head' },
+      h('div', { class: 'wp-tit' }, h('b', { text: 'Ligações' }), h('p', { text: 'Quem cita esta nota, o que ela cita e as marcações das fontes.' })),
+      h('button', { class: 'x', type: 'button', 'aria-label': 'Fechar (Esc)', title: 'Fechar (Esc)', onclick: () => CadernoPonte.painel() }, ico('x'))),
     h('div', { class: 'wp-body' },
       h('h3', { text: `Citam esta nota · ${back.length}` }),
       back.length ? h('ol', { class: 'rp-list' }, back.map(b => item(b.t, b.k === 'dia' ? 'diário' : fmtDay(b.at || Date.now()), () => b.k === 'dia' ? openDiary(b.day) : openNote(b.id)))) :

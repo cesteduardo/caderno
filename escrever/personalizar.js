@@ -61,7 +61,7 @@ const CHAVES = {
     ['poeta', 'Modo Poeta', 'Régua de recuo e versos alinhados.', 'poesia verso recuo régua'],
   ],
   optRevisao: [
-    ['ortografia', 'Ortografia', 'Sublinha palavras suspeitas.', 'ctrl+p corretor erro'],
+    ['ortografia', 'Ortografia', 'Sublinha palavras suspeitas e trocas como por que e porque, mas e mais.', 'ctrl+p corretor erro porque porquê mas mais mal mau onde aonde senão demais afim tampouco'],
     ['estilo', 'Revisão de estilo', 'Repetições, clichês e frases longas.', 'ctrl+r repetição clichê'],
   ],
   optTela: [
@@ -904,10 +904,11 @@ document.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   const aberto = painel.open ? painel : sumario.open ? sumario : null;
   if (aberto){
+    /* Esc fecha, como em todo pop-up, mesmo com algo escrito na busca
+       (antes o primeiro Esc só limpava o campo). A busca recomeça
+       vazia na próxima abertura. */
     if (e.key === 'Escape'){
       e.preventDefault();
-      const campo = aberto === painel ? $('#ajBusca') : $('#sumBusca');
-      if (e.target === campo && campo.value){ campo.value = ''; campo.dispatchEvent(new Event('input')); return; }
       fecharDialogo(aberto);
       return;
     }
