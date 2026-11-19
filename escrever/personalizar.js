@@ -476,20 +476,34 @@ const toast = $('#toast');
 let focoAntes = null;
 function abrirDialogo(d){
   $$('.menu').forEach(m => m.classList.remove('aberto'));
+  if (d._terminarSaida) d._terminarSaida();      // reabrindo no meio do fechar
   focoAntes = document.activeElement;
   d.classList.remove('saindo');
   d.showModal();
   d.append(toast);                       // o aviso precisa ficar acima do painel
   document.documentElement.classList.add('folha-aberta');
 }
+/* O fechar espera a animação de saída OU um tempo limite, o que vier
+   primeiro, e depois desarma o outro. Antes o ouvinte da animação ficava
+   armado quando o tempo vencia, e a animação de ENTRADA da próxima
+   abertura o disparava: o painel abria e fechava sozinho em seguida. */
 function fecharDialogo(d){
   if (!d.open || d.classList.contains('saindo')) return;
-  const fim = () => { d.classList.remove('saindo'); if (d.open) d.close(); };
+  const painelInterno = d.querySelector('.aj-painel');
+  let relogio = 0;
+  const aoAnimar = (e) => { if (e.target === painelInterno) fim(); };
+  const fim = () => {
+    clearTimeout(relogio);
+    painelInterno.removeEventListener('animationend', aoAnimar);
+    d._terminarSaida = null;
+    d.classList.remove('saindo');
+    if (d.open) d.close();
+  };
   if (reduzido()) return fim();
   d.classList.add('saindo');
-  const painelInterno = d.querySelector('.aj-painel');
-  painelInterno.addEventListener('animationend', fim, { once: true });
-  setTimeout(fim, 260);
+  d._terminarSaida = fim;
+  painelInterno.addEventListener('animationend', aoAnimar);
+  relogio = setTimeout(fim, 260);
 }
 const DIALOGOS = [painel, $('#sumario'), $('#revisao'), $('#comentarios')];
 for (const d of DIALOGOS){
@@ -517,6 +531,8 @@ for (const d of DIALOGOS){
 let posicao = 0;
 function guardarPosicao(){ posicao = rolagem.scrollTop; }
 function abrirAjustes(secao){
+  // ainda saindo (a animação do fechar): termina de fechar e abre de novo
+  if (painel._terminarSaida) painel._terminarSaida();
   if (painel.open){ if (secao) irSecao(secao); else fecharDialogo(painel); return; }
   if ($('#ajBusca').value){ $('#ajBusca').value = ''; filtrar(); }
   if ($('#sumario').open) $('#sumario').close();

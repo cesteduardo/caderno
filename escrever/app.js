@@ -1750,7 +1750,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.6.0';
+const VERSAO = '2.6.1';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -1806,6 +1806,8 @@ const escapaHTML = (t) => String(t).replace(/[&<>"]/g,
 const FOLHA_X = () => '<button type="button" class="folha-x" data-valor="" aria-label="Fechar (Esc)" title="Fechar (Esc)">' +
   (typeof ico === 'function' ? ico('x') : '×') + '</button>';
 
+const FOLHA_ESC = '<span class="folha-esc"><kbd>Esc</kbd> fechar</span>';
+
 /* Uma pergunta de sim ou não. Devolve true só se a ação foi confirmada.
    O texto é a linha de contexto, logo abaixo do título. */
 async function perguntar({ titulo, texto, acao, cancelar = 'Cancelar' }){
@@ -1817,6 +1819,7 @@ async function perguntar({ titulo, texto, acao, cancelar = 'Cancelar' }){
         FOLHA_X() +
       '</div>' +
       '<div class="folha-pe">' +
+        FOLHA_ESC +
         '<button type="button" data-valor="">' + escapaHTML(cancelar) + '</button>' +
         '<button type="button" class="principal" data-valor="sim">' + escapaHTML(acao) + '</button>' +
       '</div>' +
@@ -1837,7 +1840,6 @@ function abrirSobre(){
       '<div class="folha-topo">' +
         '<h2 class="folha-titulo">Escritor</h2>' +
         '<span class="folha-versao">v' + VERSAO + '</span>' +
-        '<p class="folha-sub">Versão, licenças e código aberto.</p>' +
         FOLHA_X() +
       '</div>' +
       '<div class="folha-corpo">' +
@@ -1859,6 +1861,7 @@ function abrirSobre(){
           '<span>Desenvolvido por</span><b>' + GR_SIMBOLO + 'GR Brands<i>.</i></b></a>' +
       '</div>' +
       '<div class="folha-pe">' +
+        FOLHA_ESC +
         '<button type="button" class="principal" data-valor="">Fechar</button>' +
       '</div>' +
     '</div>');
@@ -2243,9 +2246,16 @@ function fecharMenuPop(pop, animar){
   if (!animar || reduzMov()){ pop.classList.remove('saindo'); pop.close(); return; }
   if (pop.classList.contains('saindo')) return;
   pop.classList.add('saindo');
-  const fim = () => { if (pop.classList.contains('saindo')){ pop.classList.remove('saindo'); pop.close(); } };
-  pop.addEventListener('animationend', fim, { once: true });
-  setTimeout(fim, 200);
+  let relogio = 0;
+  const aoAnimar = (e) => { if (e.target === pop) fim(); };
+  // um dos dois chega primeiro; o outro é desarmado (ver fecharDialogo)
+  const fim = () => {
+    clearTimeout(relogio);
+    pop.removeEventListener('animationend', aoAnimar);
+    if (pop.classList.contains('saindo')){ pop.classList.remove('saindo'); pop.close(); }
+  };
+  pop.addEventListener('animationend', aoAnimar);
+  relogio = setTimeout(fim, 200);
 }
 function abrirMenu(menu){
   $$('.menu').forEach(m => { if (m !== menu) m.classList.remove('aberto'); });

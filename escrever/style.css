@@ -1341,7 +1341,7 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
 .folha-link small{ margin-left:auto; font-size:12px; color:var(--r3); }
 
 .folha-pe{
-  display:flex; justify-content:flex-end; gap:.5rem;
+  display:flex; justify-content:flex-end; align-items:center; gap:.5rem;
   padding:16px 22px 20px;
 }
 .folha-pe button{
@@ -1356,6 +1356,7 @@ a,button,label,summary,[role="button"]{touch-action:manipulation}
 /* A ação principal vai na cor de destaque, como no macOS. O texto do
    corpo é que avisa quando ela descarta alguma coisa. */
 .folha-pe .principal{ background:var(--caret); color:var(--sobre-acento); }
+.folha-esc{ margin-right:auto; font:400 11.5px/1.4 var(--ui); color:var(--r2); white-space:nowrap; }
 .folha-pe .principal:hover{ background:var(--caret); filter:brightness(1.08); }
 .folha-pe button:focus-visible{ outline:3px solid color-mix(in srgb, var(--caret) 45%, transparent); outline-offset:1px; }
 
@@ -1549,12 +1550,21 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   font-size:12px; font-weight:500; color:var(--r2); font-variant-numeric:tabular-nums;
 }
 .aj-conta:empty{ display:none; }
-/* Todo pop-up tem as mesmas três coisas: o X em cima, uma linha que
-   diz para que ele serve e o Esc fechando. Esta é a linha. */
-.aj-sub{
-  grid-column:1 / -1; margin:-6px 0 0; text-align:center;
-  font-size:13px; line-height:1.4; color:var(--r2); letter-spacing:-.003em;
+/* Todo pop-up tem o mesmo rodapé: o que ele faz à esquerda e as
+   teclas à direita, terminando em "Esc fechar" (o X fica no alto). */
+.pe-dica{
+  display:flex; align-items:center; gap:1.1rem; padding:10px 24px;
+  box-shadow:inset 0 1px 0 var(--fio);
+  font:400 11.5px/1.4 var(--ui); color:var(--r2);
 }
+.pe-dica span:first-child{ margin-right:auto; }
+.pe-dica span:last-child{ flex:none; white-space:nowrap; }
+.pe-dica kbd, .aj-pe-esc kbd, .folha-esc kbd{
+  display:inline-block; min-width:1.5em; margin-right:.25rem; padding:1px 5px; border-radius:5px; text-align:center;
+  background:var(--elev); box-shadow:0 0 0 .5px var(--fio), 0 1px 0 var(--fio);
+  font:500 11px/1.45 var(--ui); color:var(--r2);
+}
+.aj-pe-esc{ margin-right:12px; font-size:11.5px; color:var(--aj-suave, var(--r2)); white-space:nowrap; }
 /* toda busca fica no meio, logo abaixo do título */
 .aj-procura{ flex:none; display:flex; justify-content:center; padding:4px 24px 10px; }
 .aj-procura:not(:has(+ .aj-nav)){ box-shadow:inset 0 -1px 0 var(--aj-fio); padding-bottom:14px; }
@@ -2296,8 +2306,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   }
   .aj[open] .aj-painel{ animation-name:aj-entra-cel; }
   @keyframes aj-entra-cel{ from{ opacity:0; transform:translateY(24px); } }
-  .aj-topo{ min-height:60px; padding:8px 12px 6px 20px; gap:.6rem; row-gap:6px; }
-  .aj-sub{ margin:0; font-size:13.5px; }
+  .aj-topo{ height:60px; padding:0 12px 0 20px; gap:.6rem; }
   .aj-titulo{ font-size:20px; letter-spacing:-.02em; }
   .aj-busca{ height:38px; border-radius:11px; max-width:none; }
   .aj-busca input{ font-size:16px; }
@@ -2374,7 +2383,7 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
   .aj-pe .cresce{ display:none; }
   .aj-rot small kbd{ display:none; }
   .aj-largo{ display:none; }
-  .aj-pe--dica{ display:none; }
+  .aj-pe--dica, .pe-dica, .aj-pe-esc, .folha-esc{ display:none; }
 
   .obs-heroi{ flex-direction:column; align-items:flex-start; padding:20px; }
   .obs-passos{ grid-template-columns:minmax(0,1fr); }

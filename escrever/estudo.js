@@ -363,6 +363,7 @@ function desfazerApagar(id){
 
 function abrirNotas(){
   if (PONTE){ PONTE.trocar(); return; }
+  if (dNotas._terminarSaida) dNotas._terminarSaida();
   if (dNotas.open){ fecharDialogo(dNotas); return; }
   salvarJa();
   $('#notasBusca').value = '';

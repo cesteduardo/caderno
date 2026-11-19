@@ -283,7 +283,7 @@ function paintWrPanel(){
   const item = (label, sub, onclick) => h('li', {}, h('button', { type: 'button', onclick }, h('span', { text: label }), sub ? h('i', { text: sub }) : null));
   p.replaceChildren(
     h('div', { class: 'wp-head' },
-      h('div', { class: 'wp-tit' }, h('b', { text: 'Ligações' }), h('p', { text: 'Quem cita esta nota, o que ela cita e as marcações das fontes.' })),
+      h('b', { text: 'Ligações' }),
       h('button', { class: 'x', type: 'button', 'aria-label': 'Fechar (Esc)', title: 'Fechar (Esc)', onclick: () => CadernoPonte.painel() }, ico('x'))),
     h('div', { class: 'wp-body' },
       h('h3', { text: `Citam esta nota · ${back.length}` }),
@@ -315,7 +315,10 @@ function paintWrPanel(){
           WR.doc = null; delI('notes', n.id); popLayer();
           toast('Nota apagada.', 'Desfazer', () => { putI('notes', keep); if (currentView === 'notas') renderNotes(); });
         } })) : null,
-      doc.k === 'guia' ? h('p', { class: 'muted small', text: 'O guia não é gravado: é só para ler. Feche e volte para as suas notas.' }) : null));
+      doc.k === 'guia' ? h('p', { class: 'muted small', text: 'O guia não é gravado: é só para ler. Feche e volte para as suas notas.' }) : null),
+    // o rodapé de todo pop-up: o que ele faz à esquerda, Esc à direita
+    h('div', { class: 'wp-pe' }, h('span', { text: 'Quem cita esta nota, o que ela cita e as marcações das fontes.' }),
+      h('span', {}, h('kbd', { text: 'Esc' }), ' fechar')));
 }
 
 /* ---------- Ir para (Ctrl+O) ---------- */

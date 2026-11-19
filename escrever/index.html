@@ -33,6 +33,7 @@
             </div>
             <div class="mp-faixa"><button class="mp-chave" role="menuitemcheckbox" data-alterna="maquina"><span class="mp-txt"><span>Máquina de escrever</span><small>A folha desce enquanto você digita; clicar numa linha não mexe na página.</small></span><kbd class="mp-atalho">Ctrl+T</kbd><i class="mp-int" aria-hidden="true"></i></button></div>
           </div>
+          <footer class="pe-dica"><span>Ctrl+D liga e desliga o Foco; Ctrl+T, a máquina de escrever.</span><span><kbd>Esc</kbd> fechar</span></footer>
         </dialog>
       </div>
 
@@ -59,6 +60,7 @@
               </div>
             </section>
           </div>
+          <footer class="pe-dica"><span>Com o cursor numa palavra marcada, Ctrl+; corrige.</span><span><kbd>Esc</kbd> fechar</span></footer>
         </dialog>
       </div>
 
@@ -93,6 +95,7 @@
                 </div>
             </div>
           </div>
+          <footer class="pe-dica"><span>O tamanho da tela fica guardado neste aparelho.</span><span><kbd>Esc</kbd> fechar</span></footer>
         </dialog>
       </div>
       <div class="menu" id="menuMais">
@@ -127,6 +130,7 @@
                 <button class="mp-tile" role="menuitem" id="btnSobre"><i class="mp-ti" data-ico="sobre"></i><span class="mp-txt"><span>Sobre o Escritor</span><small>Versão, licenças e código aberto</small></span><i data-versao></i></button>
             </div>
           </div>
+          <footer class="pe-dica"><span>As notas ficam neste navegador. Exporte para levar a outro lugar.</span><span><kbd>Esc</kbd> fechar</span></footer>
         </dialog>
       </div>
     </div>
@@ -164,7 +168,6 @@
       <span class="aj-topo-esq"></span>
       <h2 class="aj-titulo" id="ajTitulo">Personalizar</h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="ajFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
-      <p class="aj-sub">Aparência, texto, escrita e revisão. Cada ajuste vale na hora.</p>
     </header>
     <div class="aj-procura">
       <label class="aj-busca">
@@ -394,6 +397,7 @@
       <button type="button" class="aj-bt aj-bt--leve" id="ajImportar">Importar…</button>
       <input type="file" id="ajArquivo" accept=".json,application/json" hidden>
       <span class="cresce"></span>
+      <span class="aj-pe-esc"><kbd>Esc</kbd> fechar</span>
       <button type="button" class="aj-bt aj-bt--principal" id="ajPronto">Pronto</button>
     </footer>
   </div>
@@ -406,7 +410,6 @@
       <span class="aj-topo-esq"></span>
       <h2 class="aj-titulo" id="sumTitulo">Sumário</h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="sumFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
-      <p class="aj-sub">Os títulos do texto, para pular de um a outro.</p>
     </header>
     <div class="aj-procura">
       <label class="aj-busca">
@@ -415,7 +418,7 @@
       </label>
     </div>
     <ol class="sumario" id="listaSumario" role="listbox" aria-label="Títulos do texto"></ol>
-    <footer class="aj-pe aj-pe--dica"><span><kbd>↑</kbd><kbd>↓</kbd> escolher</span><span><kbd>Enter</kbd> ir</span><span><kbd>Esc</kbd> fechar</span></footer>
+    <footer class="aj-pe aj-pe--dica"><span>Os títulos do texto, para pular de um a outro.</span><span><kbd>↑</kbd><kbd>↓</kbd> escolher</span><span><kbd>Enter</kbd> ir</span><span><kbd>Esc</kbd> fechar</span></footer>
   </div>
 </dialog>
 
@@ -461,7 +464,6 @@
       <span class="aj-topo-esq"></span>
       <h2 class="aj-titulo" id="revTitulo">Pontos de atenção <span class="aj-conta" id="revConta"></span></h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="revFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
-      <p class="aj-sub">Repetições e frases longas que a revisão de estilo encontrou.</p>
     </header>
     <div class="revisao-inner" id="revisaoLista"></div>
     <footer class="aj-pe aj-pe--dica"><span>Clique num ponto para ir até ele no texto</span><span><kbd>Esc</kbd> fechar</span></footer>
@@ -475,7 +477,6 @@
       <span class="aj-topo-esq"></span>
       <h2 class="aj-titulo" id="comTitulo">Comentários <span class="aj-conta" id="comConta"></span></h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="comFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
-      <p class="aj-sub">Os comentários entre %% do texto. Somem na leitura e na exportação.</p>
     </header>
     <div class="revisao-inner" id="comLista"></div>
     <footer class="aj-pe aj-pe--dica"><span>Clique num comentário para ir até ele no texto</span><span><kbd>Esc</kbd> fechar</span></footer>
@@ -506,7 +507,6 @@
       <span class="aj-topo-esq"><button type="button" class="aj-bt aj-bt--principal" id="notasNova"><i data-ico="mais"></i>Nova nota</button></span>
       <h2 class="aj-titulo" id="notasTitulo">Notas <span class="aj-conta" id="notasConta"></span></h2>
       <span class="aj-topo-dir"><button type="button" class="aj-x" id="notasFechar" aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></span>
-      <p class="aj-sub">Todas as suas notas, com busca e lixeira de 30 dias.</p>
     </header>
     <div class="aj-procura">
       <label class="aj-busca">
