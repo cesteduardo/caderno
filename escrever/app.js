@@ -93,8 +93,8 @@ const prefs = Object.assign({
   mostrarTempo: true, meusEstilos: [],
   // autoria: quem assina o texto exportado (e um link opcional)
   autor: '', autorLink: '',
-  // sons do teclado (sons.js): ligado, switch, volume, a volta da tecla e a acústica
-  sons: false, switch: 'creamy', somVolume: 60, somSoltar: true, somSala: 'mesa'
+  // sons do teclado (sons.js): ligado, switch, volume e a volta da tecla
+  sons: false, switch: 'creamy', somVolume: 60, somSoltar: true
 }, lerPrefs());
 
 /* Migração da primeira versão, em que a ferramenta se chamava
@@ -1752,7 +1752,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.7.0';
+const VERSAO = '2.7.1';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -1858,7 +1858,8 @@ function abrirSobre(){
           'As fontes do texto são as iA Writer (Duo, Mono e Quattro), sob licença Apache 2.0; ' +
           'a da interface é a Inter (OFL), a Legível é a Atkinson Hyperlegible (OFL) ' +
           'e os ícones são do Lucide (ISC). O corretor é o Hunspell (MPL/LGPL), em ' +
-          'WebAssembly pelo hunspell-asm (MIT), com o dicionário VERO (LGPLv3/MPL).</p>' +
+          'WebAssembly pelo hunspell-asm (MIT), com o dicionário VERO (LGPLv3/MPL). ' +
+          'Os sons dos switches são gravações do kbsim, de Thomas Lai (MIT).</p>' +
         '<a class="folha-credito" href="https://grbrands.com.br" target="_blank" rel="noopener">' +
           '<span>Desenvolvido por</span><b>' + GR_SIMBOLO + 'GR Brands<i>.</i></b></a>' +
       '</div>' +
@@ -2113,7 +2114,7 @@ window.addEventListener('resize', () => {
 $('#togVer').onclick = () => definirVisualizacao(!prefs.visualizando);
 
 /* Sons do teclado: o menu Ferramentas liga e desliga sem fechar; o switch
-   se escolhe no Personalizar. Ligar já toca uma tecla, para confirmar. */
+   se escolhe no Personalizar. */
 function nomeDoSwitch(){
   const s = typeof SONS !== 'undefined' && SONS ? SONS.SWITCHES.find(x => x.id === prefs.switch) : null;
   return s ? s.nome : 'Creamy';
@@ -2127,7 +2128,7 @@ function pintarTogSons(){
 $('#togSons').onclick = () => {
   prefs.sons = !prefs.sons;
   aplicarPrefs();
-  if (prefs.sons && typeof SONS !== 'undefined' && SONS) SONS.umToque();
+  if (typeof SONS !== 'undefined' && SONS) SONS.preparar();
   avisar(prefs.sons ? `sons ligados · ${nomeDoSwitch()}` : 'sons desligados');
 };
 $('#togPoeta').onclick = () => {
@@ -3048,7 +3049,7 @@ O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. No a
 - **Estilos prontos** trocam tudo de uma vez: Livro, Noturno, Concentração, Revisão e outros. Você também pode salvar a sua combinação com um nome.
 - **Aparência**: oito papéis e o Automático, que segue o claro ou escuro do sistema; a cor de destaque, inclusive uma escolhida por você; a cor dos títulos e os sinais do Markdown.
 - **Texto**: fonte, corpo, entrelinha, espaço entre letras e largura da coluna.
-- **Sons** deixa cada tecla com o barulho de um teclado mecânico. São sete switches: os lineares Vermelho, Amarelo, Preto e Creamy, os táteis Marrom e Roxo e o clicky Azul. Clicar num deles toca uma amostra e já liga o som. Dá para regular o volume, a acústica (seca, na mesa ou numa sala) e o som da tecla voltando. O Espaço e as teclas grandes soam mais graves, como num teclado com estabilizador. No menu Ferramentas o som liga e desliga sem abrir o painel.
+- **Sons** deixa cada tecla com o barulho de um teclado mecânico, com gravações reais de sete switches: os lineares Vermelho, Amarelo, Preto e Creamy, os táteis Marrom e Roxo e o clicky Azul. Escolher um switch já liga o som. Dá para regular o volume e o som da tecla voltando. No menu Ferramentas o som liga e desliga sem abrir o painel.
 - **Escrita**, **Revisão** e **Tela e meta** reúnem o Foco, a máquina de escrever, a tipografia inteligente, a ortografia, as classes gramaticais, o rodapé e a meta de palavras.
 - **Autoria** guarda o seu nome, do jeito que quiser assinar, e um link opcional (site, e-mail ou rede social). Eles assinam os arquivos exportados.
 

@@ -89,7 +89,7 @@ const PADRAO = {
   escopo: 'nenhum', esmaecer: 'medio', maquina: false, tipografia: false,
   ortografia: true, estilo: true, classe: 'nenhuma',
   barraSome: true, rodape: true, mostrarTempo: true, contagem: 0, ppm: 200, meta: 0,
-  sons: false, switch: 'creamy', somVolume: 60, somSoltar: true, somSala: 'mesa',
+  sons: false, switch: 'creamy', somVolume: 60, somSoltar: true,
 };
 
 /* O que um estilo guarda: o visual e o jeito de escrever. Meta,
@@ -279,7 +279,7 @@ function montar(){
       b.onclick = () => {
         if (k === 'poeta'){ $('#togPoeta').click(); sincronizar(); return; }
         mudar(k, !prefs[k]);
-        if ((k === 'sons' || k === 'somSoltar') && prefs.sons && SONS) SONS.umToque();
+        if (k === 'sons' && SONS) SONS.preparar();
       };
       return b;
     }));
@@ -290,21 +290,12 @@ function montar(){
     grupo('optSwitch', SONS.SWITCHES.map(s => [s.id, s.nome, s]), 'switch', ([, nome, s]) => {
       const topo = el('span', 'aj-sw-topo');
       const txt = el('span', 'aj-sw-txt');
-      txt.append(el('b', null, nome), el('small', null, `${s.tipo} · ${s.peso} g`));
+      txt.append(el('b', null, nome), el('small', null, `${s.tipo} · ${s.modelo}`));
       topo.append(desenhoDoSwitch(s), txt);
       return [topo, el('small', 'aj-sw-dica', s.dica)];
-    }, (id) => {
-      prefs.sons = true;
-      mudar('switch', id);
-      SONS.amostra(id);
-      const b = $('#optSwitch').querySelector(`[data-v="${id}"]`);
-      if (b && !reduzido()){ b.classList.remove('tocando'); void b.offsetWidth; b.classList.add('tocando'); }
-    });
-    $('#optSwitch').addEventListener('animationend', (e) => { const b = e.target.closest('[role=radio]'); if (b) b.classList.remove('tocando'); });
+    }, (id) => { prefs.sons = true; mudar('switch', id); SONS.preparar(); });
   }
-  grupo('optSala', SALAS_SOM, 'somSala', rotulo, (v) => { mudar('somSala', v); if (SONS && prefs.sons){ SONS.sala(); SONS.amostra(); } });
   $('#rngSom').oninput = (e) => { prefs.somVolume = +e.target.value; salvarPrefs(); if (SONS) SONS.volume(); pintarVolume(); };
-  $('#rngSom').onchange = () => { if (SONS && prefs.sons) SONS.umToque(); };
 
   /* contagem */
   $('#selContagem').replaceChildren(...CONTAGENS.map((_, i) => { const o = el('option', null, CONTAGEM_NOMES[i] || ('Contagem ' + (i + 1))); o.value = i; return o; }));
@@ -334,7 +325,6 @@ function montar(){
 
 /* O switch visto de cima, sem a tecla: a carcaça e a haste em cruz,
    na cor que dá nome a ele. */
-const SALAS_SOM = [['seca', 'Seca'], ['mesa', 'Mesa'], ['sala', 'Sala']];
 function desenhoDoSwitch(s){
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');

@@ -1,4 +1,4 @@
-# Escritor 2.7.0
+# Escritor 2.7.1
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -15,9 +15,9 @@ Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o apli
 
 ## Na 2.7
 
-- **Sons do teclado:** uma seção nova no Personalizar, **Sons**, faz cada tecla soar como um teclado mecânico. São sete switches: os lineares **Vermelho** (leve), **Amarelo** (liso, com a volta marcada), **Preto** (pesado e grave) e **Creamy** (o thock fundo e macio), os táteis **Marrom** (degrau suave) e **Roxo** (degrau forte, que nem um panda) e o clicky **Azul**, que estala na descida e na volta. Clicar num cartão toca uma frase de amostra, já escolhe o switch e liga o som; a haste do desenho afunda junto.
-- **Feito no próprio navegador:** nenhum arquivo de áudio. Cada som é sintetizado em `sons.js` a partir do que acontece num switch: o degrau dos táteis, a jaqueta do clicky, o pino batendo no fundo, a tecla e a placa vibrando, o baque do case e, ao soltar, a haste batendo em cima. O Espaço e as teclas grandes (Enter, Shift, Backspace, Tab) soam mais graves e longos, com a barra do estabilizador. Cada tecla tem a sua voz (o A não soa igual ao L) e a posição no teclado puxa o som um pouco para a esquerda ou para a direita. Segurar a tecla não repete o som.
-- **Ajustes:** volume próprio, acústica **Seca**, **Mesa** ou **Sala**, o som ao soltar a tecla e um campo para experimentar sem mexer no texto. No menu **Ferramentas**, um botão liga e desliga o som sem fechar o menu. Os ajustes de som entram no Exportar e no Importar.
+- **Sons do teclado (2.7.1):** uma seção nova no Personalizar, **Sons**, faz cada tecla soar como um teclado mecânico, com **gravações reais** de sete switches: os lineares **Vermelho** (Gateron Red Ink), **Amarelo** (Alpaca), **Preto** (Cherry MX Black) e **Creamy** (NovelKeys Cream), os táteis **Marrom** (Cherry MX Brown) e **Roxo** (Holy Panda) e o clicky **Azul** (Cherry MX Blue). Cada fileira do teclado tem a sua gravação, o Espaço, o Enter e o Backspace têm as deles, e soltar a tecla toca a volta. Escolher um switch já liga o som; segurar a tecla não repete. O volume é próprio do Escritor, e o menu **Ferramentas** liga e desliga sem fechar.
+- As gravações são do [kbsim](https://github.com/tplai/kbsim), de Thomas Lai, sob licença MIT (cópia em `sons/LICENCA-kbsim.md`). Não há gravação aberta do Gateron Yellow; o Amarelo usa a do Alpaca, outro linear liso. Os arquivos de um switch só são baixados quando ele é escolhido (uns 45 KB).
+- A 2.7.0 gerava os sons por síntese no navegador e foi trocada: não soava como teclado de verdade.
 
 ## Na 2.6
 
