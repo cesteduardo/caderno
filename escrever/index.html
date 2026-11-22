@@ -75,13 +75,14 @@
         <button class="ico menu-btn" id="btnFerr" aria-haspopup="dialog" title="Ferramentas" aria-label="Ferramentas"><i data-ico="engrenagem"></i>
         </button>
         <dialog class="menu-pop mp--doc mp--ferr" aria-labelledby="menuFerrT">
-          <header class="mp-topo"><span class="mp-sq" style="--c:#8e8e93" aria-hidden="true"><i data-ico="engrenagem"></i></span><div><h2 id="menuFerrT">Ferramentas</h2><p>Buscar, navegar, comentar e o tamanho da tela.</p></div><button type="button" class="mp-x" data-fecha aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></header>
+          <header class="mp-topo"><span class="mp-sq" style="--c:#8e8e93" aria-hidden="true"><i data-ico="engrenagem"></i></span><div><h2 id="menuFerrT">Ferramentas</h2><p>Buscar, navegar, comentar, os sons e o tamanho da tela.</p></div><button type="button" class="mp-x" data-fecha aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-ico="x"></i></button></header>
           <div class="mp-corpo" role="menu" aria-labelledby="menuFerrT">
             <div class="mp-pagina">
                 <button class="mp-tile" role="menuitem" id="btnBusca"><i class="mp-ti" data-ico="buscar"></i><span class="mp-txt"><span>Buscar e substituir</span><small>Acha e troca palavras no texto</small></span><kbd>Ctrl+F</kbd></button>
                 <button class="mp-tile" role="menuitem" id="btnSumario"><i class="mp-ti" data-ico="sumario"></i><span class="mp-txt"><span>Sumário</span><small>Pula de um título para outro</small></span><kbd>Ctrl+Shift+O</kbd></button>
                 <button class="mp-tile" role="menuitem" id="btnComentarios"><i class="mp-ti" data-ico="comentarios"></i><span class="mp-txt"><span>Comentários</span><small>Todos os do texto, num lugar só</small></span><kbd>Ctrl+Shift+/</kbd></button>
                 <button class="mp-tile" role="menuitemcheckbox" id="togPoeta" aria-pressed="false" title="Alinhar e recuar versos"><i class="mp-ti" data-ico="poeta"></i><span class="mp-txt"><span>Modo Poeta</span><small>Régua de recuo e versos numerados</small></span></button>
+                <button class="mp-tile" role="menuitemcheckbox" id="togSons" aria-pressed="false" data-fica><i class="mp-ti" data-ico="sons"></i><span class="mp-txt"><span>Sons do teclado</span><small id="togSonsDica">Desligados</small></span></button>
                 <button class="mp-tile" role="menuitemcheckbox" id="btnTela" aria-pressed="false"><i class="mp-ti" data-ico="tela-cheia"></i><span class="mp-txt"><span>Tela cheia</span><small>Some tudo, sobra a folha</small></span><kbd>Ctrl+Shift+F</kbd></button>
                 <div class="mp-zoom" role="group" aria-labelledby="zoomT">
                   <i class="mp-ti" data-ico="zoom-mais"></i>
@@ -181,6 +182,7 @@
       <button type="button" data-ir="aparencia" style="--c:#007aff"><span class="aj-ic"><i data-ico="aparencia"></i></span><span class="aj-nome">Aparência</span></button>
       <button type="button" data-ir="texto" style="--c:#ff9500"><span class="aj-ic"><i data-ico="texto"></i></span><span class="aj-nome">Texto</span></button>
       <button type="button" data-ir="escrita" style="--c:#34c759"><span class="aj-ic"><i data-ico="escrita"></i></span><span class="aj-nome">Escrita</span></button>
+      <button type="button" data-ir="sons" style="--c:#00a69c"><span class="aj-ic"><i data-ico="sons"></i></span><span class="aj-nome">Sons</span></button>
       <button type="button" data-ir="revisao" style="--c:#ff3b30"><span class="aj-ic"><i data-ico="revisao"></i></span><span class="aj-nome">Revisão</span></button>
       <button type="button" data-ir="tela" style="--c:#30b0c7"><span class="aj-ic"><i data-ico="tela"></i></span><span class="aj-nome">Tela e meta</span></button>
       <button type="button" data-ir="autoria" style="--c:#a2845e"><span class="aj-ic"><i data-ico="autoria"></i></span><span class="aj-nome">Autoria</span></button>
@@ -282,6 +284,34 @@
                 <div class="aj-seg" id="optEsmaecer" role="radiogroup" aria-label="Intensidade do foco"></div>
               </div>
               <div class="aj-chaves" id="optEscrita"></div>
+            </div>
+          </section>
+
+          <section class="aj-secao" data-secao="sons" aria-labelledby="ajs-sons" data-busca="som sons teclado mecânico switch clique barulho áudio">
+            <h3 id="ajs-sons">Sons</h3>
+            <p class="aj-intro">Cada tecla soa como um teclado mecânico. Clique num switch para ouvir: ele já fica escolhido e o som liga.</p>
+            <div class="aj-grupo">
+              <div class="aj-chaves" id="optSons"></div>
+            </div>
+            <div class="aj-grupo">
+              <div class="aj-linha aj-linha--pilha" data-busca="switch vermelho red preto black amarelo yellow creamy cream marrom brown roxo purple azul blue linear tátil clicky">
+                <div class="aj-rot"><b>Switch</b><small>Os lineares descem lisos, os táteis têm um degrau no meio e o clicky estala.</small></div>
+                <div class="aj-switches" id="optSwitch" role="radiogroup" aria-label="Switch"></div>
+              </div>
+            </div>
+            <div class="aj-grupo">
+              <div class="aj-linha" data-busca="volume altura do som alto baixo">
+                <div class="aj-rot"><b>Volume</b><small>Só o do Escritor; o do sistema continua igual.</small></div>
+                <div class="aj-faixa"><input type="range" id="rngSom" min="0" max="100" step="1" aria-label="Volume dos sons"><output id="outSom" for="rngSom"></output></div>
+              </div>
+              <div class="aj-linha" data-busca="acústica ambiente eco sala mesa seca reverberação">
+                <div class="aj-rot"><b>Acústica</b><small>Onde o teclado está: sem eco, sobre a mesa ou numa sala.</small></div>
+                <div class="aj-seg" id="optSala" role="radiogroup" aria-label="Acústica"></div>
+              </div>
+              <div class="aj-linha aj-linha--pilha" data-busca="experimentar testar ouvir digitar">
+                <label class="aj-rot" for="somTeste"><b>Experimente</b><small>Digite aqui para ouvir o switch escolhido. Nada do que entra aqui vai para o texto.</small></label>
+                <input class="aj-texto" type="text" id="somTeste" placeholder="Digite qualquer coisa" autocomplete="off" spellcheck="false">
+              </div>
             </div>
           </section>
 
@@ -544,6 +574,7 @@
 <script src="icones.js"></script>
 <script src="usos.js"></script>
 <script src="app.js"></script>
+<script src="sons.js"></script>
 <script src="personalizar.js"></script>
 <script src="estudo.js"></script>
 <script src="ponte.js"></script>

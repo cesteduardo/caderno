@@ -92,7 +92,9 @@ const prefs = Object.assign({
   titulos: 'tinta', letras: 0, esmaecer: 'medio', ppm: 200,
   mostrarTempo: true, meusEstilos: [],
   // autoria: quem assina o texto exportado (e um link opcional)
-  autor: '', autorLink: ''
+  autor: '', autorLink: '',
+  // sons do teclado (sons.js): ligado, switch, volume, a volta da tecla e a acústica
+  sons: false, switch: 'creamy', somVolume: 60, somSoltar: true, somSala: 'mesa'
 }, lerPrefs());
 
 /* Migração da primeira versão, em que a ferramenta se chamava
@@ -1750,7 +1752,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.6.1';
+const VERSAO = '2.7.0';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -1917,6 +1919,7 @@ function aplicarPrefs(){
   $('#corpoAgora').textContent = prefs.corpo + 'px';
   $('#togPoeta').setAttribute('aria-pressed', String(prefs.poeta));
   regua.hidden = !prefs.poeta;
+  pintarTogSons();
 
   // marcas de estado dentro dos menus
   $$('[data-escopo]').forEach(b => b.setAttribute('aria-checked', b.dataset.escopo === prefs.escopo));
@@ -2108,6 +2111,25 @@ window.addEventListener('resize', () => {
 /* ── ligações ─────────────────────────────────────────────── */
 
 $('#togVer').onclick = () => definirVisualizacao(!prefs.visualizando);
+
+/* Sons do teclado: o menu Ferramentas liga e desliga sem fechar; o switch
+   se escolhe no Personalizar. Ligar já toca uma tecla, para confirmar. */
+function nomeDoSwitch(){
+  const s = typeof SONS !== 'undefined' && SONS ? SONS.SWITCHES.find(x => x.id === prefs.switch) : null;
+  return s ? s.nome : 'Creamy';
+}
+function pintarTogSons(){
+  const b = $('#togSons');
+  if (!b) return;
+  b.setAttribute('aria-pressed', String(!!prefs.sons));
+  $('#togSonsDica').textContent = prefs.sons ? `Switch ${nomeDoSwitch()}; troque no Personalizar` : 'Desligados; ligue para ouvir cada tecla';
+}
+$('#togSons').onclick = () => {
+  prefs.sons = !prefs.sons;
+  aplicarPrefs();
+  if (prefs.sons && typeof SONS !== 'undefined' && SONS) SONS.umToque();
+  avisar(prefs.sons ? `sons ligados · ${nomeDoSwitch()}` : 'sons desligados');
+};
 $('#togPoeta').onclick = () => {
   prefs.poeta = !prefs.poeta;
   aplicarPrefs();
@@ -3026,6 +3048,7 @@ O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. No a
 - **Estilos prontos** trocam tudo de uma vez: Livro, Noturno, Concentração, Revisão e outros. Você também pode salvar a sua combinação com um nome.
 - **Aparência**: oito papéis e o Automático, que segue o claro ou escuro do sistema; a cor de destaque, inclusive uma escolhida por você; a cor dos títulos e os sinais do Markdown.
 - **Texto**: fonte, corpo, entrelinha, espaço entre letras e largura da coluna.
+- **Sons** deixa cada tecla com o barulho de um teclado mecânico. São sete switches: os lineares Vermelho, Amarelo, Preto e Creamy, os táteis Marrom e Roxo e o clicky Azul. Clicar num deles toca uma amostra e já liga o som. Dá para regular o volume, a acústica (seca, na mesa ou numa sala) e o som da tecla voltando. O Espaço e as teclas grandes soam mais graves, como num teclado com estabilizador. No menu Ferramentas o som liga e desliga sem abrir o painel.
 - **Escrita**, **Revisão** e **Tela e meta** reúnem o Foco, a máquina de escrever, a tipografia inteligente, a ortografia, as classes gramaticais, o rodapé e a meta de palavras.
 - **Autoria** guarda o seu nome, do jeito que quiser assinar, e um link opcional (site, e-mail ou rede social). Eles assinam os arquivos exportados.
 

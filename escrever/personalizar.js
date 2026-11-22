@@ -5,7 +5,7 @@
    (prefs, editor, desenhar, aplicarPrefs, avisar, COR_TEMA…).
 
    - Painel “Aa” (Ctrl+,): um <dialog> no meio da tela, com seções
-     (Estilos, Aparência, Texto, Escrita, Revisão, Tela e meta,
+     (Estilos, Aparência, Texto, Escrita, Sons, Revisão, Tela e meta,
      Obsidian, Atalhos), busca de ajustes, amostra ao vivo, estilos
      prontos, estilos salvos e exportar/importar os ajustes.
    - Sumário (Ctrl+Shift+O): também central, com filtro e teclado.
@@ -60,6 +60,10 @@ const CHAVES = {
     ['tipografia', 'Tipografia inteligente', '"aspas" viram “aspas”, ... vira … e -- vira —.', 'aspas curvas reticências travessão'],
     ['poeta', 'Modo Poeta', 'Régua de recuo e versos alinhados.', 'poesia verso recuo régua'],
   ],
+  optSons: [
+    ['sons', 'Sons do teclado', 'Cada tecla soa como um teclado mecânico, em qualquer campo do Escritor.', 'ligar desligar som áudio'],
+    ['somSoltar', 'Som ao soltar a tecla', 'A volta da tecla também soa, mais baixa e mais aguda.', 'subida volta soltar'],
+  ],
   optRevisao: [
     ['ortografia', 'Ortografia', 'Sublinha palavras suspeitas e trocas como por que e porque, mas e mais.', 'ctrl+p corretor erro porque porquê mas mais mal mau onde aonde senão demais afim tampouco'],
     ['estilo', 'Revisão de estilo', 'Repetições, clichês e frases longas.', 'ctrl+r repetição clichê'],
@@ -85,6 +89,7 @@ const PADRAO = {
   escopo: 'nenhum', esmaecer: 'medio', maquina: false, tipografia: false,
   ortografia: true, estilo: true, classe: 'nenhuma',
   barraSome: true, rodape: true, mostrarTempo: true, contagem: 0, ppm: 200, meta: 0,
+  sons: false, switch: 'creamy', somVolume: 60, somSoltar: true, somSala: 'mesa',
 };
 
 /* O que um estilo guarda: o visual e o jeito de escrever. Meta,
@@ -274,10 +279,32 @@ function montar(){
       b.onclick = () => {
         if (k === 'poeta'){ $('#togPoeta').click(); sincronizar(); return; }
         mudar(k, !prefs[k]);
+        if ((k === 'sons' || k === 'somSoltar') && prefs.sons && SONS) SONS.umToque();
       };
       return b;
     }));
   }
+
+  /* sons: o switch, a acústica, o volume e o campo de teste */
+  if (SONS){
+    grupo('optSwitch', SONS.SWITCHES.map(s => [s.id, s.nome, s]), 'switch', ([, nome, s]) => {
+      const topo = el('span', 'aj-sw-topo');
+      const txt = el('span', 'aj-sw-txt');
+      txt.append(el('b', null, nome), el('small', null, `${s.tipo} · ${s.peso} g`));
+      topo.append(desenhoDoSwitch(s), txt);
+      return [topo, el('small', 'aj-sw-dica', s.dica)];
+    }, (id) => {
+      prefs.sons = true;
+      mudar('switch', id);
+      SONS.amostra(id);
+      const b = $('#optSwitch').querySelector(`[data-v="${id}"]`);
+      if (b && !reduzido()){ b.classList.remove('tocando'); void b.offsetWidth; b.classList.add('tocando'); }
+    });
+    $('#optSwitch').addEventListener('animationend', (e) => { const b = e.target.closest('[role=radio]'); if (b) b.classList.remove('tocando'); });
+  }
+  grupo('optSala', SALAS_SOM, 'somSala', rotulo, (v) => { mudar('somSala', v); if (SONS && prefs.sons){ SONS.sala(); SONS.amostra(); } });
+  $('#rngSom').oninput = (e) => { prefs.somVolume = +e.target.value; salvarPrefs(); if (SONS) SONS.volume(); pintarVolume(); };
+  $('#rngSom').onchange = () => { if (SONS && prefs.sons) SONS.umToque(); };
 
   /* contagem */
   $('#selContagem').replaceChildren(...CONTAGENS.map((_, i) => { const o = el('option', null, CONTAGEM_NOMES[i] || ('Contagem ' + (i + 1))); o.value = i; return o; }));
@@ -303,6 +330,31 @@ function montar(){
   const autoria = (chave) => (e) => { prefs[chave] = e.target.value.trim(); salvarPrefs(); pintarAutoria(); };
   $('#txtAutor').oninput = autoria('autor');
   $('#txtAutorLink').oninput = autoria('autorLink');
+}
+
+/* O switch visto de cima, sem a tecla: a carcaça e a haste em cruz,
+   na cor que dá nome a ele. */
+const SALAS_SOM = [['seca', 'Seca'], ['mesa', 'Mesa'], ['sala', 'Sala']];
+function desenhoDoSwitch(s){
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 48 48');
+  svg.setAttribute('class', 'aj-sw-desenho');
+  svg.setAttribute('aria-hidden', 'true');
+  const escura = luminancia(s.haste) < .05;
+  const traco = escura ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.22)';
+  svg.innerHTML =
+    `<rect x="2.5" y="2.5" width="43" height="43" rx="8" fill="${s.base}" stroke="rgba(0,0,0,.14)"/>` +
+    `<rect x="6.5" y="6.5" width="35" height="35" rx="5.5" fill="${s.topo}"/>` +
+    `<rect x="19" y="8.5" width="10" height="3.5" rx="1.5" fill="rgba(0,0,0,.3)"/>` +
+    `<g class="aj-sw-haste"><rect x="12.5" y="14" width="23" height="23" rx="5" fill="${s.haste}" stroke="${traco}"/>` +
+    `<path d="M21.6 16.5h4.8v6.1h6.1v4.8h-6.1v6.1h-4.8v-6.1h-6.1v-4.8h6.1z" fill="${escura ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.42)'}" stroke="${escura ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.18)'}" stroke-width=".8"/></g>`;
+  return svg;
+}
+function pintarVolume(){
+  $('#rngSom').value = prefs.somVolume;
+  $('#outSom').textContent = Math.round(prefs.somVolume) + '%';
+  pintarFaixas();
 }
 
 /* A prévia é a própria assinatura dos arquivos exportados. */
@@ -363,6 +415,7 @@ function sincronizar(){
   $('#outColunaDica').textContent = cpl ? `Cerca de ${cpl} letras por linha. Entre 60 e 75 é o confortável.` : 'Entre 60 e 75 letras por linha é o confortável.';
   pintarFaixas();
   if (typeof medirPilulas === 'function') medirPilulas();
+  pintarVolume();
   $('#selContagem').value = String(prefs.contagem);
   if (document.activeElement !== $('#numMeta')) $('#numMeta').value = prefs.meta || '';
   if (document.activeElement !== $('#txtAutor')) $('#txtAutor').value = prefs.autor || '';

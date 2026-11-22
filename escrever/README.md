@@ -1,4 +1,4 @@
-# Escritor 2.6.1
+# Escritor 2.7.0
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -12,6 +12,12 @@ python3 -m http.server 8000
 Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o aplicativo escrito nele mesmo. A primeira coisa que você escrever vira uma nota sua.
 
 ---
+
+## Na 2.7
+
+- **Sons do teclado:** uma seção nova no Personalizar, **Sons**, faz cada tecla soar como um teclado mecânico. São sete switches: os lineares **Vermelho** (leve), **Amarelo** (liso, com a volta marcada), **Preto** (pesado e grave) e **Creamy** (o thock fundo e macio), os táteis **Marrom** (degrau suave) e **Roxo** (degrau forte, que nem um panda) e o clicky **Azul**, que estala na descida e na volta. Clicar num cartão toca uma frase de amostra, já escolhe o switch e liga o som; a haste do desenho afunda junto.
+- **Feito no próprio navegador:** nenhum arquivo de áudio. Cada som é sintetizado em `sons.js` a partir do que acontece num switch: o degrau dos táteis, a jaqueta do clicky, o pino batendo no fundo, a tecla e a placa vibrando, o baque do case e, ao soltar, a haste batendo em cima. O Espaço e as teclas grandes (Enter, Shift, Backspace, Tab) soam mais graves e longos, com a barra do estabilizador. Cada tecla tem a sua voz (o A não soa igual ao L) e a posição no teclado puxa o som um pouco para a esquerda ou para a direita. Segurar a tecla não repete o som.
+- **Ajustes:** volume próprio, acústica **Seca**, **Mesa** ou **Sala**, o som ao soltar a tecla e um campo para experimentar sem mexer no texto. No menu **Ferramentas**, um botão liga e desliga o som sem fechar o menu. Os ajustes de som entram no Exportar e no Importar.
 
 ## Na 2.6
 
