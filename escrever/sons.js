@@ -45,7 +45,20 @@ const SONS = (() => {
   }
 
   let ctx = null, mestre = null;
-  const carregados = new Map();          // id → Promise<{ desce, sobe, ganho }>
+  const carregados = new Map();          // id → Promise<{ id, desce, sobe, ganho }>
+  let pronto = null;                     // o último switch já decodificado
+  const ataque = new WeakMap();          // gravação → segundo em que a batida começa
+
+  function inicio(buf){
+    const canais = [];
+    for (let c = 0; c < buf.numberOfChannels; c++) canais.push(buf.getChannelData(c));
+    let pico = 0;
+    for (const d of canais) for (let i = 0; i < d.length; i++){ const v = Math.abs(d[i]); if (v > pico) pico = v; }
+    const lim = pico * .05;
+    for (let i = 0; i < buf.length; i++)
+      for (const d of canais) if (Math.abs(d[i]) > lim) return Math.max(0, i / buf.sampleRate - .0015);
+    return 0;
+  }
 
   function audio(){
     if (!ctx){
@@ -90,34 +103,44 @@ const SONS = (() => {
         const d = desce['GENERIC_R' + i].getChannelData(0);
         for (let j = 0; j < d.length; j++) pico = Math.max(pico, Math.abs(d[j]));
       }
-      return { desce, sobe, ganho: pico ? .5 / pico : 1 };
+      // o MP3 traz um pedaço mudo antes da batida (até 60 ms no Azul):
+      // cada gravação começa a tocar direto no ataque
+      for (const b of [...Object.values(desce), ...Object.values(sobe)]) if (b && !ataque.has(b)) ataque.set(b, inicio(b));
+      return { id, desce, sobe, ganho: pico ? .5 / pico : 1 };
     })();
+    p.then(s => { pronto = s; }, () => {});
     p.catch(() => carregados.delete(id));
     carregados.set(id, p);
     return p;
   }
 
+  function soar(sw, code, solta){
+    const { desce, sobe, ganho } = sw;
+    const esp = ESPECIAL[code];
+    const fileira = 'GENERIC_R' + (FILEIRA.has(code) ? FILEIRA.get(code) : code === 'Space' ? 4 : 2);
+    const buf = solta ? (esp && sobe[esp]) || sobe.GENERIC : (esp && desce[esp]) || desce[fileira];
+    if (!buf) return;
+    const fonte = ctx.createBufferSource();
+    fonte.buffer = buf;
+    fonte.playbackRate.value = 1 + (Math.random() - .5) * .02;
+    const g = ctx.createGain();
+    g.gain.value = ganho * (.92 + Math.random() * .16);
+    fonte.connect(g);
+    if (ctx.createStereoPanner){
+      const p = ctx.createStereoPanner();
+      p.pan.value = lado(code) * .3;
+      g.connect(p); p.connect(mestre);
+    } else g.connect(mestre);
+    fonte.start(0, ataque.get(buf) || 0);
+  }
+
   function tocar(code, solta){
     if (!audio()) return;
     const id = prefs.switch;
-    carregar(id).then(({ desce, sobe, ganho }) => {
-      if (!prefs.sons || prefs.switch !== id) return;
-      const esp = ESPECIAL[code];
-      const fileira = 'GENERIC_R' + (FILEIRA.has(code) ? FILEIRA.get(code) : code === 'Space' ? 4 : 2);
-      const buf = solta ? (esp && sobe[esp]) || sobe.GENERIC : (esp && desce[esp]) || desce[fileira];
-      if (!buf) return;
-      const fonte = ctx.createBufferSource();
-      fonte.buffer = buf;
-      fonte.playbackRate.value = 1 + (Math.random() - .5) * .02;
-      const g = ctx.createGain();
-      g.gain.value = ganho * (.92 + Math.random() * .16);
-      fonte.connect(g);
-      if (ctx.createStereoPanner){
-        const p = ctx.createStereoPanner();
-        p.pan.value = lado(code) * .3;
-        g.connect(p); p.connect(mestre);
-      } else g.connect(mestre);
-      fonte.start();
+    // já decodificado: toca na hora, sem esperar a volta de uma Promise
+    if (pronto && pronto.id === id) return soar(pronto, code, solta);
+    carregar(id).then(sw => {
+      if (prefs.sons && prefs.switch === id) soar(sw, code, solta);
     }).catch(() => {});
   }
 
@@ -144,6 +167,9 @@ const SONS = (() => {
     tocar(c, true);
   }, true);
   addEventListener('blur', () => presas.clear());
+  // o navegador só libera o áudio depois de um toque ou clique: acordá-lo
+  // já no primeiro clique evita que a primeira tecla saia atrasada
+  addEventListener('pointerdown', () => { if (prefs.sons) audio(); }, true);
 
   if (prefs.sons) preparar();
   return { SWITCHES, volume, preparar };
