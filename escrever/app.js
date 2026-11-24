@@ -1752,7 +1752,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.7.5';
+const VERSAO = '2.7.6';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -3091,7 +3091,7 @@ O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. No a
 - **Estilos prontos** trocam tudo de uma vez: Livro, Noturno, Concentração, Revisão e outros. Você também pode salvar a sua combinação com um nome.
 - **Aparência**: oito papéis e o Automático, que segue o claro ou escuro do sistema; a cor de destaque, inclusive uma escolhida por você; a cor dos títulos e os sinais do Markdown.
 - **Texto**: fonte, corpo, entrelinha, espaço entre letras e largura da coluna.
-- **Sons** deixa cada tecla com o barulho de um teclado mecânico, com gravações reais de oito switches: os lineares Vermelho, Amarelo, Preto e Creamy, os táteis Marrom e Roxo, o clicky Azul e o capacitivo Topre. Escolher um switch já liga o som. Dá para regular o volume e o som da tecla voltando. No menu Ferramentas o som liga e desliga sem abrir o painel.
+- **Sons** deixa cada tecla com o barulho de um teclado mecânico, com gravações reais de oito switches: os lineares Vermelho, Amarelo, Preto, Creamy e Turquesa, os táteis Marrom e Roxo e o clicky Azul. Escolher um switch já liga o som. Dá para regular o volume e o som da tecla voltando. No menu Ferramentas o som liga e desliga sem abrir o painel.
 - **Escrita**, **Revisão** e **Tela e meta** reúnem o Foco, a máquina de escrever, a tipografia inteligente, a ortografia, as classes gramaticais, o rodapé e a meta de palavras.
 - **Autoria** guarda o seu nome, do jeito que quiser assinar, e um link opcional (site, e-mail ou rede social). Eles assinam os arquivos exportados.
 

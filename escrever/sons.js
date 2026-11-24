@@ -20,8 +20,12 @@ const SONS = (() => {
     { id: 'marrom',   nome: 'Marrom',   tipo: 'Tátil',  modelo: 'Cherry MX Brown', haste: '#8b5a3c', topo: 'rgba(255,255,255,.16)', base: '#26262a', dica: 'Um degrau suave no meio, sem clique.' },
     { id: 'roxo',     nome: 'Roxo',     tipo: 'Tátil',  modelo: 'Holy Panda', haste: '#8e4ec6', topo: 'rgba(255,255,255,.2)', base: '#2a2530', dica: 'Degrau forte e batida cheia.' },
     { id: 'azul',     nome: 'Azul',     tipo: 'Clicky', modelo: 'Cherry MX Blue', haste: '#2b7fff', topo: 'rgba(255,255,255,.16)', base: '#26262a', dica: 'O clique alto, na descida e na volta.', sem: ['SPACE', 'ENTER', 'BACKSPACE'] },
-    { id: 'topre',    nome: 'Topre',    tipo: 'Capacitivo', modelo: 'Topre 45 g', haste: '#d8d5ce', topo: '#ecebe6', base: '#cfcbc3', dica: 'Abafado e redondo, o dos Realforce e HHKB.' },
+    { id: 'turquesa', nome: 'Turquesa', tipo: 'Linear', modelo: 'Zeal Tealios', haste: '#2bb3a8', topo: 'rgba(255,255,255,.18)', base: '#26262a', dica: 'Um toque só, liso e limpo.' },
   ];
+  // o Topre (2.7.5) saiu: quem estava nele passa para o Turquesa, e um
+  // switch que não existe mais volta para o Creamy
+  if (prefs.switch === 'topre') prefs.switch = 'turquesa';
+  if (!SWITCHES.some(s => s.id === prefs.switch)) prefs.switch = 'creamy';
   const DESCE = ['GENERIC_R0', 'GENERIC_R1', 'GENERIC_R2', 'GENERIC_R3', 'GENERIC_R4', 'SPACE', 'ENTER', 'BACKSPACE'];
   const SOBE = ['GENERIC', 'SPACE', 'ENTER', 'BACKSPACE'];
 
