@@ -57,7 +57,7 @@ const CONTAGEM_NOMES = ['Palavras', 'Caracteres', 'Caracteres sem espaços', 'Fr
 const CHAVES = {
   optEscrita: [
     ['maquina', 'Máquina de escrever', 'A folha desce enquanto você digita; clicar não mexe na página.', 'ctrl+t rolar centro'],
-    ['tipografia', 'Tipografia inteligente', '"aspas" viram “aspas”, ... vira … e -- vira —.', 'aspas curvas reticências travessão'],
+    ['tipografia', 'Tipografia inteligente', '"aspas" viram “aspas” e ... vira …. O -- vira — sempre, ligada ou não.', 'aspas curvas reticências travessão'],
     ['poeta', 'Modo Poeta', 'Régua de recuo e versos alinhados.', 'poesia verso recuo régua'],
   ],
   optSons: [
@@ -75,12 +75,15 @@ const CHAVES = {
   ],
 };
 
+/* Os atalhos em três grupos, cada um num cartão: o que abre e guarda,
+   o que se faz escrevendo e o que ajuda a revisar. */
 const ATALHOS = [
-  ['Personalizar', 'Ctrl+,'], ['Sumário', 'Ctrl+Shift+O'], ['Buscar', 'Ctrl+F'], ['Substituir', 'Ctrl+H'],
-  ['Modo Foco', 'Ctrl+D'], ['Máquina de escrever', 'Ctrl+T'], ['Classes gramaticais', 'Ctrl+G'],
-  ['Ortografia', 'Ctrl+P'], ['Revisão de estilo', 'Ctrl+R'], ['Corrigir a palavra', 'Ctrl+;'],
-  ['Visualizar', 'Ctrl+E'], ['Tela cheia', 'Ctrl+Shift+F'], ['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'], ['Ligação [[nota]]', 'Ctrl+K'],
-  ['Salvar ou baixar', 'Ctrl+S'], ['Notas', 'Ctrl+O'], ['Nova nota', 'Ctrl+Alt+N'], ['Realçar', 'Ctrl+Shift+H'], ['Comentário', 'Ctrl+/'],
+  ['Geral', [['Personalizar', 'Ctrl+,'], ['Sumário', 'Ctrl+Shift+O'], ['Notas', 'Ctrl+O'], ['Nova nota', 'Ctrl+Alt+N'],
+    ['Salvar ou baixar', 'Ctrl+S'], ['Visualizar', 'Ctrl+E'], ['Tela cheia', 'Ctrl+Shift+F']]],
+  ['Escrever', [['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'], ['Ligação [[nota]]', 'Ctrl+K'], ['Realçar', 'Ctrl+Shift+H'],
+    ['Comentário', 'Ctrl+/'], ['Buscar', 'Ctrl+F'], ['Substituir', 'Ctrl+H']]],
+  ['Revisar', [['Modo Foco', 'Ctrl+D'], ['Máquina de escrever', 'Ctrl+T'], ['Classes gramaticais', 'Ctrl+G'],
+    ['Ortografia', 'Ctrl+P'], ['Revisão de estilo', 'Ctrl+R'], ['Corrigir a palavra', 'Ctrl+;']]],
 ];
 
 const PADRAO = {
@@ -223,10 +226,40 @@ function amostraDePapel(tema, fonte, letra = 'Aa'){
   return i;
 }
 
+/* A miniatura de um estilo é uma página de verdade em ponto pequeno: o
+   papel, a fonte, o corpo e a largura da coluna dele, os sinais do
+   Markdown como ele mostra, o título em destaque quando é o caso, o foco
+   esmaecendo o resto e o cursor da máquina de escrever. */
+const FOLHA_ESCUROS = new Set(['escuro', 'noite', 'grafite', 'contraste']);
+function amostraDeEstilo(v){
+  const tema = v.tema === 'auto' ? (mqEscuro.matches ? v.autoEscuro : v.autoClaro) || 'claro' : v.tema || 'claro';
+  const pg = el('i', 'aj-pg aj-mini p-' + tema + (FOLHA_ESCUROS.has(tema) ? ' aj-mini--escuro' : ''));
+  const folha = el('span', 'aj-mini-folha f-' + (v.fonte || 'duo'));
+  const corpo = +v.corpo || 18, coluna = +v.coluna || 46;
+  folha.style.setProperty('--mini-fs', (corpo * 0.42).toFixed(2) + 'px');
+  folha.style.setProperty('--mini-lh', String(v.altura || 1.75));
+  folha.style.setProperty('--mini-w', Math.min(88, Math.max(56, coluna * 1.55)).toFixed(0) + '%');
+  folha.style.setProperty('--mini-ls', ((+v.letras || 0)) + 'em');
+  const tit = el('b', 'aj-mini-tit' + (v.titulos === 'destaque' ? ' is-destaque' : ''));
+  if (v.sinais !== 'ocultos') tit.append(el('i', 'aj-mini-sinal' + (v.sinais === 'discretos' ? ' is-discreto' : ''), '# '));
+  tit.append('Capítulo um');
+  const foco = v.escopo && v.escopo !== 'nenhum';
+  const apaga = { leve: .55, medio: .34, forte: .2 }[v.esmaecer] || .34;
+  const txt = el('span', 'aj-mini-txt');
+  const um = el('span', null, 'A folha estava em branco. ');
+  const resto = el('span', null, 'Depois veio a primeira frase, e com ela o resto da página.');
+  if (foco) resto.style.opacity = String(apaga);
+  txt.append(um, resto);
+  if (v.maquina) txt.append(el('i', 'aj-mini-cursor'));
+  folha.append(tit, txt);
+  pg.append(folha);
+  return pg;
+}
+
 function montar(){
   /* estilos prontos */
   $('#ajEstilos').replaceChildren(...ESTILOS.map(e => {
-    const b = botao([amostraDePapel(e.valores.tema, e.valores.fonte), el('b', 'aj-est-nome', e.nome), el('small', null, e.dica)],
+    const b = botao([amostraDeEstilo(e.valores), el('b', 'aj-est-nome', e.nome), el('small', null, e.dica)],
       { 'aria-pressed': 'false', 'data-estilo': e.id, title: `Usar o estilo ${e.nome}` },
       () => usarEstilo(e.valores, e.nome));
     return b;
@@ -302,12 +335,20 @@ function montar(){
   $('#selContagem').onchange = (e) => { prefs.contagem = +e.target.value; salvarPrefs(); atualizarNumeros(editor.value); pintarAmostra(); };
 
   /* atalhos */
-  $('#ajAtalhos').replaceChildren(...ATALHOS.flatMap(([o, t]) => {
-    const dd = el('dd');
-    // no Mac o atalho é uma tecla só, com os símbolos: ⇧⌘O
-    if (MAC) dd.append(el('kbd', null, paraSO(t)));
-    else dd.append(...t.split('+').flatMap((p, i) => i ? ['+', el('kbd', null, p)] : [el('kbd', null, p)]));
-    return [el('dt', null, o), dd];
+  $('#ajAtalhos').replaceChildren(...ATALHOS.map(([titulo, lista]) => {
+    const sec = el('section', 'aj-at-grupo');
+    const dl = el('dl', 'aj-at-lista');
+    lista.forEach(([o, t]) => {
+      const linha = el('div', 'aj-at-linha');
+      const dd = el('dd');
+      // no Mac o atalho é uma tecla só, com os símbolos: ⇧⌘O
+      if (MAC) dd.append(el('kbd', null, paraSO(t)));
+      else dd.append(...t.split('+').map(p => el('kbd', null, p)));
+      linha.append(el('dt', null, o), dd);
+      dl.append(linha);
+    });
+    sec.append(el('h4', 'aj-at-tit', titulo), dl);
+    return sec;
   }));
 
   /* faixas */
@@ -435,7 +476,7 @@ function pintarMeus(bate){
   caixa.replaceChildren(...lista.map((e, i) => {
     const v = e.valores || {};
     const item = el('div', 'aj-meu');
-    const usar = botao([amostraDePapel(v.tema === 'auto' ? (mqEscuro.matches ? v.autoEscuro : v.autoClaro) || 'claro' : v.tema || 'claro', v.fonte || 'duo'), el('b', 'aj-est-nome', e.nome)],
+    const usar = botao([amostraDeEstilo(Object.assign({}, base, v)), el('b', 'aj-est-nome', e.nome)],
       { 'aria-pressed': String(bate(v)), 'data-i': String(i), title: `Usar ${e.nome}` }, () => usarEstilo(v, e.nome));
     const tirar = botao('×', { class: 'aj-meu-x', 'aria-label': `Apagar o estilo ${e.nome}`, title: 'Apagar' }, () => {
       prefs.meusEstilos = lista.filter((_, j) => j !== i);
@@ -938,21 +979,25 @@ editor.addEventListener('input', () => { if (busca.aberta) { busca.texto = null;
 
 /* ── tipografia inteligente ──────────────────────────────── */
 editor.addEventListener('beforeinput', (e) => {
-  if (!prefs.tipografia || e.inputType !== 'insertText' || !e.data || e.data.length !== 1) return;
+  if (e.inputType !== 'insertText' || !e.data || e.data.length !== 1) return;
   const v = editor.value, a = editor.selectionStart, b = editor.selectionEnd;
   const antes = v[a - 1] || '';
-  const abre = !antes || /[\s(\[{—–“‘-]/.test(antes);
   let troca = null, de = a;
-  if (e.data === '"') troca = abre ? '“' : '”';
-  else if (e.data === "'") troca = abre ? '‘' : '’';
-  else if (e.data === '.' && a === b && v.slice(a - 2, a) === '..'){ troca = '…'; de = a - 2; }
-  // “--” vira travessão em qualquer ponto, inclusive no começo da linha,
-  // onde fica o travessão do diálogo. Um terceiro hífen logo depois de um
-  // travessão sozinho na linha devolve o “---” da linha horizontal.
-  else if (e.data === '-' && a === b && antes === '-'){ troca = '—'; de = a - 1; }
+  // O travessão vale sempre, com a tipografia inteligente ligada ou não:
+  // “--” vira “—” em qualquer ponto, inclusive no começo da linha, onde
+  // fica o do diálogo. Um terceiro hífen logo depois de um travessão
+  // sozinho na linha devolve o “---” da linha horizontal. Ctrl+Z desfaz.
+  if (e.data === '-' && a === b && antes === '-'){ troca = '—'; de = a - 1; }
   else if (e.data === '-' && a === b && antes === '—'){
     const inicio = v.lastIndexOf('\n', a - 1) + 1;
     if (/^\s*—$/.test(v.slice(inicio, a))){ troca = '---'; de = a - 1; }
+  }
+  // aspas curvas e reticências só com a tipografia inteligente ligada
+  else if (prefs.tipografia){
+    const abre = !antes || /[\s(\[{—–“‘-]/.test(antes);
+    if (e.data === '"') troca = abre ? '“' : '”';
+    else if (e.data === "'") troca = abre ? '‘' : '’';
+    else if (e.data === '.' && a === b && v.slice(a - 2, a) === '..'){ troca = '…'; de = a - 2; }
   }
   if (troca == null) return;
   e.preventDefault();
