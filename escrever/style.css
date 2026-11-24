@@ -2007,15 +2007,18 @@ body:is([data-theme="escuro"],[data-theme="noite"],[data-theme="grafite"],[data-
 .aj-obs-acoes kbd{ margin-left:.2rem; }
 
 /* ── atalhos ── */
-.aj-atalhos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap:18px 14px; align-items:start; }
+.aj-atalhos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap:18px 14px; align-items:stretch; }
+/* os três cartões com a mesma altura, lado a lado */
+.aj-at-grupo{ display:flex; flex-direction:column; }
+.aj-at-grupo .aj-at-lista{ flex:1; }
 .aj-at-tit{ margin:0 0 7px 12px; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--aj-suave); }
 .aj-at-lista{
   margin:0; border-radius:12px; overflow:hidden;
   background:var(--aj-cartao); box-shadow:0 0 0 .5px var(--aj-fio), 0 1px 2px rgba(0,0,0,.04);
 }
-.aj-at-linha{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:40px; padding:0 10px 0 14px; position:relative; }
+.aj-at-linha{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:40px; padding:0 14px; position:relative; }
 /* o fio entre as linhas começa no texto e vai até a borda, sem quebra */
-.aj-at-linha + .aj-at-linha::before{ content:""; position:absolute; top:0; left:14px; right:0; height:1px; background:var(--aj-fio); }
+.aj-at-linha + .aj-at-linha::before{ content:""; position:absolute; top:0; left:14px; right:14px; height:1px; background:var(--aj-fio); }
 .aj-at-linha dt{ margin:0; font-size:12.5px; color:var(--tinta); }
 .aj-at-linha dd{ margin:0; display:flex; gap:3px; flex:none; }
 .aj-at-linha kbd{

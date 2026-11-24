@@ -79,10 +79,10 @@ const CHAVES = {
    o que se faz escrevendo e o que ajuda a revisar. */
 const ATALHOS = [
   ['Geral', [['Personalizar', 'Ctrl+,'], ['Sumário', 'Ctrl+Shift+O'], ['Notas', 'Ctrl+O'], ['Nova nota', 'Ctrl+Alt+N'],
-    ['Salvar ou baixar', 'Ctrl+S'], ['Visualizar', 'Ctrl+E'], ['Tela cheia', 'Ctrl+Shift+F']]],
-  ['Escrever', [['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'], ['Ligação [[nota]]', 'Ctrl+K'], ['Realçar', 'Ctrl+Shift+H'],
-    ['Comentário', 'Ctrl+/'], ['Buscar', 'Ctrl+F'], ['Substituir', 'Ctrl+H']]],
-  ['Revisar', [['Modo Foco', 'Ctrl+D'], ['Máquina de escrever', 'Ctrl+T'], ['Classes gramaticais', 'Ctrl+G'],
+    ['Salvar ou baixar', 'Ctrl+S'], ['Visualizar', 'Ctrl+E'], ['Tela cheia', 'Ctrl+Shift+F'], ['Buscar', 'Ctrl+F']]],
+  ['Escrever', [['Desfazer', 'Ctrl+Z'], ['Refazer', 'Ctrl+Y'], ['Negrito', 'Ctrl+B'], ['Itálico', 'Ctrl+I'],
+    ['Ligação [[nota]]', 'Ctrl+K'], ['Realçar', 'Ctrl+Shift+H'], ['Comentário', 'Ctrl+/']]],
+  ['Revisar', [['Substituir', 'Ctrl+H'], ['Modo Foco', 'Ctrl+D'], ['Máquina de escrever', 'Ctrl+T'], ['Classes gramaticais', 'Ctrl+G'],
     ['Ortografia', 'Ctrl+P'], ['Revisão de estilo', 'Ctrl+R'], ['Corrigir a palavra', 'Ctrl+;']]],
 ];
 
@@ -168,7 +168,7 @@ function aplicarExtras(){
 }
 
 /* A barra só some se a preferência deixar */
-esconderChrome = function(){ if (prefs.barraSome) corpo.dataset.chrome = 'oculto'; };
+esconderChrome = function(){ if (prefs.barraSome && corpo.dataset.chrome !== 'oculto') corpo.dataset.chrome = 'oculto'; };
 
 /* ── utilidades de DOM ───────────────────────────────────── */
 function el(tag, cls, txt){ const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }

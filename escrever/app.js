@@ -1752,7 +1752,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.7.4';
+const VERSAO = '2.7.5';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -2463,6 +2463,27 @@ function envolver(abre, fecha = abre){
   aoDigitar();
 }
 
+/* Desfazer e refazer: as setas da barra e o Ctrl+Y usam o histórico do
+   próprio navegador, o mesmo do Ctrl+Z. As trocas do Escritor (travessão,
+   correções, negrito) passam por ele, então tudo volta e avança junto.
+   No Linux o navegador só refaz com Ctrl+Shift+Z; o Ctrl+Y vale também. */
+function historicoDoTexto(acao){
+  if (document.activeElement !== editor) editor.focus({ preventScroll: true });
+  document.execCommand(acao);
+}
+[['#btnDesfazer', 'undo'], ['#btnRefazer', 'redo']].forEach(([sel, acao]) => {
+  const b = $(sel);
+  if (!b) return;
+  b.addEventListener('pointerdown', (e) => e.preventDefault());   // o cursor fica no texto
+  b.addEventListener('click', () => historicoDoTexto(acao));
+});
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'y') return;
+  if (document.activeElement !== editor) return;
+  e.preventDefault();
+  historicoDoTexto('redo');
+}, true);
+
 document.addEventListener('keydown', (e) => {
   const cmd = e.metaKey || e.ctrlKey;
 
@@ -2835,16 +2856,18 @@ function guardarTexto(){
   }, 420);
 }
 
-function esconderChrome(){ corpo.dataset.chrome = 'oculto'; }
+function esconderChrome(){ if (corpo.dataset.chrome !== 'oculto') corpo.dataset.chrome = 'oculto'; }
 function mostrarChrome(){ corpo.dataset.chrome = 'visivel'; }
 
-function aoDigitar(){
+function aoDigitar(e){
   alvoRevisao = null;
   precisaCentrar = prefs.maquina;
   desenhar();
   guardarTexto();
   obsAgendar();
-  esconderChrome();
+  // desfazer e refazer (pelas setas da barra ou pelo teclado) não escondem
+  // a barra: quem clicou na seta quer poder clicar na outra em seguida
+  if (!e || !/^history(Undo|Redo)$/.test(e.inputType || '')) esconderChrome();
 }
 
 editor.addEventListener('input', aoDigitar);
@@ -2914,7 +2937,26 @@ document.addEventListener('click', (e) => {
   editor.focus({ preventScroll:true });
 });
 
-document.addEventListener('mousemove', mostrarChrome);
+/* A barra volta quando o mouse anda DE VERDADE. Antes qualquer mousemove
+   a trazia: o evento sem deslocamento que o navegador dispara quando a
+   página rola por baixo do cursor parado, e a tremida do touchpad com a
+   palma da mão enquanto se digita. Cada um acendia a barra e a tecla
+   seguinte apagava: a barra piscava. Agora conta só deslocamento real,
+   nada nos primeiros 600 ms depois de uma tecla, e precisa somar uns
+   10 px; perto do topo da tela, qualquer movimento real basta. */
+let ultimaTecla = 0, somaMov = 0, ultimoMov = 0;
+editor.addEventListener('keydown', () => { ultimaTecla = performance.now(); somaMov = 0; });
+document.addEventListener('mousemove', (e) => {
+  if (corpo.dataset.chrome !== 'oculto') return;
+  const dx = e.movementX || 0, dy = e.movementY || 0;
+  if (!dx && !dy) return;
+  const agora = performance.now();
+  if (agora - ultimaTecla < 600) return;
+  if (agora - ultimoMov > 250) somaMov = 0;
+  ultimoMov = agora;
+  somaMov += Math.hypot(dx, dy);
+  if (somaMov >= 10 || e.clientY < 72) mostrarChrome();
+});
 scroller.addEventListener('scroll', () => {
   corpo.dataset.scrolled = scroller.scrollTop > 4 ? '1' : '0';
 });
@@ -3049,7 +3091,7 @@ O botão **Aa** (ou \`Ctrl+,\`) abre o painel Personalizar no meio da tela. No a
 - **Estilos prontos** trocam tudo de uma vez: Livro, Noturno, Concentração, Revisão e outros. Você também pode salvar a sua combinação com um nome.
 - **Aparência**: oito papéis e o Automático, que segue o claro ou escuro do sistema; a cor de destaque, inclusive uma escolhida por você; a cor dos títulos e os sinais do Markdown.
 - **Texto**: fonte, corpo, entrelinha, espaço entre letras e largura da coluna.
-- **Sons** deixa cada tecla com o barulho de um teclado mecânico, com gravações reais de sete switches: os lineares Vermelho, Amarelo, Preto e Creamy, os táteis Marrom e Roxo e o clicky Azul. Escolher um switch já liga o som. Dá para regular o volume e o som da tecla voltando. No menu Ferramentas o som liga e desliga sem abrir o painel.
+- **Sons** deixa cada tecla com o barulho de um teclado mecânico, com gravações reais de oito switches: os lineares Vermelho, Amarelo, Preto e Creamy, os táteis Marrom e Roxo, o clicky Azul e o capacitivo Topre. Escolher um switch já liga o som. Dá para regular o volume e o som da tecla voltando. No menu Ferramentas o som liga e desliga sem abrir o painel.
 - **Escrita**, **Revisão** e **Tela e meta** reúnem o Foco, a máquina de escrever, a tipografia inteligente, a ortografia, as classes gramaticais, o rodapé e a meta de palavras.
 - **Autoria** guarda o seu nome, do jeito que quiser assinar, e um link opcional (site, e-mail ou rede social). Eles assinam os arquivos exportados.
 
