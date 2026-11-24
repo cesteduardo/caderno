@@ -946,9 +946,13 @@ editor.addEventListener('beforeinput', (e) => {
   if (e.data === '"') troca = abre ? '“' : '”';
   else if (e.data === "'") troca = abre ? '‘' : '’';
   else if (e.data === '.' && a === b && v.slice(a - 2, a) === '..'){ troca = '…'; de = a - 2; }
-  else if (e.data === '-' && a === b && antes === '-'){
+  // “--” vira travessão em qualquer ponto, inclusive no começo da linha,
+  // onde fica o travessão do diálogo. Um terceiro hífen logo depois de um
+  // travessão sozinho na linha devolve o “---” da linha horizontal.
+  else if (e.data === '-' && a === b && antes === '-'){ troca = '—'; de = a - 1; }
+  else if (e.data === '-' && a === b && antes === '—'){
     const inicio = v.lastIndexOf('\n', a - 1) + 1;
-    if (!/^\s*-$/.test(v.slice(inicio, a))){ troca = '—'; de = a - 1; }  // “---” de linha horizontal fica como está
+    if (/^\s*—$/.test(v.slice(inicio, a))){ troca = '---'; de = a - 1; }
   }
   if (troca == null) return;
   e.preventDefault();

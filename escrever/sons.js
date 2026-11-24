@@ -48,6 +48,22 @@ const SONS = (() => {
   const carregados = new Map();          // id → Promise<{ id, desce, sobe, ganho }>
   let pronto = null;                     // o último switch já decodificado
   const ataque = new WeakMap();          // gravação → segundo em que a batida começa
+  const nivel = new WeakMap();           // gravação → ganho que a leva ao pico certo
+
+  /* As gravações do kbsim vêm em volumes muito diferentes entre si (no
+     Creamy, o Backspace é 13 dB mais alto que as letras). Cada uma é
+     nivelada pelo PRÓPRIO pico: as letras batem todas no mesmo ponto, as
+     teclas grandes um pouco mais cheias e a volta da tecla bem abaixo. */
+  const ALVO = { tecla: .5, grande: .56, solta: .2, soltaGrande: .24 };
+  function pico(buf, desde){
+    let m = 0;
+    const s = Math.floor((desde || 0) * buf.sampleRate);
+    for (let c = 0; c < buf.numberOfChannels; c++){
+      const d = buf.getChannelData(c);
+      for (let i = s; i < d.length; i++){ const v = Math.abs(d[i]); if (v > m) m = v; }
+    }
+    return m;
+  }
 
   function inicio(buf){
     const canais = [];
@@ -66,7 +82,13 @@ const SONS = (() => {
       if (!C) return null;
       ctx = new C({ latencyHint: 'interactive' });
       mestre = ctx.createGain();
-      mestre.connect(ctx.destination);
+      // limitador no fim: com teclas rápidas os sons se somam, e a soma
+      // nunca pode estourar
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20;
+      lim.attack.value = .001; lim.release.value = .08;
+      mestre.connect(lim);
+      lim.connect(ctx.destination);
       volume();
     }
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
@@ -96,17 +118,18 @@ const SONS = (() => {
         ...SOBE.filter(n => !sem.has(n)).map(async n => { sobe[n] = await busca('SOLTA_' + n); }),
       ]);
       if (!desce.GENERIC_R0) throw new Error('sem gravações');
-      // as gravações vêm em volumes diferentes: todo switch bate no mesmo pico
-      let pico = 0;
-      for (let i = 0; i < 5; i++){
-        if (!desce['GENERIC_R' + i]) desce['GENERIC_R' + i] = desce.GENERIC_R0;
-        const d = desce['GENERIC_R' + i].getChannelData(0);
-        for (let j = 0; j < d.length; j++) pico = Math.max(pico, Math.abs(d[j]));
-      }
+      for (let i = 0; i < 5; i++) if (!desce['GENERIC_R' + i]) desce['GENERIC_R' + i] = desce.GENERIC_R0;
       // o MP3 traz um pedaço mudo antes da batida (até 60 ms no Azul):
-      // cada gravação começa a tocar direto no ataque
-      for (const b of [...Object.values(desce), ...Object.values(sobe)]) if (b && !ataque.has(b)) ataque.set(b, inicio(b));
-      return { id, desce, sobe, ganho: pico ? .5 / pico : 1 };
+      // cada gravação começa a tocar direto no ataque, já no seu nível
+      const nivelar = (b, alvo) => {
+        if (!b || nivel.has(b)) return;
+        ataque.set(b, inicio(b));
+        const p = pico(b, ataque.get(b));
+        nivel.set(b, p ? alvo / p : 1);
+      };
+      for (const [n, b] of Object.entries(desce)) nivelar(b, /^GENERIC/.test(n) ? ALVO.tecla : ALVO.grande);
+      for (const [n, b] of Object.entries(sobe)) nivelar(b, n === 'GENERIC' ? ALVO.solta : ALVO.soltaGrande);
+      return { id, desce, sobe };
     })();
     p.then(s => { pronto = s; }, () => {});
     p.catch(() => carregados.delete(id));
@@ -115,7 +138,7 @@ const SONS = (() => {
   }
 
   function soar(sw, code, solta){
-    const { desce, sobe, ganho } = sw;
+    const { desce, sobe } = sw;
     const esp = ESPECIAL[code];
     const fileira = 'GENERIC_R' + (FILEIRA.has(code) ? FILEIRA.get(code) : code === 'Space' ? 4 : 2);
     const buf = solta ? (esp && sobe[esp]) || sobe.GENERIC : (esp && desce[esp]) || desce[fileira];
@@ -124,7 +147,7 @@ const SONS = (() => {
     fonte.buffer = buf;
     fonte.playbackRate.value = 1 + (Math.random() - .5) * .02;
     const g = ctx.createGain();
-    g.gain.value = ganho * (.92 + Math.random() * .16);
+    g.gain.value = (nivel.get(buf) || 1) * (.92 + Math.random() * .16);
     fonte.connect(g);
     if (ctx.createStereoPanner){
       const p = ctx.createStereoPanner();

@@ -1,4 +1,4 @@
-# Escritor 2.7.2
+# Escritor 2.7.3
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -18,6 +18,7 @@ Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o apli
 - **Sons do teclado (2.7.1):** uma seção nova no Personalizar, **Sons**, faz cada tecla soar como um teclado mecânico, com **gravações reais** de sete switches: os lineares **Vermelho** (Gateron Red Ink), **Amarelo** (Alpaca), **Preto** (Cherry MX Black) e **Creamy** (NovelKeys Cream), os táteis **Marrom** (Cherry MX Brown) e **Roxo** (Holy Panda) e o clicky **Azul** (Cherry MX Blue). Cada fileira do teclado tem a sua gravação, o Espaço, o Enter e o Backspace têm as deles, e soltar a tecla toca a volta. Escolher um switch já liga o som; segurar a tecla não repete. O volume é próprio do Escritor, e o menu **Ferramentas** liga e desliga sem fechar.
 - As gravações são do [kbsim](https://github.com/tplai/kbsim), de Thomas Lai, sob licença MIT (cópia em `sons/LICENCA-kbsim.md`). Não há gravação aberta do Gateron Yellow; o Amarelo usa a do Alpaca, outro linear liso. Os arquivos de um switch só são baixados quando ele é escolhido (uns 45 KB).
 - A 2.7.0 gerava os sons por síntese no navegador e foi trocada: não soava como teclado de verdade.
+- **Na 2.7.3** cada gravação é nivelada pelo próprio volume. As do kbsim vêm muito desiguais (no Creamy, o Backspace era 13 dB mais alto que as letras, e o Espaço e o Backspace estouravam): agora as letras soam iguais, Espaço, Enter e Backspace um pouco mais cheios, a volta da tecla bem abaixo, e um limitador no fim impede que a soma estoure quando se digita rápido. Na tipografia inteligente, `--` vira travessão também no começo da linha, onde fica o do diálogo; um terceiro hífen depois do travessão devolve o `---` da linha horizontal.
 - **Na 2.7.2** o som sai mais rápido: cada gravação começa direto na batida (o MP3 trazia até 22 ms mudos antes dela), a tecla toca sem esperar nada depois que o switch carregou, e o áudio já acorda no primeiro clique, então nem a primeira tecla atrasa.
 
 ## Na 2.6
