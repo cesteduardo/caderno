@@ -1,4 +1,4 @@
-# Escritor 2.8.2
+# Escritor 2.8.3
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -38,6 +38,7 @@ Os pacotes podem ser gerados pelo GitHub Actions sempre que algo muda em `deskto
 
 - **Celular, segunda revisão (2.8.2):** a barra de **Buscar e substituir** passava da tela (as setas, o Aa, o ab| e o × ficavam de fora); no celular ela tem agora três linhas, com a contagem dentro do campo. O **Documento** não pula mais de altura ao trocar de aba. O rodapé não quebra em duas linhas quando aparecem os comentários: no estreito o balão fica só com o número e o "salvo" só com o ponto verde. O botão direito perdeu os atalhos de teclado em tela de toque, e no celular a seção **Atalhos** sai do Personalizar.
 - **Ícone redesenhado (2.8.2):** o caderno azul de espiral com o lápis ficou no padrão real dos aplicativos do GNOME: formas chapadas da paleta Adwaita, sem contornos, luz de cima e a espessura do objeto embaixo. Ele aparece também no **Sobre**, como nos apps do GNOME.
+- **Seus estilos no celular (2.8.3):** o campo do nome ficava achatado, com 20 px de altura; agora tem a altura do botão "Salvar o atual". O × de apagar um estilo salvo virava uma faixa branca por cima da miniatura (em qualquer tela, no computador só ao passar o mouse); voltou a ser a bolinha, maior no toque.
 
 - **Ícone novo (2.8.1):** um caderno de espiral azul com a caneta laranja escrevendo no fim da última linha, no estilo dos ícones do GNOME. Está em `icons/escritor.svg`, de onde saem os PNG, o `.ico` e o ícone *maskable* do Android. O favicon da aba continua o traço escuro de sempre, que lê melhor em 16 px.
 

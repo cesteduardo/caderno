@@ -2,7 +2,7 @@
    Guarda o aplicativo inteiro no aparelho na primeira visita, para que ele
    abra sem internet e possa ser instalado (Chrome, Edge, Android).
    Trocar a VERSAO apaga o cache antigo e baixa o novo. */
-const VERSAO = 'escritor-2.8.2';
+const VERSAO = 'escritor-2.8.3';
 const ESSENCIAL = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/escritor.svg',
