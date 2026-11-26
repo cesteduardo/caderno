@@ -1,4 +1,4 @@
-# Escritor 2.7.6
+# Escritor 2.8.2
 
 Um caderno de escrita e estudo em Markdown, no espírito do [iA Writer](https://ia.net/writer): folha limpa, barra que some enquanto você escreve, Markdown realçado sem transformar o texto. A versão 2.0 transforma a folha única num caderno: várias notas, grifo e notas de rodapé no botão direito, imagens coladas, pasta do Obsidian e uma interface inteira redesenhada no estilo do macOS e do GNOME.
 
@@ -12,6 +12,38 @@ python3 -m http.server 8000
 Na primeira abertura aparece o **Guia do Escritor**, um texto que explica o aplicativo escrito nele mesmo. A primeira coisa que você escrever vira uma nota sua.
 
 ---
+
+## Instalar
+
+O Escritor pode virar um aplicativo, com ícone próprio, janela própria e sem precisar de internet depois da primeira abertura.
+
+**Pelo navegador (Linux, Windows, macOS, Android):** abra [cesteduardo.github.io/escritor](https://cesteduardo.github.io/escritor/) no Chrome ou no Edge e clique em **Instalar** na barra de endereço, ou em **Documento → Ajuda → Instalar o Escritor**. No iPhone e no iPad, use **Compartilhar → Adicionar à Tela de Início** no Safari. É o mesmo Escritor do site, com as mesmas notas.
+
+**Como programa de computador:** os pacotes abaixo saem da pasta `desktop/` e, com o GitHub Actions ativo na conta, são publicados sozinhos na [página de lançamentos](https://github.com/cesteduardo/escritor/releases).
+
+| Sistema | Arquivo | Como usar |
+| --- | --- | --- |
+| Linux (qualquer distribuição) | `Escritor-2.8.2-linux-x86_64.AppImage` | `chmod +x` no arquivo e dois cliques |
+| Linux (Debian, Ubuntu, Mint) | `Escritor-2.8.2-linux-amd64.deb` | `sudo apt install ./Escritor-2.8.2-linux-amd64.deb` |
+| Windows 10 e 11 | `Escritor-2.8.2-windows-x64.zip` | extraia a pasta e abra o `Escritor.exe` |
+| Windows 10 e 11 | `Escritor-2.8.2-windows-instalador.exe` | instalador com atalho no menu Iniciar (só nos lançamentos gerados no Windows) |
+
+O programa de computador guarda as notas dentro dele, separadas das do navegador: para levar notas de um para o outro, exporte e abra, ou ligue os dois à mesma pasta do Obsidian. Arquivos `.md` e `.txt` abertos pelo sistema (**Abrir com → Escritor**) entram como nota nova.
+
+Os pacotes podem ser gerados pelo GitHub Actions sempre que algo muda em `desktop/` (para uma versão nova, suba o número em `desktop/package.json`); os da 2.8.2 foram gerados à mão e postos na página de lançamentos, porque o Actions estava parado na conta. Para gerá-los você mesmo, dentro de `desktop/`: `npm install`, depois `npm run linux` ou `npm run windows`. O instalador `.exe` do Windows só se gera no próprio Windows ou com o Wine instalado (`npm run windows-instalador`); sem ele, no Linux sai o `.zip`.
+
+---
+
+## Na 2.8
+
+- **Celular, segunda revisão (2.8.2):** a barra de **Buscar e substituir** passava da tela (as setas, o Aa, o ab| e o × ficavam de fora); no celular ela tem agora três linhas, com a contagem dentro do campo. O **Documento** não pula mais de altura ao trocar de aba. O rodapé não quebra em duas linhas quando aparecem os comentários: no estreito o balão fica só com o número e o "salvo" só com o ponto verde. O botão direito perdeu os atalhos de teclado em tela de toque, e no celular a seção **Atalhos** sai do Personalizar.
+- **Ícone redesenhado (2.8.2):** o caderno azul de espiral com o lápis ficou no padrão real dos aplicativos do GNOME: formas chapadas da paleta Adwaita, sem contornos, luz de cima e a espessura do objeto embaixo. Ele aparece também no **Sobre**, como nos apps do GNOME.
+
+- **Ícone novo (2.8.1):** um caderno de espiral azul com a caneta laranja escrevendo no fim da última linha, no estilo dos ícones do GNOME. Está em `icons/escritor.svg`, de onde saem os PNG, o `.ico` e o ícone *maskable* do Android. O favicon da aba continua o traço escuro de sempre, que lê melhor em 16 px.
+
+- **Celular revisto por inteiro:** em telas de 360 px a barra passava da borda e o **⋯** ficava cortado; agora a tela cheia sai da barra (continua em **Ferramentas**) e tudo cabe até em 320 px. Com o celular deitado, o **Personalizar** vira folha inteira, com as seções numa fila de pílulas, em vez de sobrar uma fresta para o conteúdo; os pop-ups usam quase toda a altura e rolam por dentro. Os atalhos de teclado (`Ctrl+F`, `Esc fechar`…) somem em qualquer tela de toque, também deitada e no tablet, onde antes continuavam à mostra.
+- **Aplicativo instalável:** manifesto, ícones e um *service worker* que guarda o Escritor inteiro no aparelho na primeira visita. Ele abre sem internet, instala pelo Chrome e pelo Edge e aceita `.md` e `.txt` abertos pelo sistema. Uma versão nova vale a partir da abertura seguinte.
+- **Programa para Linux e Windows:** a pasta `desktop/` empacota o Escritor com o Electron em AppImage, `.deb`, `.zip` e instalador do Windows.
 
 ## Na 2.7
 
@@ -231,7 +263,14 @@ A interface usa a **Inter** (SIL Open Font License 1.1), também em `fontes/`. O
 | `ponte.js` | a ligação com o [Caderno](https://cesteduardo.github.io/caderno/) (só age lá dentro) |
 | `orto/` | o corretor: Hunspell em WebAssembly, o worker e o dicionário VERO |
 | `fontes/` | iA Writer (estáticas e variáveis), Inter e Atkinson em `woff2`, com as licenças |
+| `manifest.webmanifest`, `sw.js` | o aplicativo instalável: nome, ícones e o cache para funcionar offline |
+| `icons/` | o ícone do aplicativo (`escritor.svg`, desenho próprio) com os PNG, o maskable e o `.ico`, e o favicon |
+| `desktop/` | o programa para Linux e Windows (Electron e electron-builder) |
 
 As notas, o texto aberto e as preferências ficam no `localStorage` do navegador (`escritor:notas`, `escritor:texto`, `escritor:prefs`, e as palavras que você ensinou ao corretor em `escritor:dicionario`); as imagens ficam no IndexedDB (`escritor-anexos`). Trocar de navegador ou limpar os dados do site apaga tudo: para guardar de verdade, ligue uma pasta do Obsidian ou exporte.
+
+## Licença
+
+O Escritor é software livre, sob a **licença MIT** (arquivo `LICENSE`): qualquer pessoa pode usar, estudar, copiar, modificar e redistribuir o código, inclusive em outros projetos, desde que mantenha o aviso de copyright. As peças de terceiros (fontes, ícones Lucide, corretor, dicionário e sons) seguem com as licenças delas, todas abertas, listadas no fim do `LICENSE` e na seção sobre as fontes e os ícones.
 
 Projeto de código aberto e sem fins lucrativos, feito por GR Brands.

@@ -1165,7 +1165,8 @@ function contarComentarios(texto){
   comentariosAchados = acharComentarios(texto);
   const n = comentariosAchados.length, b = $('#stComent');
   b.hidden = n === 0;
-  b.innerHTML = `${ico('comentario')}<b>${n}</b> comentário${n > 1 ? 's' : ''}`;
+  b.innerHTML = `${ico('comentario')}<b>${n}</b><span class="st-pal"> comentário${n > 1 ? 's' : ''}</span>`;
+  b.setAttribute('aria-label', `${n} comentário${n > 1 ? 's' : ''}`);
   if ($('#comentarios').open) preencherComentarios();
 }
 function preencherComentarios(){

@@ -1752,7 +1752,7 @@ function avisar(msg, ms = 1900){
    a pessoa fechou pelo Esc, pelo X do fundo ou pelo Cancelar.
    ═══════════════════════════════════════════════════════════ */
 
-const VERSAO = '2.7.6';
+const VERSAO = '2.8.2';
 const REPO   = 'https://github.com/cesteduardo/escritor';
 
 let folha = null, resolverFolha = null, focoAntesDaFolha = null;
@@ -1840,6 +1840,7 @@ function abrirSobre(){
   return abrirFolha(
     '<div class="folha-painel folha-larga" role="dialog" aria-modal="true" aria-label="Sobre o Escritor">' +
       '<div class="folha-topo">' +
+        '<img class="folha-app" src="icons/escritor.svg" width="44" height="44" alt="">' +
         '<h2 class="folha-titulo">Escritor</h2>' +
         '<span class="folha-versao">v' + VERSAO + '</span>' +
         FOLHA_X() +

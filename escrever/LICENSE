@@ -1,0 +1,34 @@
+MIT License
+
+Copyright (c) 2026 Eduardo Gonçalves Rodrigues (GR Brands)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Third-party components keep their own licenses and are not covered by the
+MIT License above:
+
+- fontes/iAWriter*        iA Writer typeface, SIL Open Font License 1.1 (fontes/LICENSE.md)
+- fontes/Inter*           Inter, SIL Open Font License 1.1 (fontes/LICENSE-INTER.md)
+- fontes/Atkinson*        Atkinson Hyperlegible, SIL Open Font License 1.1 (fontes/LICENSE-ATKINSON.md)
+- icones.js               Lucide icons, ISC License
+- orto/hunspell.js        Hunspell (MPL 1.1 / GPL 2.0 / LGPL 2.1) via hunspell-asm (MIT) (orto/LICENSE.md)
+- orto/pt-BR.aff, .dic    VERO 3.2, LGPLv3 / MPL (fontes/LICENSE-VERO.md)
+- sons/                   kbsim recordings by Thomas Lai, MIT License (sons/LICENCA-kbsim.md)

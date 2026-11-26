@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#ffffff">
 <title>Escritor · Caderno</title>
 <link rel="icon" href="icons/favicon.svg?v=2.5.0" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Escritor">
+<meta name="description" content="Caderno de escrita e estudo em Markdown: folha limpa, foco, revisão e exportação. Funciona offline e pode ser instalado.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="claro" data-fonte="duo" data-chrome="visivel">
@@ -130,6 +136,7 @@
             <div class="mp-pagina" data-aba="ajuda" hidden>
                 <button class="mp-tile" role="menuitem" id="btnGuia"><i class="mp-ti" data-ico="guia"></i><span class="mp-txt"><span>Guia do Escritor</span><small>Tudo o que o Escritor faz, num texto</small></span></button>
                 <button class="mp-tile" role="menuitem" id="btnAtalhos"><i class="mp-ti" data-ico="atalhos"></i><span class="mp-txt"><span>Atalhos de teclado</span><small>A lista completa, no Personalizar</small></span></button>
+                <button class="mp-tile" role="menuitem" id="btnInstalar" hidden><i class="mp-ti" data-ico="instalar"></i><span class="mp-txt"><span>Instalar o Escritor</span><small>Vira um aplicativo no computador ou no celular, e abre sem internet</small></span></button>
                 <button class="mp-tile" role="menuitem" id="btnSobre"><i class="mp-ti" data-ico="sobre"></i><span class="mp-txt"><span>Sobre o Escritor</span><small>Versão, licenças e código aberto</small></span><i data-versao></i></button>
             </div>
           </div>
@@ -572,5 +579,33 @@
 <script src="personalizar.js"></script>
 <script src="estudo.js"></script>
 <script src="ponte.js"></script>
+<script>
+/* Aplicativo instalável: o service worker guarda tudo para funcionar
+   offline, e um .md aberto pelo sistema (botão direito → Abrir com) vira nota. */
+/* Dentro do Caderno (num iframe) quem guarda tudo é o service worker do
+   próprio Caderno; o do Escritor só vale quando ele abre sozinho. */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && window.top === window) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+/* O navegador avisa quando o Escritor pode ser instalado; só então o
+   botão aparece em Documento → Ajuda. */
+let pedidoInstalar = null;
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); pedidoInstalar = e;
+  document.getElementById('btnInstalar').hidden = false;
+});
+addEventListener('appinstalled', () => { document.getElementById('btnInstalar').hidden = true; pedidoInstalar = null; });
+document.getElementById('btnInstalar').addEventListener('click', async () => {
+  if (!pedidoInstalar) return;
+  pedidoInstalar.prompt();
+  await pedidoInstalar.userChoice.catch(() => {});
+  pedidoInstalar = null; document.getElementById('btnInstalar').hidden = true;
+});
+if ('launchQueue' in window) {
+  launchQueue.setConsumer(async (p) => {
+    for (const h of p.files || []) { try { abrirArquivo(await h.getFile()); } catch (e) {} }
+  });
+}
+</script>
 </body>
 </html>
