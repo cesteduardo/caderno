@@ -276,8 +276,15 @@ body.rolou .nav{box-shadow:0 1px 0 var(--fio)}
 .slot-min{color:var(--muted);font-variant-numeric:tabular-nums}
 
 .editor .card-head{margin-bottom:9px}
-.erow{display:grid;grid-template-columns:9px minmax(0,1fr) 171px 124px 105px auto 32px;gap:11px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
+.erow{display:grid;grid-template-columns:9px minmax(0,1fr) 171px 124px 105px auto 68px 32px;gap:11px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
 .erow-dot{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.erow-mover{display:flex;gap:2px}
+.erow-mover button{width:32px;height:34px;display:grid;place-items:center;border-radius:9px;color:var(--r2);background:var(--cartao)}
+.erow-mover button svg.ic{width:18px;height:18px}
+.erow-mover button:hover:not(:disabled){color:var(--tinta);background:var(--surface-2,var(--preench))}
+.erow-mover button:disabled{opacity:.3;cursor:default}
+.erow{transition:background .5s}
+.erow.movida{background:color-mix(in srgb,var(--c) 10%,transparent);transition:none}
 .erow input,.erow select{width:100%;min-width:0}
 .at-field{display:flex}
 .at-field input{width:100%;min-width:0;font-variant-numeric:tabular-nums;color:var(--ink)}
@@ -426,8 +433,16 @@ body.rolou .nav{box-shadow:0 1px 0 var(--fio)}
   .day-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 
   .erow{grid-template-columns:9px minmax(0,1fr) 105px 32px;row-gap:9px}
+  .erow .erow-dot{grid-column:1;grid-row:1}
+  .erow>input[type=text]{grid-column:2;grid-row:1}
+  .erow .min-field{grid-column:3;grid-row:1}
   .erow select{grid-column:2;grid-row:2}
-  .erow .at-field{grid-column:3/-1;grid-row:2}
+  .erow .at-field{grid-column:3;grid-row:2}
+  /* setas empilhadas na largura de um botão; o × vai para a segunda linha */
+  .erow .erow-mover{grid-column:4;grid-row:1;flex-direction:column;gap:2px}
+  .erow .erow-mover button{width:32px;height:19px;border-radius:6px}
+  .erow .erow-mover button svg.ic{width:15px;height:15px}
+  .erow>.x,.erow>.lock{grid-column:4;grid-row:2;justify-self:center}
   .erow .days{grid-column:2/-1;grid-row:3}
   .days button{flex:1;height:41px}
 

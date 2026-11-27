@@ -116,7 +116,10 @@ estão.
   - Exporta um .zip pronto para o Obsidian (Notas/, Diário/, Marcações/).
 - **Rotina**: semana, planos, recursos e progresso. Cada tarefa tem duração e,
   se quiser, **horário** de início (campo de relógio no Editar rotina; apague
-  para tirar). Com horário, a tarefa entra na **Agenda** do Hoje e mostra a hora
+  para tirar). As setas ↑ ↓ de cada linha mudam a ordem do dia: duas tarefas
+  com horário trocam de lugar (cada uma mantém a duração, e o intervalo entre
+  elas fica); sem horário, muda a posição em que aparecem no Hoje.
+  Com horário, a tarefa entra na **Agenda** do Hoje e mostra a hora
   na lista (5h40 às 6h05…), na ordem do relógio, também na Semana.
   **Ajustes pessoais** (`js/ajustes.js`): mudanças de rotina pedidas pelo dono
   vêm no código e rodam uma vez, no primeiro aparelho que abrir o app (depois de

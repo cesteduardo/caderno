@@ -5,7 +5,7 @@
    Rede primeiro (versão nova na hora); o cache serve sem internet.
    A sincronização (api.github.com) e o modelo do Whisper (Hugging Face,
    guardado pela própria biblioteca) não passam por aqui. */
-const CACHE = 'caderno-v37';
+const CACHE = 'caderno-v38';
 const FILES = [
   './', 'index.html', 'style.css', 'estudo.css', 'manifest.webmanifest',
   'js/icones.js', 'js/pilula.js', 'js/rotina.js', 'js/agenda.js', 'js/ajustes.js', 'js/discoteca.js', 'js/base.js', 'js/formatos.js', 'js/leitor.js', 'js/pdf.js', 'js/analise.js',

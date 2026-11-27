@@ -557,10 +557,34 @@ function renderWeek(){
 }
 
 // Editor: nome, área, horário (opcional), duração e dias de cada tarefa
+/* Ordem do dia no editor: as com horário pelo relógio, depois as sem
+   horário na ordem da lista. Mover (↑ ↓) segue essa ordem: duas com
+   horário trocam de lugar no dia (cada uma mantém a duração, e o vão entre
+   elas fica); duas sem horário trocam de posição na lista, que é a ordem
+   em que aparecem no Hoje. */
+const ordemEditor = () => [...state.routine.filter(t => atMin(t.at) != null).sort(porHorario), ...state.routine.filter(t => atMin(t.at) == null)];
+const hhmm = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+function moverTarefa(t, dir){
+  const lista = ordemEditor(), v = lista[lista.indexOf(t) + dir];
+  if (!v) return;
+  const tH = atMin(t.at) != null, vH = atMin(v.at) != null;
+  if (tH && vH){
+    const [a, b] = dir < 0 ? [v, t] : [t, v];          // a vem antes de b no dia
+    const ini = atMin(a.at), vao = Math.max(0, atMin(b.at) - (ini + a.min));
+    b.at = hhmm(ini); a.at = hhmm(ini + b.min + vao);
+  } else if (!tH && !vH){
+    const r = state.routine, x = r.indexOf(t), y = r.indexOf(v); r[x] = v; r[y] = t;
+  } else return;
+  save(); renderWeek();
+  /* a linha movida pisca de leve e o foco fica no mesmo botão (dá para apertar de novo) */
+  const row = document.querySelector(`#editorRows .erow[data-id="${CSS.escape(t.id)}"]`);
+  if (row){ row.classList.add('movida'); setTimeout(() => row.classList.remove('movida'), 700); row.querySelector(dir < 0 ? '.mv-cima' : '.mv-baixo')?.focus(); row.scrollIntoView({ block: 'nearest' }); }
+}
 function renderEditor(){
   const rows = $('#editorRows');
   rows.replaceChildren();
-  state.routine.forEach((t, i) => {
+  const ordem = ordemEditor();
+  ordem.forEach((t, i) => {
     const name = h('input', { type: 'text', value: t.name, 'aria-label': 'Nome da tarefa' });
     name.addEventListener('change', () => { t.name = name.value.trim() || t.name; save(); renderWeek(); });
 
@@ -582,10 +606,16 @@ function renderEditor(){
       })));
 
     const remove = t.required ? h('span', { class: 'lock', title: 'Tarefa obrigatória', text: '●' }) : h('button', { class: 'x', type: 'button', text: '×', 'aria-label': `Remover ${t.name}`,
-      onclick: () => { if (confirm(`Remover "${t.name}" da rotina?`)){ state.routine.splice(i, 1); save(); renderWeek(); } } });
+      onclick: () => { if (confirm(`Remover "${t.name}" da rotina?`)){ state.routine.splice(state.routine.indexOf(t), 1); save(); renderWeek(); } } });
 
-    rows.append(h('div', { class: 'erow', style: tint(t.area) },
-      h('i', { class: 'erow-dot' }), name, area, h('label', { class: 'at-field' }, at), h('label', { class: 'min-field' }, min, h('span', { text: 'min' })), days, remove));
+    /* ↑ ↓: só entre vizinhas do mesmo tipo (com horário com com horário, sem com sem) */
+    const temH = atMin(t.at) != null, mesmo = x => x && (atMin(x.at) != null) === temH;
+    const mover = h('div', { class: 'erow-mover', role: 'group', 'aria-label': 'Mover' },
+      h('button', { class: 'mv-cima', type: 'button', title: temH ? 'Subir: troca de horário com a anterior' : 'Subir', 'aria-label': `Subir ${t.name}`, disabled: !mesmo(ordem[i - 1]), onclick: () => moverTarefa(t, -1) }, ico('chevron-up')),
+      h('button', { class: 'mv-baixo', type: 'button', title: temH ? 'Descer: troca de horário com a seguinte' : 'Descer', 'aria-label': `Descer ${t.name}`, disabled: !mesmo(ordem[i + 1]), onclick: () => moverTarefa(t, 1) }, ico('chevron-down')));
+
+    rows.append(h('div', { class: 'erow', style: tint(t.area), 'data-id': t.id },
+      h('i', { class: 'erow-dot' }), name, area, h('label', { class: 'at-field' }, at), h('label', { class: 'min-field' }, min, h('span', { text: 'min' })), days, mover, remove));
   });
 }
 $('#addTask').addEventListener('click', () => {

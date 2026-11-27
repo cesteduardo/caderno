@@ -13,6 +13,8 @@ const ICONES = {
 "calendar-range": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\" /> <path d=\"M16 2v3\" /> <path d=\"M3 9h18\" /> <path d=\"M8 2v3\" /> <path d=\"M17 13h-6\" /> <path d=\"M13 17H7\" /> <path d=\"M7 13h.01\" /> <path d=\"M17 17h.01\" />",
 "search": "<path d=\"m21 21-4.34-4.34\" /> <circle cx=\"11\" cy=\"11\" r=\"8\" />",
 "timer": "<line x1=\"10\" x2=\"14\" y1=\"2\" y2=\"2\" /> <line x1=\"12\" x2=\"15\" y1=\"14\" y2=\"11\" /> <circle cx=\"12\" cy=\"14\" r=\"8\" />",
+"chevron-up": "<path d=\"m18 15-6-6-6 6\" />",
+"chevron-down": "<path d=\"m6 9 6 6 6-6\" />",
 "chevron-left": "<path d=\"m15 18-6-6 6-6\" />",
 "chevron-right": "<path d=\"m9 18 6-6-6-6\" />",
 "panel-left": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M9 3v18\" />",
