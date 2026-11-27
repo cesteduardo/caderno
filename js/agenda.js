@@ -45,7 +45,7 @@ function agendaDoDia(dia){
 
 function renderAgenda(){
   const box = $('#agenda');
-  if (!box) return;
+  if (!box || AG.arrastando) return;
   const itens = agendaDoDia(viewDay);
   box.hidden = !itens.length;
   if (!itens.length) return;
@@ -67,7 +67,7 @@ function renderAgenda(){
     const play = b.id && hoje && !feito ? h('button', { class: 'ag-play' + (rodando ? ' on' : ''), type: 'button', title: rodando ? 'Pausar' : run ? 'Continuar' : 'Iniciar: conta o tempo da tarefa', 'aria-label': rodando ? 'Pausar' : run ? 'Continuar' : 'Iniciar',
       onclick: () => rodando ? pausarTarefa(b.id) : iniciarTarefa(b.id) }, ico(rodando ? 'pause' : 'play')) : null;
     const tarefa = b.id && state.routine.find(t => t.id === b.id);
-    return h('li', { class: 'ag-bloco' + estado + (b.marco ? ' marco' : '') + (total >= 180 ? ' longo' : '') + (feito ? ' feito' : '') + (run ? ' crono' : '') + (rodando ? ' rodando' : ''), style: cor, 'data-crono': run ? b.id : null },
+    return h('li', { 'data-id': b.id || null, title: b.id ? 'Arraste para mudar a ordem do dia' : null, class: 'ag-bloco' + estado + (b.marco ? ' marco' : '') + (total >= 180 ? ' longo' : '') + (feito ? ' feito' : '') + (run ? ' crono' : '') + (rodando ? ' rodando' : ''), style: cor, 'data-crono': run ? b.id : null },
       h('span', { class: 'ag-hora', text: b.fim ? `${fmtHora(b.hora)} – ${fmtHora(b.fim)}` : fmtHora(b.hora) }),
       h('span', { class: 'ag-nome', text: b.nome }),
       b.marco ? null : run ? h('span', { class: 'ag-dur crono-txt', text: '' })
@@ -81,6 +81,74 @@ function renderAgenda(){
       h('span', { class: 'pill-muted', text: `${fmtHora(ini.hora)} às ${fmtHora(fim.fim || fim.hora)}` })),
     lista);
   if (typeof tiqueTarefa === 'function') tiqueTarefa();   // relógio do cronômetro já preenchido
+  arrastoAgenda(lista);
+}
+
+/* ---------- arrastar blocos ----------
+   Mouse: clicar e arrastar. Dedo: segurar um instante (para não brigar com a
+   rolagem da página) e arrastar. Ao soltar sobre outro bloco, a tarefa vai
+   para antes ou depois dele (pela metade em que o dedo está) e os horários
+   se reorganizam (moverNoDia, em rotina.js): cada tarefa mantém a duração e
+   os intervalos ficam. O Acordar não é tarefa e não se move. */
+const AG = { arrastando: false };
+function arrastoAgenda(ol){
+  ol.addEventListener('pointerdown', e => {
+    const li = e.target.closest('.ag-bloco[data-id]');
+    if (!li || e.target.closest('button') || e.button > 0 || typeof moverNoDia !== 'function') return;
+    const toque = e.pointerType !== 'mouse';
+    const x0 = e.clientX, y0 = e.clientY;
+    let ativo = false, timer = 0, alvo = null, depois = false;
+    const bloqueia = ev => ev.preventDefault();
+    const limpa = () => ol.querySelectorAll('.alvo-antes,.alvo-depois').forEach(x => x.classList.remove('alvo-antes', 'alvo-depois'));
+    const ativa = () => {
+      ativo = true; AG.arrastando = true;
+      li.classList.add('arrastando'); ol.classList.add('arrastando');
+      document.addEventListener('touchmove', bloqueia, { passive: false });
+      try { navigator.vibrate && navigator.vibrate(12); } catch (err) {}
+    };
+    const move = ev => {
+      const dx = ev.clientX - x0, dy = ev.clientY - y0;
+      if (!ativo){
+        if (toque){ if (Math.hypot(dx, dy) > 9) fim(); return; }   // dedo andou antes do tempo: é rolagem
+        if (Math.hypot(dx, dy) < 6) return;
+        ativa();
+      }
+      ev.preventDefault();
+      li.style.transform = `translate(${dx}px,${dy}px) scale(1.03)`;
+      li.style.pointerEvents = 'none';
+      const sob = document.elementFromPoint(ev.clientX, ev.clientY);
+      li.style.pointerEvents = '';
+      const o = sob && sob.closest('.ag-bloco[data-id]');
+      limpa();
+      alvo = o && o !== li && ol.contains(o) ? o : null;
+      if (alvo){ const r = alvo.getBoundingClientRect(); depois = ev.clientX > r.left + r.width / 2; alvo.classList.add(depois ? 'alvo-depois' : 'alvo-antes'); }
+    };
+    const fim = () => {
+      clearTimeout(timer);
+      removeEventListener('pointermove', move); removeEventListener('pointerup', fim); removeEventListener('pointercancel', fim);
+      document.removeEventListener('touchmove', bloqueia);
+      li.style.transform = ''; li.classList.remove('arrastando'); ol.classList.remove('arrastando'); limpa();
+      const era = ativo; ativo = false; AG.arrastando = false;
+      if (!era) return;
+      /* o clique que vem depois de soltar não conta */
+      const engole = ev => { ev.stopPropagation(); ev.preventDefault(); };
+      addEventListener('click', engole, { capture: true, once: true });
+      setTimeout(() => removeEventListener('click', engole, true), 300);
+      if (!alvo) return;
+      const ids = [...ol.querySelectorAll('.ag-bloco[data-id]')].map(x => x.dataset.id);
+      const de = ids.indexOf(li.dataset.id);
+      let para = ids.indexOf(alvo.dataset.id) + (depois ? 1 : 0);
+      if (de < para) para--;
+      if (moverNoDia(li.dataset.id, para)){
+        const nome = (li.querySelector('.ag-nome') || {}).textContent || 'Tarefa';
+        toast(`${nome}: novo horário no dia. Os outros blocos se ajustaram.`);
+      }
+    };
+    if (toque) timer = setTimeout(ativa, 320);
+    addEventListener('pointermove', move, { passive: false });
+    addEventListener('pointerup', fim);
+    addEventListener('pointercancel', fim);
+  });
 }
 
 // o "Agora" anda sozinho enquanto a aba Hoje está aberta

@@ -36,6 +36,9 @@ estão.
 - **Agenda em blocos**: cada horário é um bloco com a cor da área, a faixa e a
   duração; o de agora tem contorno e uma barra que enche, os que passaram ficam
   apagados, os longos (Trabalho) ocupam duas casas.
+- **Arrastar na Agenda**: um bloco arrastado (mouse) ou segurado e arrastado
+  (dedo) vai para antes ou depois de outro, e os horários do dia se refazem:
+  cada tarefa mantém a duração e os intervalos ficam.
 - **Cronômetro de tarefa**: ▶ numa tarefa do Hoje ou num bloco da Agenda conta o
   tempo (com pausa); a barra e o "12:03 de 25 min" acompanham, o título da aba
   mostra o relógio, e o tempo em andamento entra no progresso do dia. Uma tarefa

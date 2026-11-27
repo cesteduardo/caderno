@@ -564,14 +564,38 @@ function renderWeek(){
    em que aparecem no Hoje. */
 const ordemEditor = () => [...state.routine.filter(t => atMin(t.at) != null).sort(porHorario), ...state.routine.filter(t => atMin(t.at) == null)];
 const hhmm = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+/* a vem antes de b no dia: b passa para o início de a, e a vem logo depois
+   (cada uma com a sua duração; o vão que havia entre as duas continua) */
+function trocaHorario(a, b){
+  const ini = atMin(a.at), vao = Math.max(0, atMin(b.at) - (ini + a.min));
+  b.at = hhmm(ini); a.at = hhmm(ini + b.min + vao);
+}
+/* Arrastar na Agenda: leva a tarefa à posição "para" entre as tarefas com
+   horário daquele dia, trocando de lugar com as vizinhas uma a uma */
+function moverNoDia(id, para, k = viewDay){
+  const wd = fromKey(k).getDay();
+  const dia = () => state.routine.filter(t => t.days.includes(wd) && atMin(t.at) != null).sort(porHorario);
+  let lista = dia();
+  const t = lista.find(x => x.id === id);
+  if (!t) return false;
+  para = Math.max(0, Math.min(lista.length - 1, para));
+  let i = lista.indexOf(t), guarda = 60;
+  if (i === para) return false;
+  while (i !== para && guarda--){
+    const v = lista[i + (para > i ? 1 : -1)];
+    if (para > i) trocaHorario(t, v); else trocaHorario(v, t);
+    lista = dia(); i = lista.indexOf(t);
+  }
+  save();
+  if (currentView === 'hoje') renderToday();
+  return true;
+}
 function moverTarefa(t, dir){
   const lista = ordemEditor(), v = lista[lista.indexOf(t) + dir];
   if (!v) return;
   const tH = atMin(t.at) != null, vH = atMin(v.at) != null;
   if (tH && vH){
-    const [a, b] = dir < 0 ? [v, t] : [t, v];          // a vem antes de b no dia
-    const ini = atMin(a.at), vao = Math.max(0, atMin(b.at) - (ini + a.min));
-    b.at = hhmm(ini); a.at = hhmm(ini + b.min + vao);
+    if (dir < 0) trocaHorario(v, t); else trocaHorario(t, v);
   } else if (!tH && !vH){
     const r = state.routine, x = r.indexOf(t), y = r.indexOf(v); r[x] = v; r[y] = t;
   } else return;
