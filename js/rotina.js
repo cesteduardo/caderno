@@ -161,6 +161,14 @@ function h(tag, props = {}, ...children){
 }
 const tint = id => ({ '--c': areaById(id).color });
 
+/* Horário (opcional) de cada tarefa: t.at = 'HH:MM'. Sem horário, a tarefa
+   segue no grupo da área, como antes. */
+const atMin = at => { const m = /^(\d{1,2}):(\d{2})$/.exec(at || ''); return m ? +m[1] * 60 + +m[2] : null; };
+const fmtAt = min => { min = ((min % 1440) + 1440) % 1440; const hh = Math.floor(min / 60), mm = min % 60; return hh + 'h' + (mm ? String(mm).padStart(2, '0') : ''); }; // 5h40, 10h
+const faixa = t => { const a = atMin(t.at); return a == null ? '' : `${fmtAt(a)} às ${fmtAt(a + t.min)}`; };
+// ordem do dia: com horário primeiro, pelo relógio; depois o resto
+const porHorario = (a, b) => (atMin(a.at) ?? 1e4) - (atMin(b.at) ?? 1e4);
+
 /* ---------- Animações ----------
    Barras usam transform: scaleX(--p) (roda na GPU, sem recalcular layout).
    Cada barra nasce com o valor anterior (ou 0) e desliza até o novo. */
@@ -380,33 +388,44 @@ function renderToday(){
   // grupos na ordem do dia: manhã, depois o que não tem período, depois noite
   const rank = t => ({ manha: 0, noite: 2 })[t.when] ?? 1;
   const groupRank = id => Math.min(...st.tasks.filter(t => t.area === id).map(rank));
-  const areas = listaAreas().filter(a => st.tasks.some(t => t.area === a.id))
+  const areas = listaAreas().filter(a => st.tasks.some(t => t.area === a.id && atMin(t.at) == null))
                      .sort((a, b) => groupRank(a.id) - groupRank(b.id) || listaAreas().indexOf(a) - listaAreas().indexOf(b));
+  // uma linha de tarefa (marcar só mexe nesta linha e nos números do topo)
+  const taskRow = (t, comHorario) => {
+    const isDone = t.id in done;
+    const note = [comHorario && faixa(t), WHEN[t.when], t.notes && t.notes[wd]].filter(Boolean).join(' · ');
+    const box = h('input', { type: 'checkbox', class: 'check', checked: isDone, 'aria-label': `${t.name}, ${t.min} minutos` });
+    const row = h('label', { class: 'row task' + (isDone ? ' done' : '') + (comHorario ? ' timed' : ''), style: comHorario ? tint(t.area) : null },
+      box,
+      comHorario ? h('span', { class: 'task-at', text: fmtAt(atMin(t.at)) }) : null,
+      h('span', { class: 'task-text' }, h('span', { class: 'task-name', text: t.name }), note ? h('span', { class: 'task-sub', text: note }) : null),
+      t.required ? h('span', { class: 'req', text: 'Obrigatório' }) : null,
+      h('span', { class: 'task-min', text: t.min + ' min' }));
+    box.addEventListener('change', () => {
+      const e = entryFor(viewDay);
+      if (box.checked) e.done[t.id] = { min: t.min, area: t.area }; else delete e.done[t.id];
+      row.classList.toggle('done', box.checked);
+      e.t = Date.now();
+      save('log'); paintTodayStats();
+    });
+    return row;
+  };
+
+  // o que tem horário vem primeiro, numa agenda na ordem do relógio
+  const comHora = st.tasks.filter(t => atMin(t.at) != null).sort(porHorario);
+  if (comHora.length){
+    list.append(h('section', { class: 'group agenda' },
+      h('header', { class: 'group-head' }, h('span', { class: 'agenda-title', text: 'Agenda' }), h('span', { class: 'group-sum', text: `${fmtAt(atMin(comHora[0].at))} às ${fmtAt(Math.max(...comHora.map(t => atMin(t.at) + t.min)))}` })),
+      comHora.map(t => taskRow(t, true))));
+  }
+
   for (const area of areas){
-    const tasks = st.tasks.filter(t => t.area === area.id);
+    const tasks = st.tasks.filter(t => t.area === area.id && atMin(t.at) == null);
     if (!tasks.length) continue;
     const group = h('section', { class: 'group', style: tint(area.id) },
       h('header', { class: 'group-head' }, areaChip(area.id), h('span', { class: 'group-sum', text: tasks.reduce((s, t) => s + t.min, 0) + ' min' })));
 
-    for (const t of tasks){
-      const isDone = t.id in done;
-      const note = [WHEN[t.when], t.notes && t.notes[wd]].filter(Boolean).join(' · ');
-      const box = h('input', { type: 'checkbox', class: 'check', checked: isDone, 'aria-label': `${t.name}, ${t.min} minutos` });
-      const row = h('label', { class: 'row task' + (isDone ? ' done' : '') },
-        box,
-        h('span', { class: 'task-text' }, h('span', { class: 'task-name', text: t.name }), note ? h('span', { class: 'task-sub', text: note }) : null),
-        t.required ? h('span', { class: 'req', text: 'Obrigatório' }) : null,
-        h('span', { class: 'task-min', text: t.min + ' min' }));
-      // marcar só mexe nesta linha e nos números do topo
-      box.addEventListener('change', () => {
-        const e = entryFor(viewDay);
-        if (box.checked) e.done[t.id] = { min: t.min, area: t.area }; else delete e.done[t.id];
-        row.classList.toggle('done', box.checked);
-        e.t = Date.now();
-        save('log'); paintTodayStats();
-      });
-      group.append(row);
-    }
+    for (const t of tasks) group.append(taskRow(t, false));
     list.append(group);
   }
 
@@ -474,19 +493,21 @@ function renderWeek(){
   const wdToday = new Date().getDay();
   const order = id => listaAreas().findIndex(a => a.id === id);
   for (const wd of WEEK_ORDER){
-    const tasks = state.routine.filter(t => t.days.includes(wd)).sort((a, b) => order(a.area) - order(b.area));
+    const tasks = state.routine.filter(t => t.days.includes(wd)).sort((a, b) => porHorario(a, b) || order(a.area) - order(b.area));
     const sum = tasks.reduce((s, t) => s + t.min, 0);
     week.append(h('div', { class: 'day' + (wd === wdToday ? ' is-today' : '') },
       h('header', { class: 'day-head' }, h('b', { text: DAY_NAMES[wd] }), h('span', { text: fmtHM(sum) })),
       h('div', { class: 'day-slots' }, tasks.map(t =>
-        h('div', { class: 'slot', style: tint(t.area), title: `${t.name} · ${t.min} min` }, h('i'),
-          h('span', { class: 'slot-name', text: areaById(t.area).name }),
+        h('div', { class: 'slot', style: tint(t.area), title: [faixa(t), t.name, t.min + ' min'].filter(Boolean).join(' · ') }, h('i'),
+          atMin(t.at) != null
+            ? h('span', { class: 'slot-text' }, h('span', { class: 'slot-at', text: fmtAt(atMin(t.at)) }), h('span', { class: 'slot-name', text: t.name }))
+            : h('span', { class: 'slot-name', text: areaById(t.area).name }),
           h('span', { class: 'slot-min', text: t.min + "'" }))))));
   }
   renderEditor();
 }
 
-// Editor: nome, área, duração e dias de cada tarefa
+// Editor: nome, área, horário (opcional), duração e dias de cada tarefa
 function renderEditor(){
   const rows = $('#editorRows');
   rows.replaceChildren();
@@ -501,6 +522,9 @@ function renderEditor(){
     const min = h('input', { type: 'number', min: '5', step: '5', value: String(t.min), 'aria-label': 'Minutos' });
     min.addEventListener('change', () => { t.min = Math.max(5, parseInt(min.value, 10) || t.min); save(); renderWeek(); });
 
+    const at = h('input', { type: 'time', step: '60', value: t.at || '', 'aria-label': 'Horário (opcional)', title: 'Horário de início (opcional). Apague para tirar.' });
+    at.addEventListener('change', () => { if (atMin(at.value) != null) t.at = at.value; else delete t.at; save(); renderWeek(); });
+
     const days = h('div', { class: 'days', role: 'group', 'aria-label': 'Dias da semana' },
       WEEK_ORDER.map(wd => h('button', {
         type: 'button', text: DAY_SHORT[wd], title: DAY_NAMES[wd], 'aria-pressed': String(t.days.includes(wd)),
@@ -512,7 +536,7 @@ function renderEditor(){
       onclick: () => { if (confirm(`Remover "${t.name}" da rotina?`)){ state.routine.splice(i, 1); save(); renderWeek(); } } });
 
     rows.append(h('div', { class: 'erow', style: tint(t.area) },
-      h('i', { class: 'erow-dot' }), name, area, h('label', { class: 'min-field' }, min, h('span', { text: 'min' })), days, remove));
+      h('i', { class: 'erow-dot' }), name, area, h('label', { class: 'at-field' }, at), h('label', { class: 'min-field' }, min, h('span', { text: 'min' })), days, remove));
   });
 }
 $('#addTask').addEventListener('click', () => {

@@ -73,7 +73,11 @@ começam numa lista genérica (`AREAS_PADRAO`).
     procura também dentro das transcrições.
   - **Ctrl+O** (ou “Ir para…”) abre qualquer nota, livro, aula ou dia pelo nome.
   - Exporta um .zip pronto para o Obsidian (Notas/, Diário/, Marcações/).
-- **Rotina**: semana, planos, recursos e progresso.
+- **Rotina**: semana, planos, recursos e progresso. Cada tarefa tem duração e,
+  se quiser, **horário** de início (campo de relógio no Editar rotina; apague
+  para tirar). As que têm horário abrem o Hoje numa **Agenda** na ordem do
+  relógio (5h40 às 6h05…) e aparecem assim também na Semana; as sem horário
+  seguem agrupadas por área.
 
 Funciona offline (service worker). Dados ficam no aparelho; a sincronização entre PC e
 celular usa um Gist secreto (token em Rotina → Progresso). Os arquivos dos livros e o

@@ -142,8 +142,8 @@ svg.ic{width:21px;height:21px;flex:none;fill:none;stroke:currentColor;stroke-wid
 .row+.row{box-shadow:0 -1px 0 var(--line)}
 .x{width:32px;height:32px;border-radius:50%;color:var(--r3);font-size:21px;line-height:1;flex:none;transition:background .15s,color .15s}
 
-input[type=text],input[type=number],input[type=password],select{height:var(--ctl);background:var(--papel);border:1px solid var(--fio);border-radius:var(--r-sm);padding:0 13px;outline:none;transition:border-color .15s,box-shadow .15s}
-input[type=text]:focus,input[type=number]:focus,input[type=password]:focus,select:focus{border-color:var(--acento);box-shadow:0 0 0 3px rgba(43,127,255,.2)}
+input[type=text],input[type=number],input[type=password],input[type=time],select{height:var(--ctl);background:var(--papel);border:1px solid var(--fio);border-radius:var(--r-sm);padding:0 13px;outline:none;transition:border-color .15s,box-shadow .15s}
+input[type=text]:focus,input[type=number]:focus,input[type=password]:focus,input[type=time]:focus,select:focus{border-color:var(--acento);box-shadow:0 0 0 3px rgba(43,127,255,.2)}
 
 /* controle deslizante: trilho fino de meio tom, bolinha de papel */
 input[type=range]{-webkit-appearance:none;appearance:none;height:20px;background:none;cursor:pointer}
@@ -232,6 +232,8 @@ body.rolou .nav{box-shadow:0 1px 0 var(--fio)}
 .task-text{flex:1;min-width:0}
 .task-name{display:block;font-size:17px;font-weight:500;letter-spacing:-.012em;transition:color .2s}
 .task-sub{display:block;font-size:15px;color:var(--r3)}
+.task-at{flex:none;min-width:52px;font-size:16px;font-weight:600;color:var(--c,var(--ink));font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.agenda-title{font-size:15px;font-weight:600;color:var(--ink-2)}
 .task-min{font-size:14px;font-weight:500;color:var(--r2);background:var(--preench);border-radius:999px;padding:3px 10px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .task.done .task-name{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--borda-check)}
 .task.done .task-min{color:var(--muted)}
@@ -269,12 +271,18 @@ body.rolou .nav{box-shadow:0 1px 0 var(--fio)}
 .day.is-today .slot{background:var(--surface)}
 .slot i{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
 .slot-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.slot-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.slot-text .slot-name{flex:none}
+.slot-at{font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
 .slot-min{color:var(--muted);font-variant-numeric:tabular-nums}
 
 .editor .card-head{margin-bottom:9px}
-.erow{display:grid;grid-template-columns:9px minmax(0,1fr) 171px 105px auto 32px;gap:11px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
+.erow{display:grid;grid-template-columns:9px minmax(0,1fr) 171px 124px 105px auto 32px;gap:11px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
 .erow-dot{width:9px;height:9px;border-radius:50%;background:var(--c)}
 .erow input,.erow select{width:100%;min-width:0}
+.at-field{display:flex}
+.at-field input{width:100%;min-width:0;font-variant-numeric:tabular-nums;color:var(--ink)}
+.at-field input:invalid,.at-field input[value=""]{color:var(--muted)}
 .min-field{display:flex;align-items:center;gap:7px;font-size:15px;color:var(--muted)}
 .min-field input{color:var(--ink)}
 .days{display:flex;gap:3px}
@@ -419,7 +427,8 @@ body.rolou .nav{box-shadow:0 1px 0 var(--fio)}
   .day-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 
   .erow{grid-template-columns:9px minmax(0,1fr) 105px 32px;row-gap:9px}
-  .erow select{grid-column:2/-1;grid-row:2}
+  .erow select{grid-column:2;grid-row:2}
+  .erow .at-field{grid-column:3/-1;grid-row:2}
   .erow .days{grid-column:2/-1;grid-row:3}
   .days button{flex:1;height:41px}
 
@@ -620,4 +629,4 @@ button,label,summary,.chip,.nav{-webkit-user-select:none;user-select:none}
 .sync-foot[data-state="error"]::before{background:#de4040}
 
 /* iPhone: campos com 18px não dão zoom ao tocar */
-@media (max-width:760px){input[type=text],input[type=number],input[type=password],select,textarea{font-size:18px}}
+@media (max-width:760px){input[type=text],input[type=number],input[type=password],input[type=time],select,textarea{font-size:18px}}
