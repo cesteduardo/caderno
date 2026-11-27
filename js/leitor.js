@@ -160,6 +160,8 @@ function buildReader(){
         rdFerr('rdBhl', 'highlighter', 'Marcações', 'Marcações e notas do livro', () => lado('hl')),
         rdFerr('rdBbusca', 'search', 'Buscar', 'Buscar no livro (Ctrl+F)', () => lado('busca')),
         h('span', { class: 'rd-sep', 'aria-hidden': 'true' }),
+        /* OCR: só nos PDFs; o ícone acende quando a página na tela é escaneada e ainda não foi lida */
+        h('button', { class: 'rd-ferr', type: 'button', id: 'rdBocr', hidden: true, title: 'Reconhecer o texto (OCR)', 'aria-label': 'OCR', onclick: () => RD.eng && RD.eng.menuOcr && RD.eng.menuOcr() }, ico('scan-text'), h('span', { class: 'rot', text: 'OCR' })),
         rdFerr('rdBtr', 'languages', 'Traduzir', 'Traduzir a página', () => traducao()),
         h('button', { class: 'rd-ferr rd-aa-btn', type: 'button', id: 'rdBaa', title: 'Ajustes de leitura', 'aria-label': 'Ajustes de leitura', onclick: () => aaAbrir() }, h('span', { class: 'ico-aa', text: 'Aa' })))),
     h('aside', { class: 'rd-lado', id: 'rdLado', hidden: true, 'aria-label': 'Barra lateral' }),
@@ -356,7 +358,8 @@ function rdLayout(){
   /* os motores refazem as páginas sozinhos (ResizeObserver no palco);
      o texto some por um instante enquanto isso, em vez de pular à vista */
   const assin = (RD.lado && larga ? 'L' : '') + (RD.tr && RS.trDock ? 'T' : '');
-  if (rdLayout.ultima !== undefined && rdLayout.ultima !== assin){
+  /* só o leitor antigo repagina aos saltos; PDF e foliate ajustam no lugar */
+  if (RD.eng === FlowEngine && rdLayout.ultima !== undefined && rdLayout.ultima !== assin){
     const st = $('#rdStage');
     if (st){ st.classList.add('refaz'); clearTimeout(rdLayout.f); rdLayout.f = setTimeout(() => st.classList.remove('refaz'), 380); }
   }

@@ -82,7 +82,10 @@ estão.
 - **OCR** (PDF escaneado): a página é lida numa imagem própria a ~300 DPI, com
   contraste esticado; os parágrafos são refeitos pela posição das palavras; copiar
   e traduzir mantêm os espaços e juntam a palavra partida no fim da linha. Aa →
-  "Ler de novo esta página" refaz uma página lida antes.
+  "Ler de novo esta página" refaz uma página lida antes. O OCR mora num ícone na
+  barra do leitor de PDF (ao lado de Traduzir), que acende com um ponto azul
+  quando a página na tela é escaneada e ainda não foi lida; dali saem "Ler esta
+  página", "Ler de novo", "Ler sozinho" e o idioma.
 - **Aulas**: grava pelo microfone ou pelo áudio de uma aba, transcreve no próprio aparelho
   (Whisper via transformers.js) e monta a ficha: resumo, pontos-chave, autores, obras,
   conceitos e perguntas de revisão.

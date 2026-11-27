@@ -127,7 +127,6 @@ const PdfEngine = {
     this.sizes = {};
     this.texts = {};
     this.paras = {};
-    this.avisouOcr = 0;
     this.live = new Map();
     this.queue = Promise.resolve();
     const p1 = await this.doc.getPage(1);
@@ -139,6 +138,7 @@ const PdfEngine = {
     stage.className = 'rd-stage pdf';
     stage.replaceChildren(h('div', { class: 'pdf-scroll', id: 'pdfScroll' }, h('div', { class: 'pdf-pages', id: 'pdfPages' })));
     stageInput(stage, this);
+    const bOcr = $('#rdBocr'); if (bOcr) bOcr.hidden = false;
     const bot = document.querySelector('.rd-bot');
     bot.append(h('div', { class: 'pdf-zoom', role: 'group', 'aria-label': 'Zoom da página' },
       h('button', { type: 'button', title: 'Diminuir', 'aria-label': 'Diminuir', onclick: () => this.setZoom(this.zoom / 1.2) }, ico('zoom-out')),
@@ -168,6 +168,7 @@ const PdfEngine = {
   build(){
     const box = $('#pdfPages');
     const W = this.cssW();
+    this.W = W;
     box.replaceChildren();
     this.io.disconnect();
     this.live = new Map();
@@ -179,13 +180,33 @@ const PdfEngine = {
     }
   },
   setZoom(z){
-    const cur = this.cur || 1;
     this.zoom = Math.max(.6, Math.min(3, z));
     this.b.zoom = this.zoom; putI('books', this.b);
-    this.build();
-    requestAnimationFrame(() => this.scrollTo(cur));
+    this.relayout();
   },
-  relayout(){ const cur = this.cur || 1; this.build(); requestAnimationFrame(() => this.scrollTo(cur)); },
+  /* Mudou o tamanho (zoom, barra lateral, tela girada): as páginas NÃO são
+     apagadas. Cada uma muda de tamanho no lugar, a imagem atual estica até
+     a nova (nítida) ficar pronta por trás e ser trocada. Se só a altura
+     mudou (a barra de endereço do celular aparecendo e sumindo), nada se
+     refaz. Antes, tudo era apagado e redesenhado: a página piscava. */
+  relayout(){
+    const W = this.cssW();
+    if (!this.n || W === this.W) return;
+    const sc = $('#pdfScroll'), cur = this.cur || 1, pgCur = this.pageEl(cur);
+    const y = pgCur && sc ? Math.max(0, (sc.scrollTop - pgCur.offsetTop) / pgCur.offsetHeight) : 0;
+    this.W = W;
+    for (const pg of document.querySelectorAll('#pdfPages .pdf-pg')){
+      const n = +pg.dataset.n, s = this.sizes[n], r = s ? s[1] / s[0] : this.ratio;
+      pg.style.width = W + 'px'; pg.style.height = Math.round(W * r) + 'px';
+      const tl = pg.querySelector('.textLayer:not(.ocr-layer)');
+      if (tl && s) tl.style.setProperty('--total-scale-factor', W / s[0]);
+      if (this.live.get(n) === 'on'){
+        this.live.set(n, 'wait');
+        this.queue = this.queue.then(() => this.live.get(n) === 'wait' ? this.render(n) : null).catch(() => {});
+      }
+    }
+    if (pgCur && sc) sc.scrollTop = pgCur.offsetTop + y * pgCur.offsetHeight;
+  },
 
   want(n){
     if (this.live.has(n)) return;
@@ -210,7 +231,7 @@ const PdfEngine = {
     pg.style.height = Math.round(vp.height) + 'px';
     const dpr = FRACO ? 1 : Math.min(2, devicePixelRatio || 1);
     const cv = h('canvas', { width: Math.floor(vp.width * dpr), height: Math.floor(vp.height * dpr) });
-    cv.style.width = vp.width + 'px'; cv.style.height = vp.height + 'px';
+    cv.style.width = '100%'; cv.style.height = '100%';   // estica junto se a página mudar de tamanho
     const task = page.render({ canvasContext: cv.getContext('2d', { alpha: false }), viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null });
     await task.promise;
     if (this.live.get(n) !== 'wait'){ page.cleanup(); return; }
@@ -236,18 +257,43 @@ const PdfEngine = {
     if (!temTexto && this.live.get(n) === 'on') this.semTexto(n, cv);
   },
 
-  /* página sem texto: usa o OCR já guardado, lê sozinho (se pedido) ou oferece o botão */
+  /* página sem texto: usa o OCR já guardado, lê sozinho (se pedido) ou
+     acende o ícone de OCR na barra (no lugar do aviso que sumia) */
   async semTexto(n, cv){
     const pg = this.pageEl(n);
     if (!pg) return;
     pg.classList.add('sem-texto');
     const salvo = await DB.get('ocr:' + this.b.id + ':' + n);
-    if (salvo && salvo.palavras){ this.camadaOcr(n, salvo); return; }
+    if (salvo && salvo.palavras){ this.camadaOcr(n, salvo); this.estadoOcr(); return; }
     if (RS.ocrAuto){ this.ocr(n, cv); return; }
-    if (pg.querySelector('.ocr-bt')) return;
-    pg.append(h('button', { class: 'ocr-bt', type: 'button', onclick: (e) => { e.stopPropagation(); this.ocr(n, pg.querySelector('canvas')); } },
-      h('b', { text: 'Reconhecer o texto' }), h('span', { text: 'Página escaneada: o OCR deixa selecionar, buscar e traduzir' })));
-    if (!this.avisouOcr){ this.avisouOcr = 1; toast('Este PDF é escaneado. Toque em “Reconhecer o texto” na página, ou ligue o OCR automático em Aa.'); }
+    this.estadoOcr();
+  },
+  /* o ícone da barra conta a situação da página na tela */
+  estadoOcr(){
+    const b = $('#rdBocr'), pg = this.pageEl(this.cur || 1);
+    if (!b || !pg) return;
+    const lendo = pg.classList.contains('lendo'), feito = pg.classList.contains('com-ocr'), escaneada = pg.classList.contains('sem-texto');
+    b.classList.toggle('precisa', escaneada && !feito && !lendo);
+    b.classList.toggle('lendo', lendo);
+    b.title = lendo ? 'Lendo a página…' : escaneada && !feito ? 'Página escaneada: toque para reconhecer o texto' : feito ? 'Texto reconhecido (OCR)' : 'Reconhecer o texto (OCR)';
+  },
+  menuOcr(){
+    const b = $('#rdBocr'), n = this.cur || 1, pg = this.pageEl(n);
+    if (!b || !pg) return;
+    const escaneada = pg.classList.contains('sem-texto'), feito = pg.classList.contains('com-ocr'), lendo = pg.classList.contains('lendo');
+    const fecha = fn => () => { selbar.hide(); fn(); };
+    selbar.show(b.getBoundingClientRect(), [
+      lendo ? { label: 'Lendo a página…', onclick: () => selbar.hide() }
+        : escaneada && !feito ? { label: 'Ler esta página', onclick: fecha(() => this.ocr(n, pg.querySelector('canvas'))) }
+        : feito ? { label: 'Ler de novo esta página', onclick: fecha(() => this.relerOcr()) }
+        : { label: 'Esta página já tem texto', onclick: () => selbar.hide() },
+      { label: RS.ocrAuto ? 'Ler sozinho: ligado' : 'Ler sozinho: desligado', on: !!RS.ocrAuto, title: 'Lê cada página escaneada ao chegar nela', onclick: fecha(() => {
+        RS.ocrAuto = !RS.ocrAuto; saveRS();
+        toast(RS.ocrAuto ? 'As páginas escaneadas serão lidas sozinhas ao aparecer.' : 'Leitura automática desligada.');
+        if (RS.ocrAuto) for (const [k, st] of this.live) { const p = this.pageEl(k); if (st === 'on' && p && p.classList.contains('sem-texto') && !p.classList.contains('com-ocr')) this.ocr(k, p.querySelector('canvas')); }
+      }) },
+      { label: 'Idioma do livro…', onclick: fecha(() => aaAbrir()) },
+    ]);
   },
   /* Imagem própria para o OCR, a uns 300 DPI e em tons de cinza com
      contraste esticado: a da tela no celular tem uns 90 DPI, pouco para o
@@ -279,7 +325,7 @@ const PdfEngine = {
     const pg = this.pageEl(n);
     if (!pg || pg.classList.contains('lendo')) return;
     pg.classList.add('lendo');
-    pg.querySelector('.ocr-bt')?.remove();
+    this.estadoOcr();
     const aviso = h('div', { class: 'ocr-lendo', text: 'Lendo a página…' });
     pg.append(aviso);
     try {
@@ -299,7 +345,7 @@ const PdfEngine = {
       toast('Não deu para reconhecer: ' + (e.message || e));
       pg.classList.remove('lendo');
       this.semTexto(n, cvTela);
-    } finally { aviso.remove(); pg.classList.remove('lendo'); }
+    } finally { aviso.remove(); pg.classList.remove('lendo'); this.estadoOcr(); }
   },
   /* Aa → "Ler de novo esta página": apaga o OCR guardado e lê outra vez
      (vale para páginas lidas antes da imagem em alta resolução) */
@@ -368,6 +414,7 @@ const PdfEngine = {
     const t = this.tocAt(n);
     $('#rdChap').textContent = t ? t.l : '';
     savePos({ page: n, y: +y.toFixed(3) }, this.n > 1 ? (n - 1) / (this.n - 1) : 1, `p. ${n} de ${this.n}`);
+    this.estadoOcr();
     trFollow();
   },
   scrollTo(n, y = 0){
