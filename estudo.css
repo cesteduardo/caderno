@@ -890,12 +890,46 @@ body[data-rdtheme="noite"] .toast button{color:#111}
 /* ---------- agenda do dia (horários fixos) ---------- */
 .agenda{margin-top:0;margin-bottom:var(--gap)}
 .agenda[hidden]{display:none}
-.ag-lista{list-style:none;display:grid;gap:2px}
-.ag-item{display:grid;grid-template-columns:minmax(120px,max-content) 1fr auto;align-items:center;gap:16px;min-height:var(--ctl);padding:0 12px;border-radius:10px}
-.ag-hora{font-size:15px;font-weight:500;color:var(--r2);font-variant-numeric:tabular-nums}
-.ag-nome{font-size:16px;font-weight:500;letter-spacing:-.01em}
-.ag-item.passou .ag-hora,.ag-item.passou .ag-nome{color:var(--r3)}
-.ag-item.agora{background:color-mix(in srgb,var(--acento) 9%,transparent)}
-.ag-item.agora .ag-hora,.ag-item.agora .ag-agora{color:var(--acento)}
-.ag-agora{font-size:13px;font-weight:600}
-@media (max-width:560px){.ag-item{grid-template-columns:104px 1fr auto;gap:10px;padding:0 8px}}
+.ag-blocos{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:8px}
+.ag-bloco{--c:var(--r3);position:relative;display:flex;flex-direction:column;gap:3px;min-height:88px;padding:12px 14px 13px 16px;border-radius:12px;overflow:hidden;
+  background:color-mix(in srgb,var(--c) 8%,var(--papel));box-shadow:inset 0 0 0 .5px color-mix(in srgb,var(--c) 22%,transparent)}
+.ag-bloco::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.ag-bloco.longo{grid-column:span 2}
+.ag-bloco.marco{min-height:0;justify-content:center;background:transparent;box-shadow:inset 0 0 0 1px var(--fio)}
+.ag-bloco.marco::before{display:none}
+.ag-hora{font-size:13px;font-weight:600;color:var(--c);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.ag-bloco.marco .ag-hora{color:var(--r2)}
+.ag-nome{font-size:16px;font-weight:600;letter-spacing:-.012em;line-height:1.25}
+.ag-dur{margin-top:auto;font-size:13px;color:var(--r2);font-variant-numeric:tabular-nums}
+.ag-bloco.passou{opacity:.5}
+.ag-bloco.agora{box-shadow:inset 0 0 0 2px var(--acento),0 8px 22px -14px color-mix(in srgb,var(--acento) 70%,transparent)}
+.ag-bloco.agora .ag-dur{color:var(--acento);font-weight:600}
+.ag-barra{position:absolute;left:0;right:0;bottom:0;height:3px;background:color-mix(in srgb,var(--acento) 18%,transparent)}
+.ag-play{position:absolute;top:9px;right:9px;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--papel));transition:transform .15s var(--ease),background .15s}
+.ag-play svg.ic{width:15px;height:15px;fill:currentColor;stroke-width:0}
+.ag-play:hover{background:color-mix(in srgb,var(--c) 24%,var(--papel))}
+.ag-play:active{transform:scale(.92)}
+.ag-play.on{color:#fff;background:var(--c)}
+.ag-bloco.rodando,.ag-bloco.crono{opacity:1}
+.ag-bloco .ag-nome{padding-right:30px}
+.ag-bloco.feito{opacity:.62}
+.ag-bloco.feito .ag-dur{color:var(--c);font-weight:600}
+.ag-bloco.crono .ag-dur{color:var(--c);font-weight:600}
+.ag-bloco.rodando{box-shadow:inset 0 0 0 2px var(--c)}
+.ag-bloco.rodando .ag-dur,.ag-bloco.rodando .ag-hora{color:var(--c)}
+.ag-bloco.crono .ag-barra{background:color-mix(in srgb,var(--c) 18%,transparent)}
+.ag-bloco.crono .ag-barra::after{background:var(--c)}
+.ag-bloco.passou-do-tempo .ag-barra::after{background:#e5484d}
+/* cronômetro nas tarefas do Hoje */
+.task-play{flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;color:var(--c,var(--acento));background:color-mix(in srgb,var(--c,var(--acento)) 12%,transparent);transition:transform .15s var(--ease),background .15s}
+.task-play svg.ic{width:15px;height:15px;fill:currentColor;stroke-width:0}
+.task-play:hover{background:color-mix(in srgb,var(--c,var(--acento)) 22%,transparent)}
+.task-play:active{transform:scale(.92)}
+.task-play.on{color:#fff;background:var(--c,var(--acento))}
+.task.crono .crono-txt{color:var(--c,var(--acento));font-weight:600;font-variant-numeric:tabular-nums}
+.task-prog{display:block;height:3px;margin-top:6px;border-radius:2px;background:color-mix(in srgb,var(--c,var(--acento)) 16%,transparent);overflow:hidden;position:relative}
+.task-prog::after{content:"";position:absolute;left:0;top:0;bottom:0;width:calc(var(--p,0) * 100%);background:var(--c,var(--acento));border-radius:2px;transition:width .9s linear}
+.task.passou-do-tempo .task-prog::after{background:#e5484d}
+.task.rodando{background:color-mix(in srgb,var(--c,var(--acento)) 6%,transparent)}
+.ag-barra::after{content:"";position:absolute;left:0;top:0;bottom:0;width:calc(var(--p) * 100%);background:var(--acento)}
+@media (max-width:560px){.ag-blocos{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.ag-bloco{min-height:80px;padding:11px 12px 12px 14px}.ag-nome{font-size:15px}}

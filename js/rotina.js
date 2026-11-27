@@ -207,6 +207,55 @@ const areaChip = id => h('span', { class: 'chip', style: tint(id) }, h('i'), are
 const entryFor = k => (state.log[k] ||= { done: {}, diary: '' });
 const tasksFor = k => { const wd = fromKey(k).getDay(); return state.routine.filter(t => t.days.includes(wd)); };
 
+/* ---------- Cronômetro de tarefa ----------
+   ▶ Iniciar numa tarefa do Hoje (ou num bloco da Agenda) conta o tempo;
+   dá para pausar e continuar; marcar como feita registra os minutos reais.
+   Fica no dia: entry.run[id] = { ms: tempo acumulado, ini: início da
+   contagem em andamento ou null }. Uma tarefa por vez: iniciar outra pausa
+   a anterior. Vai junto na sincronização, como o resto do dia. */
+const corrida = k => (state.log[k] && state.log[k].run) || {};
+function tempoTarefa(id, k = todayKey()){ const r = corrida(k)[id]; return r ? (r.ms || 0) + (r.ini ? Date.now() - r.ini : 0) : 0; }
+const tarefaRodando = (k = todayKey()) => Object.keys(corrida(k)).find(id => corrida(k)[id].ini) || null;
+const fmtCrono = ms => { const s = Math.floor(ms / 1000), hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60, ss = s % 60; return (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0'); };
+function pausarTarefa(id, quieto){
+  const e = entryFor(todayKey()), r = e.run && e.run[id];
+  if (!r || !r.ini) return;
+  r.ms = (r.ms || 0) + Date.now() - r.ini; r.ini = null; e.t = Date.now();
+  if (!quieto){ save('log'); aposCronometro(); }
+}
+function iniciarTarefa(id){
+  const k = todayKey(), e = entryFor(k);
+  e.run ||= {};
+  const outra = tarefaRodando(k);
+  if (outra && outra !== id) pausarTarefa(outra, true);
+  delete e.done[id];
+  const r = e.run[id] ||= { ms: 0, ini: null };
+  if (!r.ini) r.ini = Date.now();
+  e.t = Date.now(); save('log'); aposCronometro();
+}
+function concluirTarefa(id){
+  const t = state.routine.find(x => x.id === id); if (!t) return;
+  pausarTarefa(id, true);
+  const e = entryFor(todayKey()), ms = tempoTarefa(id);
+  e.done[id] = ms >= 60e3 ? { min: Math.round(ms / 60e3), area: t.area, real: true } : { min: t.min, area: t.area };
+  e.t = Date.now(); save('log'); aposCronometro();
+}
+function aposCronometro(){ if (currentView === 'hoje') renderToday(); else tiqueTarefa(); }
+/* a cada segundo: o relógio e a barra da tarefa em andamento, e o título da aba */
+function tiqueTarefa(){
+  const id = tarefaRodando(), t = id && state.routine.find(x => x.id === id);
+  document.querySelectorAll('[data-crono]').forEach(el => {
+    const tt = state.routine.find(x => x.id === el.dataset.crono); if (!tt) return;
+    const ms = tempoTarefa(tt.id), p = Math.min(1, ms / (tt.min * 60e3));
+    const txt = el.querySelector('.crono-txt'); if (txt) txt.textContent = `${fmtCrono(ms)} de ${tt.min} min` + (ms > tt.min * 60e3 ? ` · +${Math.floor((ms - tt.min * 60e3) / 60e3)} min` : '');
+    el.style.setProperty('--p', String(p));
+    el.classList.toggle('passou-do-tempo', ms > tt.min * 60e3);
+  });
+  if (typeof FC === 'undefined' || !FC.end) document.title = t ? `▶ ${fmtCrono(tempoTarefa(id))} · ${t.name}` : (document.title.startsWith('▶') ? 'Caderno' : document.title);
+  if (t && currentView === 'hoje' && (tiqueTarefa.n = (tiqueTarefa.n || 0) + 1) % 30 === 0) paintTodayStats();
+}
+setInterval(() => { if (tarefaRodando() || document.querySelector('[data-crono]')) tiqueTarefa(); }, 1000);
+
 /* Ao marcar, guardamos minutos e área da tarefa naquele dia.
    Assim, editar a rotina depois não reescreve o histórico. */
 function dayStats(k){
@@ -214,7 +263,10 @@ function dayStats(k){
   const done = (state.log[k] && state.log[k].done) || {};
   const planned = tasks.reduce((s, t) => s + t.min, 0);
   const doneTasks = tasks.filter(t => t.id in done);
-  const completed = doneTasks.reduce((s, t) => s + (done[t.id].min || t.min), 0);
+  /* feitas contam os minutos registrados; a que está em andamento (ou
+     pausada) conta o tempo já cronometrado, até a duração prevista */
+  const completed = doneTasks.reduce((s, t) => s + (done[t.id].min || t.min), 0)
+    + tasks.filter(t => !(t.id in done)).reduce((s, t) => s + Math.min(t.min, Math.floor(tempoTarefa(t.id, k) / 60e3)), 0);
   return { tasks, planned, completed, doneCount: doneTasks.length, ratio: planned ? Math.min(1, completed / planned) : 0 };
 }
 
@@ -334,33 +386,23 @@ function toast(msg, actionLabel, action){
 
 let viewDay = todayKey();
 
-/* Álbum do dia no trajeto (só dias úteis). A semana do ciclo conta a
-   partir da semana de início do plano. */
-function albumFor(k){
-  const tr = state.perfil && state.perfil.trilha;
-  const wd = fromKey(k).getDay();
-  if (!tr || !tr.semanas || !tr.semanas.length || wd < 1 || wd > 5) return null;
-  const weeks = Math.round((fromKey(mondayOf(k)) - fromKey(mondayOf(inicioPlano()))) / (7 * 864e5));
-  const n = tr.semanas.length, cycle = ((weeks % n) + n) % n;
-  const a = tr.semanas[cycle][wd - 1];
-  return a ? { ...a, cycle, n, tema: (tr.temas || [])[wd - 1] || '', rotulo: tr.rotuloDia || 'Música do dia' } : null;
-}
-const spotify = q => 'https://open.spotify.com/search/' + encodeURIComponent(q);
 
+/* Álbum do dia: um álbum de música clássica por dia, todos os dias, da
+   discoteca de js/discoteca.js (só gravações de referência) */
 function renderTrack(){
   const box = $('#track');
-  const a = albumFor(viewDay);
+  const a = typeof albumDoDia === 'function' ? albumDoDia(viewDay) : null;
   box.hidden = !a;
   if (!a) return;
-  const q = `${a.c} ${a.w} ${a.p.replace(/"/g, '')}`;
+  const q = buscaAlbum(a);
   box.replaceChildren(
     h('div', { class: 'track-text' },
-      h('span', { class: 'eyebrow', text: [a.rotulo, a.tema, `semana ${a.cycle + 1} de ${a.n}`].filter(Boolean).join(' · ') }),
+      h('span', { class: 'eyebrow', text: `Álbum do dia · ${a.t} · ${a.i + 1} de ${a.n}` }),
       h('b', { text: `${a.c} — ${a.w}` }),
       h('span', { class: 'track-by', text: a.p })),
     h('div', { class: 'track-links' },
-      h('a', { href: spotify(q), target: '_blank', rel: 'noopener', text: 'Spotify ↗' }),
-      h('a', { href: yt(q), target: '_blank', rel: 'noopener', text: 'YouTube ↗' })));
+      h('a', { href: spotifyBusca(q), target: '_blank', rel: 'noopener', text: 'Spotify ↗' }),
+      h('a', { href: ytMusicBusca(q), target: '_blank', rel: 'noopener', text: 'YouTube Music ↗' })));
 }
 
 /* ---------- HOJE ---------- */
@@ -398,18 +440,28 @@ function renderToday(){
     const isDone = t.id in done;
     const note = [comHorario && faixa(t), WHEN[t.when], t.notes && t.notes[wd]].filter(Boolean).join(' · ');
     const box = h('input', { type: 'checkbox', class: 'check', checked: isDone, 'aria-label': `${t.name}, ${t.min} minutos` });
-    const row = h('label', { class: 'row task' + (isDone ? ' done' : '') + (comHorario ? ' timed' : ''), style: comHorario ? tint(t.area) : null },
+    /* cronômetro: só no dia de hoje e em tarefa não feita */
+    const run = isToday && !isDone ? corrida(viewDay)[t.id] : null, rodando = !!(run && run.ini);
+    const play = isToday && !isDone ? h('button', { class: 'task-play' + (rodando ? ' on' : ''), type: 'button',
+      title: rodando ? 'Pausar' : run ? 'Continuar' : 'Iniciar: conta o tempo da tarefa', 'aria-label': rodando ? 'Pausar' : run ? 'Continuar' : 'Iniciar',
+      onclick: ev => { ev.preventDefault(); ev.stopPropagation(); rodando ? pausarTarefa(t.id) : iniciarTarefa(t.id); } }, ico(rodando ? 'pause' : 'play')) : null;
+    const minFeitos = isDone && done[t.id].real ? done[t.id].min : null;
+    const row = h('label', { class: 'row task' + (isDone ? ' done' : '') + (comHorario ? ' timed' : '') + (run ? ' crono' : '') + (rodando ? ' rodando' : ''), style: comHorario ? tint(t.area) : null, 'data-crono': run ? t.id : null },
       box,
       comHorario ? h('span', { class: 'task-at', text: fmtAt(atMin(t.at)) }) : null,
-      h('span', { class: 'task-text' }, h('span', { class: 'task-name', text: t.name }), note ? h('span', { class: 'task-sub', text: note }) : null),
+      h('span', { class: 'task-text' }, h('span', { class: 'task-name', text: t.name }),
+        run ? h('span', { class: 'task-sub crono-txt', text: '' }) : note ? h('span', { class: 'task-sub', text: note }) : null,
+        run ? h('i', { class: 'task-prog' }) : null),
       t.required ? h('span', { class: 'req', text: 'Obrigatório' }) : null,
-      h('span', { class: 'task-min', text: t.min + ' min' }));
+      play,
+      h('span', { class: 'task-min', text: minFeitos != null ? `${minFeitos} de ${t.min} min` : t.min + ' min', title: minFeitos != null ? 'Minutos cronometrados' : null }));
     box.addEventListener('change', () => {
+      if (box.checked && isToday){ concluirTarefa(t.id); return; }
       const e = entryFor(viewDay);
       if (box.checked) e.done[t.id] = { min: t.min, area: t.area }; else delete e.done[t.id];
       row.classList.toggle('done', box.checked);
       e.t = Date.now();
-      save('log'); paintTodayStats();
+      save('log'); renderToday();
     });
     return row;
   };
@@ -432,6 +484,7 @@ function renderToday(){
     diary.dataset.day = viewDay;
   }
   updateWordCount();
+  tiqueTarefa();
 }
 
 // Anel e números do topo da aba Hoje
@@ -697,7 +750,6 @@ function planCard(plan){
 function renderLibrary(){
   /* tudo daqui vem do perfil de quem usa; sem perfil, a aba explica */
   const pf = state.perfil || {};
-  const days = ['Seg','Ter','Qua','Qui','Sex'];
   const adv = $('#v-recursos .advice'), cyc = $('#v-recursos .cycle');
   if (pf.textoRecursos) $('#recursosLead').textContent = pf.textoRecursos;
   adv.hidden = !pf.conselho;
@@ -706,19 +758,27 @@ function renderLibrary(){
     adv.querySelector('h2').textContent = pf.conselho.titulo || '';
     adv.querySelector('.advice-grid').replaceChildren(...(pf.conselho.itens || []).map(t => { const q = document.createElement('p'); q.innerHTML = t; return q; }));
   }
-  const tr = pf.trilha;
-  cyc.hidden = !(tr && tr.semanas && tr.semanas.length);
+  /* a discoteca inteira, em blocos de 7 a partir de hoje (o de hoje primeiro) */
+  const disco = typeof DISCOTECA !== 'undefined' ? DISCOTECA : [];
+  cyc.hidden = !disco.length;
   if (!cyc.hidden){
-    cyc.querySelector('h2').textContent = tr.titulo || 'Música';
-    cyc.querySelector('.pill-muted').textContent = tr.etiqueta || '';
-    cyc.querySelector('.cycle-lead').textContent = tr.texto || '';
+    cyc.querySelector('h2').textContent = 'Discoteca';
+    cyc.querySelector('.pill-muted').textContent = `${disco.length} álbuns · um por dia`;
+    cyc.querySelector('.cycle-lead').textContent = 'Música clássica de todos os tipos, só gravações de referência. Um álbum por dia, todos os dias; a lista recomeça quando acaba. Cada nome abre no Spotify; o ▶ ao lado, no YouTube Music.';
   }
-  $('#trackCycle').replaceChildren(...(cyc.hidden ? [] : tr.semanas).map((week, i) => h('div', { class: 'cycle-week' },
-    h('h3', { text: `Semana ${i + 1}` }),
-    h('ol', {}, week.map((a, d) => h('li', {},
-      h('span', { class: 'cycle-day', text: days[d] }),
-      h('a', { href: spotify(`${a.c} ${a.w} ${a.p.replace(/"/g, '')}`), target: '_blank', rel: 'noopener' },
-        h('b', { text: `${a.c} — ${a.w}` }), h('span', { text: a.p }))))))));
+  const hojeK = todayKey(), semanas = [];
+  for (let d = 0; d < disco.length; d++){
+    const k = shift(hojeK, d), a = albumDoDia(k), dt = fromKey(k);
+    if (d % 7 === 0) semanas.push([]);
+    semanas[semanas.length - 1].push({ a, rot: d === 0 ? 'Hoje' : `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}` });
+  }
+  $('#trackCycle').replaceChildren(...semanas.map((sem, i) => h('div', { class: 'cycle-week' },
+    h('h3', { text: i === 0 ? 'Esta semana' : `Daqui a ${i} ${i === 1 ? 'semana' : 'semanas'}` }),
+    h('ol', {}, sem.map(({ a, rot }) => h('li', {},
+      h('span', { class: 'cycle-day', text: rot }),
+      h('a', { href: spotifyBusca(buscaAlbum(a)), target: '_blank', rel: 'noopener' },
+        h('b', { text: `${a.c} — ${a.w}` }), h('span', { text: `${a.p} · ${a.t}` })),
+      h('a', { class: 'cycle-yt', href: ytMusicBusca(buscaAlbum(a)), target: '_blank', rel: 'noopener', title: 'Abrir no YouTube Music', 'aria-label': 'YouTube Music', text: '▶' })))))));
   const lib = $('#resourceList');
   const RESOURCES = pf.recursos || [];
   lib.hidden = !RESOURCES.length;

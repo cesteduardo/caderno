@@ -33,6 +33,16 @@ estão.
   `js/agenda.js`. Manhã igual todos os dias; de segunda a sexta entram a saída, a
   caminhada e o Trabalho (10h30 às 21h30). O bloco da hora atual fica em azul com "Agora" e os que já passaram
   ficam apagados; o destaque anda sozinho a cada minuto.
+- **Agenda em blocos**: cada horário é um bloco com a cor da área, a faixa e a
+  duração; o de agora tem contorno e uma barra que enche, os que passaram ficam
+  apagados, os longos (Trabalho) ocupam duas casas.
+- **Cronômetro de tarefa**: ▶ numa tarefa do Hoje ou num bloco da Agenda conta o
+  tempo (com pausa); a barra e o "12:03 de 25 min" acompanham, o título da aba
+  mostra o relógio, e o tempo em andamento entra no progresso do dia. Uma tarefa
+  por vez; marcar como feita registra os minutos reais. Fica no dia e sincroniza.
+- **Álbum do dia**: um álbum de música clássica por dia, todos os dias, da
+  discoteca de `js/discoteca.js` (63 gravações de referência de todos os tipos),
+  com links para o Spotify e o YouTube Music; a lista inteira está em Recursos.
 - **Hoje**: a data como título, os dias numa navegação compacta (‹ Hoje ›) e o
   progresso do dia numa barra larga com os números ao lado (minutos feitos,
   restantes e tarefas). Tarefas do dia, diário (abre também no Escritor) e

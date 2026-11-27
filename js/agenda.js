@@ -24,7 +24,7 @@ const MARCOS = [{ hora: '05:30', nome: 'Acordar' }];
 const somaHora = (hhmm, min) => { const t = paraMin(hhmm) + (min || 0); return String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
 const agendaBase = () => {
   const comHora = (state.routine || []).filter(t => /^\d{1,2}:\d{2}$/.test(t.at || ''));
-  if (comHora.length) return [...MARCOS, ...comHora.map(t => ({ hora: t.at, fim: somaHora(t.at, t.min), nome: t.name, dias: t.days }))];
+  if (comHora.length) return [...MARCOS.map(m => ({ ...m, marco: true })), ...comHora.map(t => ({ hora: t.at, fim: somaHora(t.at, t.min), nome: t.name, dias: t.days, area: t.area, id: t.id }))];
   return (state.perfil && Array.isArray(state.perfil.agenda) && state.perfil.agenda.length) ? state.perfil.agenda : AGENDA;
 };
 const paraMin = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
@@ -51,18 +51,36 @@ function renderAgenda(){
   if (!itens.length) return;
   const agora = new Date(), hoje = viewDay === todayKey();
   const m = agora.getHours() * 60 + agora.getMinutes();
-  const lista = h('ol', { class: 'ag-lista' }, ...itens.map(b => {
-    const estado = !hoje ? '' : m >= b.fimMin ? ' passou' : m >= b.ini ? ' agora' : '';
-    return h('li', { class: 'ag-item' + estado },
-      h('span', { class: 'ag-hora', text: b.fim ? `${fmtHora(b.hora)} às ${fmtHora(b.fim)}` : fmtHora(b.hora) }),
+  /* Blocos: cada um com a cor da área, a faixa de horário e a duração. O
+     de agora ganha contorno, o tempo que falta e uma barra que enche; os
+     que passaram ficam apagados; blocos longos (Trabalho) ocupam duas casas. */
+  const dur = min => min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ' ' + (min % 60) + ' min' : ''}` : `${min} min`;
+  const lista = h('ol', { class: 'ag-blocos' }, ...itens.map(b => {
+    const estado = !hoje ? '' : b.marco ? (m >= b.ini ? ' passou' : '') : m >= b.fimMin ? ' passou' : m >= b.ini ? ' agora' : '';
+    const total = b.fimMin - b.ini;
+    const agora = estado === ' agora';
+    const cor = b.area && typeof areaById === 'function' ? { '--c': areaById(b.area).color } : null;
+    /* cronômetro da tarefa (rotina.js): ▶ no bloco; em andamento, o tempo e a barra seguem o cronômetro */
+    const log = (state.log[viewDay] && state.log[viewDay].done) || {};
+    const feito = b.id && b.id in log;
+    const run = b.id && hoje && !feito && typeof corrida === 'function' ? corrida(viewDay)[b.id] : null, rodando = !!(run && run.ini);
+    const play = b.id && hoje && !feito ? h('button', { class: 'ag-play' + (rodando ? ' on' : ''), type: 'button', title: rodando ? 'Pausar' : run ? 'Continuar' : 'Iniciar: conta o tempo da tarefa', 'aria-label': rodando ? 'Pausar' : run ? 'Continuar' : 'Iniciar',
+      onclick: () => rodando ? pausarTarefa(b.id) : iniciarTarefa(b.id) }, ico(rodando ? 'pause' : 'play')) : null;
+    const tarefa = b.id && state.routine.find(t => t.id === b.id);
+    return h('li', { class: 'ag-bloco' + estado + (b.marco ? ' marco' : '') + (total >= 180 ? ' longo' : '') + (feito ? ' feito' : '') + (run ? ' crono' : '') + (rodando ? ' rodando' : ''), style: cor, 'data-crono': run ? b.id : null },
+      h('span', { class: 'ag-hora', text: b.fim ? `${fmtHora(b.hora)} – ${fmtHora(b.fim)}` : fmtHora(b.hora) }),
       h('span', { class: 'ag-nome', text: b.nome }),
-      estado === ' agora' ? h('span', { class: 'ag-agora', text: 'Agora' }) : null);
+      b.marco ? null : run ? h('span', { class: 'ag-dur crono-txt', text: '' })
+        : h('span', { class: 'ag-dur', text: feito ? `Feito · ${log[b.id].min} min` : agora ? `Agora · faltam ${dur(b.fimMin - m)}` : dur(total) }),
+      play,
+      run ? h('i', { class: 'ag-barra' }) : agora && !feito ? h('i', { class: 'ag-barra relogio', style: { '--p': String(Math.min(1, (m - b.ini) / Math.max(1, total))) } }) : null);
   }));
   const ini = itens[0], fim = itens[itens.length - 1];
   box.replaceChildren(
     h('div', { class: 'card-head' }, h('h2', { text: 'Agenda' }),
       h('span', { class: 'pill-muted', text: `${fmtHora(ini.hora)} às ${fmtHora(fim.fim || fim.hora)}` })),
     lista);
+  if (typeof tiqueTarefa === 'function') tiqueTarefa();   // relógio do cronômetro já preenchido
 }
 
 // o "Agora" anda sozinho enquanto a aba Hoje está aberta
