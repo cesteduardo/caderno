@@ -212,6 +212,7 @@ aside[epub|type~="endnote"],aside[epub|type~="footnote"],aside[epub|type~="note"
     doc.addEventListener('keydown', rdTecla);
     doc.addEventListener('selectionchange', () => { clearTimeout(this.selT); this.selT = setTimeout(() => this.onSelect(doc, index), 260); });
     doc.addEventListener('click', e => this.onClick(e, doc, index));
+    doc.addEventListener('copy', copiaLimpa);     // Ctrl+C e o Copiar do sistema saem com os parágrafos
   },
   onRelocate(d){
     if (!this.loc && this.view) requestAnimationFrame(() => this.view && this.view.classList.remove('chegando'));
@@ -355,7 +356,7 @@ aside[epub|type~="endnote"],aside[epub|type~="footnote"],aside[epub|type~="note"
       return a && antes(a.startContainer, a.startOffset, r.endContainer, r.endOffset) && antes(r.startContainer, r.startOffset, a.endContainer, a.endOffset);
     });
     const sel = r.cloneRange();
-    selbar.show(this.telaRect(r, doc), selActions({ text, overlaps, ctx: contextoDe(r.commonAncestorContainer), erase: () => this.erase(i, doc, sel, overlaps),
+    selbar.show(this.telaRect(r, doc), selActions({ text, texto: textoLimpo(s), ref: { chap: this.capDe(i, sel) }, overlaps, ctx: contextoDe(r.commonAncestorContainer), erase: () => this.erase(i, doc, sel, overlaps),
       make: (color, style) => {
         const x = newHl({ cfi: this.view.getCFI(i, sel), i, f: this.fracDe(i, sel, doc), chap: this.capDe(i, sel), text, color, style });
         this.repaint(); return x;

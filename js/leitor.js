@@ -676,7 +676,8 @@ function selActions(base){
     { label: 'Nota', onclick: () => { const x = mk(PEN.color); done(); editNote('', v => { x.note = v; putI('hl', x); RD.eng && RD.eng.repaint(); }); } },
     { label: 'Cartão', onclick: () => { const x = mk(PEN.color); done(); cardFromHl(x); } },
     { label: 'Traduzir', onclick: () => translateCard(base.text, { rect: selbar.rect, ctx: base.ctx ? { contexto: base.ctx } : null, save: tr => { const x = mk(PEN.color); x.tr = tr; putI('hl', x); RD.eng && RD.eng.repaint(); getSelection().removeAllRanges(); RD.eng && RD.eng.deselect && RD.eng.deselect(); } }) },
-    { label: 'Copiar', onclick: () => { navigator.clipboard?.writeText(base.text); selbar.hide(); toast('Copiado.'); } },
+    { label: 'Copiar', title: 'Copiar o trecho, com os parágrafos', onclick: () => { navigator.clipboard?.writeText(base.texto || base.text); done(); toast('Copiado.'); } },
+    { label: 'Citar', title: 'Copiar entre aspas, com autor, livro e página', onclick: () => { navigator.clipboard?.writeText(citacao(base.texto || base.text, base.ref)); done(); toast('Citação copiada.'); } },
     base.overlaps && base.overlaps.length ? { label: 'Remover', cls: 'danger', title: 'Remover as marcações deste trecho', onclick: () => { done(); base.erase(); } } : null,
   ];
 }
@@ -690,9 +691,97 @@ function hlActions(x){
     { label: 'Cartão', onclick: () => { selbar.hide(); cardFromHl(x); } },
     { label: 'Traduzir', onclick: () => translateCard(x.text, { rect: selbar.rect, saved: !!x.tr, save: tr => { x.tr = tr; putI('hl', x); redo(); } }) },
     { label: 'Copiar', onclick: () => { navigator.clipboard?.writeText(x.text); selbar.hide(); toast('Copiado.'); } },
+    { label: 'Citar', title: 'Copiar entre aspas, com autor, livro e página', onclick: () => { navigator.clipboard?.writeText(citacao(x.text, { page: x.page, chap: x.chap })); selbar.hide(); toast('Citação copiada.'); } },
     { label: 'Remover', cls: 'danger', onclick: () => { selbar.hide(); removeHls([x]); } },
   ];
 }
+/* ---------- Copiar bem ----------
+   O texto de uma seleção, montado como se lê: parágrafos separados por
+   linha em branco, linhas do mesmo parágrafo emendadas, palavra partida no
+   fim da linha de novo inteira, sem espaços dobrados.
+   · PDF e OCR: pela posição de cada pedaço na página (o mesmo critério dos
+     parágrafos do OCR: vão entre linhas, linha curta com ponto, recuo).
+   · EPUB e leitor antigo: pelos blocos do livro (p, títulos, citações…).
+   Vale para o botão Copiar, para Ctrl+C e para o Copiar do celular. */
+const BLOCOS_TXT = 'p,div,li,h1,h2,h3,h4,h5,h6,blockquote,pre,dd,dt,figcaption,td,th,section,article,aside,header,footer';
+function trechoDoSpan(sp, r){
+  let t = sp.textContent, ini = 0, fim = t.length;
+  const off = (node, o) => { const q = document.createRange(); q.setStart(sp, 0); try { q.setEnd(node, o); } catch (e) { return 0; } return q.toString().length; };
+  if (sp.contains(r.startContainer)) ini = off(r.startContainer, r.startOffset);
+  if (sp.contains(r.endContainer)) fim = off(r.endContainer, r.endOffset);
+  return t.slice(ini, fim);
+}
+function textoDaCamada(tl, r){
+  const pg = tl.closest('.pdf-pg'), box = (pg || tl).getBoundingClientRect();
+  const W = box.width || 1, H = box.height || 1, ocr = tl.classList.contains('ocr-layer');
+  const itens = [];
+  for (const sp of tl.querySelectorAll(ocr ? 'span:not(.ocr-esp)' : 'span:not(.markedContent)')){
+    if (!r.intersectsNode(sp) || !sp.textContent) continue;
+    let t = trechoDoSpan(sp, r);
+    if (!t.trim()) continue;
+    if (ocr && sp.dataset.h && sp.contains(r.endContainer) === false) t += '-';       // o hífen que a tela esconde
+    const q = sp.getBoundingClientRect();
+    itens.push([t, (q.left - box.left) / W, (q.top - box.top) / H, q.width / W, q.height / H]);
+  }
+  if (!itens.length) return '';
+  /* pedaços do pdf.js podem partir uma palavra ("infor" + "mação"): junta os
+     colados na mesma linha antes de montar os parágrafos */
+  const P = [];
+  for (const it of itens){
+    const a = P[P.length - 1];
+    if (a && Math.abs(it[2] - a[2]) < a[4] * .5 && it[1] - (a[1] + a[3]) < a[4] * .12 && it[1] >= a[1] && !/\s$/.test(a[0]) && !/^\s/.test(it[0])){
+      a[0] += it[0]; a[3] = it[1] + it[3] - a[1]; continue;
+    }
+    P.push([it[0].trim(), it[1], it[2], it[3], it[4]]);
+  }
+  return paragrafosOcr(P).map(par => par.replace(/\s+/g, ' ').trim()).join('\n\n');
+}
+function textoDosBlocos(r){
+  const ca = r.commonAncestorContainer, raiz = ca.nodeType === 1 ? ca : ca.parentElement;
+  const w = raiz.ownerDocument.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+  const pars = []; let cur = '', bloco = null, n;
+  while ((n = w.nextNode())){
+    if (!r.intersectsNode(n)) continue;
+    let t = n.data;
+    if (n === r.endContainer) t = t.slice(0, r.endOffset);
+    if (n === r.startContainer) t = t.slice(r.startOffset);
+    const b = n.parentElement && n.parentElement.closest(BLOCOS_TXT);
+    if (b !== bloco && cur.trim()){ pars.push(cur); cur = ''; }
+    bloco = b;
+    cur += t;
+  }
+  if (cur.trim()) pars.push(cur);
+  return pars.map(p => p.replace(/\u00ad/g, '').replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n\n');
+}
+function textoLimpo(sel){
+  if (!sel || !sel.rangeCount || sel.isCollapsed) return '';
+  const r = sel.getRangeAt(0), doc = r.startContainer.ownerDocument || document;
+  const camadas = [...doc.querySelectorAll('.textLayer')].filter(tl => { try { return r.intersectsNode(tl); } catch (e) { return false; } });
+  const t = camadas.length ? camadas.map(tl => textoDaCamada(tl, r)).filter(Boolean).join('\n\n') : textoDosBlocos(r);
+  return t || sel.toString().replace(/[ \t]+/g, ' ').trim();
+}
+/* Citar: o trecho entre aspas, com autor, livro e página (ou capítulo) */
+function citacao(texto, ref = {}){
+  const b = RD.book || {};
+  const onde = ref.page ? `p. ${ref.page}` : ref.chap ? ref.chap : '';
+  return `“${texto.replace(/\n{2,}/g, ' ¶ ').replace(/\s+/g, ' ').trim()}”\n— ${[b.author, b.title && b.title, onde].filter(Boolean).join(', ')}.`;
+}
+/* Ctrl+C e o Copiar do sistema também saem limpos */
+function copiaLimpa(e){
+  if (!RD.eng) return;
+  const doc = (e.target && e.target.ownerDocument) || document;
+  const sel = doc.getSelection ? doc.getSelection() : getSelection();
+  const r = sel && sel.rangeCount && sel.getRangeAt(0);
+  if (!r) return;
+  const dentro = doc !== document || (r.commonAncestorContainer.parentElement || r.commonAncestorContainer).closest?.('#rdStage');
+  if (!dentro) return;
+  const t = textoLimpo(sel);
+  if (!t || !e.clipboardData) return;
+  e.clipboardData.setData('text/plain', t);
+  e.preventDefault();
+}
+document.addEventListener('copy', copiaLimpa);
+
 /* Contexto de um trecho para o tradutor: o bloco onde ele está e os
    vizinhos (parágrafo anterior e seguinte), até uns 2.500 caracteres */
 function contextoDe(no){
@@ -1040,7 +1129,8 @@ const FlowEngine = {
     const a = pre.toString().length, b = a + r.toString().length;
     const rects = r.getClientRects(), last = rects[rects.length - 1] || r.getBoundingClientRect();
     const overlaps = hlOf(this.b.id).filter(x => x.s === this.sec && x.a < b && x.b > a);
-    selbar.show(last, selActions({ text, overlaps, ctx: contextoDe(r.commonAncestorContainer), erase: () => this.erase(a, b),
+    const ch = this.chapter(this.sec, a);
+    selbar.show(last, selActions({ text, texto: textoLimpo(s), ref: { chap: ch && ch.l }, overlaps, ctx: contextoDe(r.commonAncestorContainer), erase: () => this.erase(a, b),
       make: (color, style) => { const x = newHl({ s: this.sec, a, b, text, color, style }); this.repaint(); return x; } }));
   },
   /* Apaga as marcações só no trecho [a, b): o que sobra dos lados fica */

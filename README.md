@@ -33,6 +33,11 @@ estão.
   `js/agenda.js`. Manhã igual todos os dias; de segunda a sexta entram a saída, a
   caminhada e o Trabalho (10h30 às 21h30). O bloco da hora atual fica em azul com "Agora" e os que já passaram
   ficam apagados; o destaque anda sozinho a cada minuto.
+- **Copiar e citar** (no leitor): o texto sai como se lê, com parágrafos
+  separados, linhas emendadas e palavra partida no fim da linha inteira, pelo
+  botão Copiar, pelo Ctrl+C e pelo Copiar do sistema, em EPUB, PDF e OCR.
+  "Citar" copia entre aspas com autor, livro e página (ou capítulo). No menu do
+  OCR, "Copiar o texto desta página".
 - **Agenda em blocos**: cada horário é um bloco com a cor da área, a faixa e a
   duração; o de agora tem contorno e uma barra que enche, os que passaram ficam
   apagados, os longos (Trabalho) ocupam duas casas.
@@ -93,8 +98,12 @@ estão.
     com os temas em amostras. No celular, lateral e Aa viram folhas que sobem de
     baixo e fecham no Voltar. Esc fecha o que estiver aberto.
   - Temas (Papel, Sépia, Noite, E-ink, Sol), fichamento e nota do livro.
-- **OCR** (PDF escaneado): a página é lida numa imagem própria a ~300 DPI, com
-  contraste esticado; os parágrafos são refeitos pela posição das palavras; copiar
+- **OCR** (PDF escaneado): a página é lida numa imagem própria a ~300 DPI; quando
+  o papel tem sombra (lombada, foto), a iluminação é igualada antes; linhas de
+  lixo (sombra, borda, mancha) e fragmentos incertos saem do resultado. Medido
+  num banco de três páginas: limpa 0%, baixa resolução 1,7%, com sombra de 15–20%
+  para 1,4% de erro por caractere. "Ler o livro todo" passa o OCR em todas as
+  páginas escaneadas, em segundo plano; os parágrafos são refeitos pela posição das palavras; copiar
   e traduzir mantêm os espaços e juntam a palavra partida no fim da linha. Aa →
   "Ler de novo esta página" refaz uma página lida antes. O OCR mora num ícone na
   barra do leitor de PDF (ao lado de Traduzir), que acende com um ponto azul

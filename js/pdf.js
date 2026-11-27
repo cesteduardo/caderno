@@ -73,6 +73,64 @@ function ocrTrabalhador(){
   return ocrMotor;
 }
 
+/* ---------- OCR: iluminação por igual ----------
+   Página fotografada ou com a sombra da lombada tem o papel mais escuro de
+   um lado: o Tesseract lê a sombra como tinta e devolve lixo. Aqui o fundo
+   do papel é estimado numa cópia 16 vezes menor (pegando o mais claro de
+   cada vizinhança, que é papel e não letra, e depois suavizando) e cada
+   ponto da página é dividido por ele: o papel fica branco por igual e a
+   letra continua escura. d é RGBA com o cinza no canal R. */
+function achataLuz(d, W, H){   // devolve se mexeu
+  const f = 16, w = Math.max(4, Math.ceil(W / f)), hh = Math.max(4, Math.ceil(H / f));
+  let bg = new Float32Array(w * hh);
+  for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++){       // média de cada quadradinho
+    let s = 0, n = 0;
+    for (let yy = y * f; yy < Math.min(H, y * f + f); yy += 2) for (let xx = x * f; xx < Math.min(W, x * f + f); xx += 2){ s += d[(yy * W + xx) * 4]; n++; }
+    bg[y * w + x] = n ? s / n : 255;
+  }
+  const passa = (src, fn, r) => { const out = new Float32Array(src.length); for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++){ let acc = fn === 'max' ? 0 : 0, n = 0; for (let dy = -r; dy <= r; dy++){ const yy = y + dy; if (yy < 0 || yy >= hh) continue; for (let dx = -r; dx <= r; dx++){ const xx = x + dx; if (xx < 0 || xx >= w) continue; const v = src[yy * w + xx]; if (fn === 'max'){ if (v > acc) acc = v; } else { acc += v; n++; } } } out[y * w + x] = fn === 'max' ? acc : acc / n; } return out; };
+  bg = passa(passa(bg, 'max', 2), 'max', 2);     // o mais claro em volta: papel, não tinta
+  bg = passa(passa(bg, 'med', 2), 'med', 2);     // suaviza
+  /* papel já por igual (scanner bom): não mexe, para não realçar o ruído */
+  let mn = 255, mx = 0; for (const v of bg){ if (v < mn) mn = v; if (v > mx) mx = v; }
+  if (mx - mn < (self.OCR_EXP && self.OCR_EXP.varia || 28)) return false;
+  for (let y = 0; y < H; y++){
+    const fy = Math.min(hh - 1.001, Math.max(0, y / f - .5)), y0 = fy | 0, ty = fy - y0;
+    for (let x = 0; x < W; x++){
+      const fx = Math.min(w - 1.001, Math.max(0, x / f - .5)), x0 = fx | 0, tx = fx - x0;
+      const a = bg[y0 * w + x0], b = bg[y0 * w + x0 + 1], c = bg[(y0 + 1) * w + x0], e = bg[(y0 + 1) * w + x0 + 1];
+      const fundo = (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + e * tx) * ty;
+      const i = (y * W + x) * 4;
+      d[i] = Math.min(255, d[i] * 255 / Math.max(24, fundo)) | 0;
+    }
+  }
+  return true;
+}
+
+/* ---------- OCR: o que é texto e o que é lixo ----------
+   Linha com confiança média baixa, ou feita quase só de símbolos e letras
+   soltas (borda da página, sombra, mancha), sai. */
+function palavrasLimpas(data, W, H){
+  const X = self.OCR_EXP || {};
+  const ok = l => {
+    const ws = (l.words || []).filter(p => p.text && p.text.trim());
+    if (!ws.length) return false;
+    const txt = ws.map(p => p.text).join(' ');
+    const letras = (txt.match(/[\p{L}\p{N}]/gu) || []).length, tot = txt.replace(/\s/g, '').length || 1;
+    const conf = ws.reduce((s, p) => s + p.confidence, 0) / ws.length;
+    const longas = ws.filter(p => /[\p{L}]{3,}/u.test(p.text)).length;
+    return conf >= (X.confLinha ?? 55) && letras / tot >= .6 && (longas >= 1 || conf >= 80);
+  };
+  const linhas = (data.lines && data.lines.length && X.lixo !== false) ? data.lines.filter(ok) : null;
+  const fonte = linhas ? linhas.flatMap(l => l.words || []) : (data.words || []);
+  /* palavra curta e incerta que não é palavra curta de verdade (mancha lida como "es", "Fo", "|") sai */
+  const CURTAS = /^[«“"(\[—–-]*(a|à|ao|as|às|o|os|e|é|de|da|do|em|um|no|na|nos|nas|se|eu|me|te|lhe|já|só|há|tu|lá|cá|ou|ai|ui|oh|ah|i|y|of|an|in|on|at|to|is|it|by|or|as|if|we|he|me|my|no|so|up|us|be|do)[»”")\],.;:!?…—–-]*$/i;
+  const curtaRuim = p => { const t = p.text.trim(), letras = t.replace(/[^\p{L}\p{N}]/gu, ''); if (!letras.length) return !/^[—–«»“”"'‘’…]+$/.test(t);   // travessão, aspas e reticências ficam; hífen solto é mancha
+    return letras.length <= 2 && p.confidence < 70 && !CURTAS.test(t); };
+  return fonte.filter(p => p.text && p.text.trim() && p.confidence > 35 && (X.curtas === false || !curtaRuim(p)))
+    .map(p => [p.text, +(p.bbox.x0 / W).toFixed(4), +(p.bbox.y0 / H).toFixed(4), +((p.bbox.x1 - p.bbox.x0) / W).toFixed(4), +((p.bbox.y1 - p.bbox.y0) / H).toFixed(4)]);
+}
+
 /* ---------- OCR: linhas e parágrafos a partir das palavras ----------
    Cada palavra é [texto, x, y, largura, altura] em fração da página.
    Linhas: a palavra seguinte desce ou volta para a esquerda. Parágrafo:
@@ -159,6 +217,7 @@ const PdfEngine = {
     requestAnimationFrame(() => this.scrollTo(p, b.pos && b.pos.y));
   },
   close(){
+    if (this.lendoLivro) this.lendoLivro.parar = true;
     this.io && this.io.disconnect();
     this.ro && this.ro.disconnect();
     try { this.doc && this.doc.destroy(); } catch (e) {}
@@ -292,6 +351,8 @@ const PdfEngine = {
         toast(RS.ocrAuto ? 'As páginas escaneadas serão lidas sozinhas ao aparecer.' : 'Leitura automática desligada.');
         if (RS.ocrAuto) for (const [k, st] of this.live) { const p = this.pageEl(k); if (st === 'on' && p && p.classList.contains('sem-texto') && !p.classList.contains('com-ocr')) this.ocr(k, p.querySelector('canvas')); }
       }) },
+      (this.paras[n] || []).length ? { label: 'Copiar o texto desta página', onclick: fecha(() => { navigator.clipboard?.writeText(this.paras[n].join('\n\n')); toast('Texto da página copiado, com os parágrafos.'); }) } : null,
+      { label: this.lendoLivro ? 'Parar a leitura do livro' : 'Ler o livro todo', title: 'Passa o OCR em todas as páginas escaneadas, em segundo plano', onclick: fecha(() => this.lerLivro()) },
       { label: 'Idioma do livro…', onclick: fecha(() => aaAbrir()) },
     ]);
   },
@@ -310,8 +371,11 @@ const PdfEngine = {
     await page.render({ canvasContext: ctx, viewport: vp }).promise;
     page.cleanup();
     const img = ctx.getImageData(0, 0, cv.width, cv.height), d = img.data;
+    const X = self.OCR_EXP || {};
+    for (let i = 0; i < d.length; i += 4) d[i] = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000 | 0;
+    if (X.luz !== false) achataLuz(d, cv.width, cv.height);
     const hist = new Uint32Array(256);
-    for (let i = 0; i < d.length; i += 4){ const g = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000 | 0; d[i] = g; hist[g]++; }
+    for (let i = 0; i < d.length; i += 4) hist[d[i]]++;
     /* estica o contraste entre os 1% mais escuros e os 1% mais claros (papel amarelado, tinta apagada) */
     const tot = cv.width * cv.height; let acc = 0, lo = 0, hi = 255;
     for (let v = 0; v < 256; v++){ acc += hist[v]; if (acc > tot * .01){ lo = v; break; } }
@@ -321,6 +385,48 @@ const PdfEngine = {
     ctx.putImageData(img, 0, 0);
     return cv;
   },
+  /* lê uma página (sem depender de ela estar na tela) e guarda o resultado */
+  async ocrPagina(n, cvTela){
+    const w = await ocrTrabalhador();
+    let cv = cvTela;
+    try { cv = await this.imagemOcr(n); } catch (e) { if (!cv) throw e; }
+    const { data } = await w.recognize(cv);
+    const palavras = palavrasLimpas(data, cv.width, cv.height);
+    const paras = paragrafosOcr(palavras);
+    const salvo = { palavras, paras, texto: paras.join(' ') };
+    await DB.set('ocr:' + this.b.id + ':' + n, salvo);
+    this.paras[n] = paras; this.texts[n] = salvo.texto;
+    return salvo;
+  },
+  /* OCR → "Ler o livro todo": passa por todas as páginas sem texto que
+     ainda não foram lidas, uma de cada vez, com o progresso num aviso que
+     dá para interromper. A busca e a tradução passam a valer no livro todo. */
+  async lerLivro(){
+    if (this.lendoLivro){ this.lendoLivro.parar = true; return; }
+    const job = this.lendoLivro = { parar: false };
+    const doc = this.doc, livro = this.b.id;
+    const fila = [];
+    toast('Procurando as páginas escaneadas…');
+    for (let n = 1; n <= this.n && !job.parar; n++){
+      if (await DB.get('ocr:' + livro + ':' + n)) continue;
+      try { const p = await doc.getPage(n); const tx = textoDaPagina(await p.getTextContent()); p.cleanup(); if (tx.texto.length > 20) continue; } catch (e) {}
+      fila.push(n);
+    }
+    let feitas = 0;
+    for (const n of fila){
+      if (job.parar || this.doc !== doc) break;
+      toast(`Lendo o livro: página ${n} (${feitas + 1} de ${fila.length})…`, 'Parar', () => { job.parar = true; });
+      try {
+        const salvo = await this.ocrPagina(n);
+        const pg = this.pageEl(n);
+        if (pg && this.live.get(n) === 'on') this.camadaOcr(n, salvo);
+        feitas++;
+      } catch (e) { toast('Parei na página ' + n + ': ' + (e.message || e)); break; }
+    }
+    this.lendoLivro = null;
+    this.estadoOcr();
+    toast(fila.length ? (job.parar ? `Parei: ${feitas} de ${fila.length} páginas lidas. Dá para continuar depois.` : `Pronto: ${feitas} ${feitas === 1 ? 'página lida' : 'páginas lidas'}. A busca já vale no livro todo.`) : 'Todas as páginas já têm texto.');
+  },
   async ocr(n, cvTela){
     const pg = this.pageEl(n);
     if (!pg || pg.classList.contains('lendo')) return;
@@ -329,18 +435,9 @@ const PdfEngine = {
     const aviso = h('div', { class: 'ocr-lendo', text: 'Lendo a página…' });
     pg.append(aviso);
     try {
-      const w = await ocrTrabalhador();
-      let cv = cvTela;
-      try { cv = await this.imagemOcr(n); } catch (e) { if (!cv) throw e; }
-      const { data } = await w.recognize(cv);
-      const W = cv.width, H = cv.height;
-      const palavras = (data.words || []).filter(p => p.text && p.text.trim() && p.confidence > 35)
-        .map(p => [p.text, +(p.bbox.x0 / W).toFixed(4), +(p.bbox.y0 / H).toFixed(4), +((p.bbox.x1 - p.bbox.x0) / W).toFixed(4), +((p.bbox.y1 - p.bbox.y0) / H).toFixed(4)]);
-      const paras = paragrafosOcr(palavras);
-      const salvo = { palavras, paras, texto: paras.join(' ') };
-      await DB.set('ocr:' + this.b.id + ':' + n, salvo);
+      const salvo = await this.ocrPagina(n, cvTela);
       this.camadaOcr(n, salvo);
-      if (!palavras.length) toast('Não achei texto nesta página.');
+      if (!salvo.palavras.length) toast('Não achei texto nesta página.');
     } catch (e) {
       toast('Não deu para reconhecer: ' + (e.message || e));
       pg.classList.remove('lendo');
@@ -382,7 +479,7 @@ const PdfEngine = {
       const novaLinha = prox && inicioLinha.has(i + 1);
       const hifen = novaLinha && /[A-Za-zÀ-ÿ]-$/.test(t) && /^[a-zà-ÿ]/.test(prox[0]);
       const fs = Math.max(6, hh * H * .92) + 'px';
-      tl.append(h('span', { text: hifen ? t.slice(0, -1) : t, style: { left: x * 100 + '%', top: y * 100 + '%', width: w * 100 + '%', height: hh * 100 + '%', fontSize: fs } }));
+      tl.append(h('span', { text: hifen ? t.slice(0, -1) : t, 'data-i': i, 'data-h': hifen ? '1' : null, style: { left: x * 100 + '%', top: y * 100 + '%', width: w * 100 + '%', height: hh * 100 + '%', fontSize: fs } }));
       if (!prox) return;
       /* vão grande entre linhas = parágrafo novo */
       const paragrafo = inicioPar.has(i + 1);
@@ -480,7 +577,7 @@ const PdfEngine = {
     const overlaps = hlOf(this.b.id).filter(x => x.page === n && x.rects.some(q => rects.some(p => meets(p, q))));
     /* contexto para o tradutor: os parágrafos da página (do PDF ou do OCR) */
     const ctx = (this.paras[n] || []).join('\n\n').slice(0, 4000);
-    selbar.show(last, selActions({ text, overlaps, ctx, erase: () => removeHls(overlaps),
+    selbar.show(last, selActions({ text, texto: textoLimpo(s), ref: { page: n }, overlaps, ctx, erase: () => removeHls(overlaps),
       make: (color, style) => { const x = newHl({ page: n, rects, y: rects[0][1], text, color, style }); this.paintPage(n); return x; } }));
   },
 
