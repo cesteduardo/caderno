@@ -193,6 +193,7 @@ function applyRS(){
   el.dataset.layout = RS.layout;
   el.style.setProperty('--rd-measure', Math.round(RS.size * ({ s: 28, m: 35, l: 44 }[RS.measure] || 35)) + 'px');
   el.dataset.just = RS.just ? '1' : '0';
+  el.dataset.passagem = passagem();
   const tc = getComputedStyle(el).getPropertyValue('--rd-bg').trim();
   document.querySelector('meta[name="theme-color"]').content = tc || '#ffffff';
 }
@@ -283,6 +284,25 @@ function savePos(pos, pct, label){
   $('#rdPos').textContent = label || Math.round(b.pct * 100) + '%';
 }
 
+/* Passagem das páginas (Aa): deslizar, esmaecer ou direto. Vale para o
+   EPUB (foliate), o leitor antigo e o PDF no modo "Uma por vez". */
+const passagem = () => RS.passagem || (RS.anim === false ? 'direto' : 'deslizar');
+async function esmaecendo(fn){
+  const st = $('#rdStage');
+  if (passagem() !== 'esmaecer' || !st) return fn();
+  st.classList.add('esmaece');
+  await new Promise(r => setTimeout(r, 120));
+  try { return await fn(); }
+  finally { requestAnimationFrame(() => requestAnimationFrame(() => st.classList.remove('esmaece'))); }
+}
+/* some com animação e só então esconde (abrir de novo no meio cancela) */
+function saiAnimado(el, ms, depois){
+  clearTimeout(el._sai);
+  el.classList.add('saindo');
+  el._sai = setTimeout(() => { el.classList.remove('saindo'); el.hidden = true; el.replaceChildren(); depois && depois(); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms);
+}
+const voltaAnimado = el => { clearTimeout(el._sai); el.classList.remove('saindo'); };
+
 function flash(){
   if (RS.theme !== 'eink') return;
   const f = $('#rdFlash');
@@ -304,15 +324,29 @@ const LADO_FN = () => ({ toc: panelToc, hl: panelHl, busca: panelSearch });
 function lado(tab, quieto){
   const p = $('#rdLado'); if (!p) return;
   if (RD.lado === tab && !quieto){ ladoFechar(); return; }
-  const novo = !RD.lado;
+  const antes = RD.lado, novo = !antes;
+  voltaAnimado(p);
   RD.lado = tab;
   if (!estreito()){ RS.lado = tab; saveRS(); }
-  const abas = h('div', { class: 'rl-abas', role: 'tablist' }, LADO_ABAS.map(([k, l]) =>
-    h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === tab), class: k === tab ? 'on' : '', text: l, onclick: () => { if (k !== RD.lado) lado(k); } })));
-  p.replaceChildren(
-    h('div', { class: 'rl-head' }, abas,
-      h('button', { class: 'rd-x', type: 'button', 'aria-label': 'Fechar a barra lateral', title: 'Fechar (Esc)', onclick: () => ladoFechar() }, ico('x'))),
-    h('div', { class: 'rl-body' }, LADO_FN()[tab]()));
+  const corpo = h('div', { class: 'rl-body' }, LADO_FN()[tab]());
+  const abasVelhas = !novo && !p.hidden && p.querySelector('.rl-abas');
+  if (abasVelhas){
+    /* painel já aberto: as abas ficam (a pílula desliza até a nova) e só o
+       conteúdo troca, entrando do lado da aba escolhida */
+    abasVelhas.querySelectorAll('[role="tab"]').forEach((b, i) => { const on = LADO_ABAS[i][0] === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    if (antes !== tab){
+      const ia = LADO_ABAS.findIndex(a => a[0] === antes), ib = LADO_ABAS.findIndex(a => a[0] === tab);
+      corpo.classList.add('troca'); corpo.style.setProperty('--dir', ib > ia ? '1' : '-1');
+    }
+    p.querySelector('.rl-body').replaceWith(corpo);
+  } else {
+    const abas = h('div', { class: 'rl-abas', role: 'tablist' }, LADO_ABAS.map(([k, l]) =>
+      h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === tab), class: k === tab ? 'on' : '', text: l, onclick: () => { if (k !== RD.lado) lado(k); } })));
+    p.replaceChildren(
+      h('div', { class: 'rl-head' }, abas,
+        h('button', { class: 'rd-x', type: 'button', 'aria-label': 'Fechar a barra lateral', title: 'Fechar (Esc)', onclick: () => ladoFechar() }, ico('x'))),
+      corpo);
+  }
   p.hidden = false; p.dataset.tab = tab;
   if (estreito()){ if (novo){ RD.folha = 'lado'; folhaAbrir(() => ladoFechar(true)); } }
   rdLayout();
@@ -321,10 +355,11 @@ function lado(tab, quieto){
 function ladoFechar(doVoltar){
   const p = $('#rdLado'); if (!p || !RD.lado) return;
   if (RD.folha === 'lado' && !doVoltar){ popLayer(); return; }
-  RD.lado = ''; p.hidden = true; p.replaceChildren();
+  RD.lado = '';
   if (RD.folha === 'lado') folhaFechar();
   if (!estreito()){ RS.lado = ''; saveRS(); }
-  rdLayout();
+  /* sai deslizando; o texto só ocupa o espaço depois que o painel saiu */
+  saiAnimado(p, 200, rdLayout);
 }
 /* Depois de pular para um trecho: no celular a folha sai; na tela larga
    a lateral fica, para o próximo pulo. */
@@ -347,6 +382,7 @@ function traducao(refazer){
   const p = $('#rdTr'); if (!p) return;
   if (RD.tr && !refazer){ trFechar(); return; }
   const novo = !RD.tr;
+  voltaAnimado(p);
   RD.tr = true;
   const solta = !RS.trDock;
   const head = h('div', { class: 'rt-head' },
@@ -368,8 +404,8 @@ function traducao(refazer){
 }
 function trFechar(){
   const p = $('#rdTr'); if (!p || !RD.tr) return;
-  RD.tr = false; p.hidden = true; p.replaceChildren();
-  rdLayout();
+  RD.tr = false;
+  saiAnimado(p, 200, rdLayout);
 }
 
 /* O texto ocupa o que sobra entre a lateral e a tradução */
@@ -406,6 +442,7 @@ function aaAbrir(refazer){
   const p = $('#rdAa'), b = $('#rdBaa'); if (!p) return;
   if (RD.aa && !refazer){ popLayer(); return; }
   const st = p.querySelector('.aa')?.scrollTop || 0;
+  voltaAnimado(p);
   p.replaceChildren(panelAa());
   const mod = p.querySelector('#aaModelos');
   if (mod) import(new URL('js/bergamot.mjs', document.baseURI).href).then(m => m.guardado())
@@ -420,7 +457,7 @@ function aaAbrir(refazer){
   } else { p.style.top = ''; p.style.right = ''; }
   if (novo){
     if (estreito()) $('#rdVeu').hidden = false;
-    pushLayer(() => { RD.aa = false; p.hidden = true; p.replaceChildren(); if (!RD.folha) $('#rdVeu').hidden = true; rdLayout(); });
+    pushLayer(() => { RD.aa = false; saiAnimado(p, 170); if (!RD.folha) $('#rdVeu').hidden = true; rdLayout(); });
   }
   rdLayout();
 }
@@ -615,6 +652,11 @@ function panelAa(){
       h('button', { type: 'button', class: 'aa-menor', 'aria-label': 'Letra menor', text: 'A', onclick: () => { RS.size = Math.max(13, RS.size - 1); saveRS(); applyRS(); RD.eng.relayout(); $('#aaTam').textContent = RS.size + ' px'; } }),
       h('span', { id: 'aaTam', text: RS.size + ' px' }),
       h('button', { type: 'button', class: 'aa-maior', 'aria-label': 'Letra maior', text: 'A', onclick: () => { RS.size = Math.min(34, RS.size + 1); saveRS(); applyRS(); RD.eng.relayout(); $('#aaTam').textContent = RS.size + ' px'; } })),
+    pdf ? h('h3', { text: 'Página' }) : null,
+    pdf ? seg([['rolar', 'Rolagem contínua'], ['uma', 'Uma por vez']], RS.pdfPagina || 'rolar', v => { RS.pdfPagina = v; }) : null,
+    pdf && RS.pdfPagina === 'uma' ? h('h3', { text: 'Passagem das páginas' }) : null,
+    pdf && RS.pdfPagina === 'uma' ? seg([['deslizar', 'Deslizar'], ['esmaecer', 'Esmaecer'], ['direto', 'Direto']], passagem(), v => { RS.passagem = v; }) : null,
+    pdf && RS.pdfPagina === 'uma' ? h('p', { class: 'muted small aa-tip', text: 'Uma página inteira na tela; vira tocando nas laterais, arrastando para o lado ou com as setas do teclado.' }) : null,
     pdf ? null : h('h3', { text: 'Letra' }),
     pdf ? null : seg(RD.eng === FolioEngine ? [['livro', 'Do livro'], ['serif', 'Serifa'], ['sans', 'Inter']] : [['serif', 'Serifa'], ['sans', 'Inter']], RD.eng !== FolioEngine && RS.font === 'livro' ? 'serif' : RS.font, v => { RS.font = v; }),
     pdf ? null : h('h3', { text: 'Entrelinha' }),
@@ -626,8 +668,8 @@ function panelAa(){
     pdf ? null : h('h3', { text: 'Página' }),
     pdf ? null : seg([['pagina', 'Uma página'], ['dupla', 'Duas lado a lado'], ['rolar', 'Rolagem']], RS.layout, v => { RS.layout = v; }),
     pdf ? null : RS.layout === 'dupla' ? h('p', { class: 'muted small aa-tip', text: 'Duas páginas só aparecem em tela larga (a partir de uns 900 px). No celular continua uma.' }) : null,
-    RD.eng === FolioEngine && RS.layout !== 'rolar' ? h('h3', { text: 'Virar a página' }) : null,
-    RD.eng === FolioEngine && RS.layout !== 'rolar' ? seg([[true, 'Deslizando'], [false, 'Direto']], RS.anim !== false, v => { RS.anim = v; }) : null,
+    !pdf && RS.layout !== 'rolar' ? h('h3', { text: 'Passagem das páginas' }) : null,
+    !pdf && RS.layout !== 'rolar' ? seg([['deslizar', 'Deslizar'], ['esmaecer', 'Esmaecer'], ['direto', 'Direto']], passagem(), v => { RS.passagem = v; }) : null,
     pdf || RS.layout === 'dupla' ? null : h('h3', { text: 'Largura da linha' }),
     pdf || RS.layout === 'dupla' ? null : seg([['s', 'Estreita'], ['m', 'Média'], ['l', 'Larga']], RS.measure, v => { RS.measure = v; }),
     h('h3', { text: 'Tela' }),
@@ -1056,15 +1098,15 @@ const FlowEngine = {
   async next(){
     selbar.hide();
     if (this.scroll){ const pg = $('#rdPage'); if (pg.scrollTop + pg.clientHeight >= pg.scrollHeight - 4) await this.nextSec(); else pg.scrollBy({ top: pg.clientHeight * .9 }); return; }
-    if (this.page < this.pages - 1){ this.page++; this.draw(); }
-    else if (this.sec < this.c.sections.length - 1){ await this.load(this.sec + 1, 0); }
+    if (this.page < this.pages - 1) await esmaecendo(() => { this.page++; this.draw(); });
+    else if (this.sec < this.c.sections.length - 1) await esmaecendo(() => this.load(this.sec + 1, 0));
     else toast('Fim do livro.');
   },
   async prev(){
     selbar.hide();
     if (this.scroll){ const pg = $('#rdPage'); if (pg.scrollTop <= 2) await this.prevSec(); else pg.scrollBy({ top: -pg.clientHeight * .9 }); return; }
-    if (this.page > 0){ this.page--; this.draw(); }
-    else if (this.sec > 0) await this.load(this.sec - 1, 0, true);
+    if (this.page > 0) await esmaecendo(() => { this.page--; this.draw(); });
+    else if (this.sec > 0) await esmaecendo(() => this.load(this.sec - 1, 0, true));
   },
   async goto(s, c){
     if (s !== this.sec) await this.load(s, c);

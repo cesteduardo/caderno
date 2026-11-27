@@ -171,7 +171,7 @@ const FolioEngine = {
     põe('max-inline-size', (cols > 1 ? Math.round(RS.size * 31) : medida) + 'px');
     põe('gap', { s: '4%', m: '7%', l: '12%' }[RS.margin] || '7%');
     põe('margin', estreito() ? '26px' : '38px');
-    if (RS.theme === 'eink' || RS.anim === false) r.removeAttribute('animated'); else if (!r.hasAttribute('animated')) r.setAttribute('animated', '');
+    if (RS.theme === 'eink' || passagem() !== 'deslizar') r.removeAttribute('animated'); else if (!r.hasAttribute('animated')) r.setAttribute('animated', '');
     const css = this.css();
     if (css !== this.cssAtual){ this.cssAtual = css; r.setStyles(css); }
   },
@@ -250,8 +250,8 @@ aside[epub|type~="endnote"],aside[epub|type~="footnote"],aside[epub|type~="note"
   },
 
   /* ---------- navegação ---------- */
-  async next(){ selbar.hide(); await this.view.next(); },
-  async prev(){ selbar.hide(); await this.view.prev(); },
+  async next(){ selbar.hide(); await esmaecendo(() => this.view.next()); },
+  async prev(){ selbar.hide(); await esmaecendo(() => this.view.prev()); },
   gotoPct(p){ return this.view.goToFraction(p); },
   gotoToc(t){ return t.href ? this.view.goTo(t.href) : this.gotoPct(t.f || 0); },
   tocActive(){ const href = this.loc && this.loc.tocItem && this.loc.tocItem.href; return href ? this.toc.findIndex(t => t.href === href) : -1; },

@@ -70,6 +70,9 @@ estão.
     importados antes dele seguem no leitor antigo até o arquivo ser adicionado de
     novo, e então posição e marcações migram sozinhas (reencontradas pelo texto).
     PDF no pdf.js 5 (Mozilla); TXT no leitor antigo.
+  - **Passagem das páginas** (Aa): Deslizar, Esmaecer ou Direto, no EPUB, no
+    leitor antigo e no PDF. O PDF tem também **Página: Rolagem contínua ou Uma
+    por vez** (a página inteira na tela, virando para os lados).
   - Uma página por vez é o padrão. Em Aa → Página dá para escolher **duas lado a
     lado** (só em tela larga) ou **rolagem** contínua, e a largura da linha.
   - Marcações em 6 cores e 4 estilos (marca-texto, sublinhado, ondulado, tachado).

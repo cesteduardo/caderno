@@ -172,7 +172,9 @@ function paragrafosOcr(P){
 }
 
 const PdfEngine = {
-  paged: false,
+  /* Rolagem contínua (padrão) ou "Uma por vez": a página inteira na tela,
+     lado a lado, virando para os lados com a passagem escolhida em Aa */
+  get paged(){ return RS.pdfPagina === 'uma'; },
   async open(b){
     this.b = b;
     const lib = await pdfLib();
@@ -193,7 +195,8 @@ const PdfEngine = {
     this.sizes[1] = [v1.width, v1.height];
 
     const stage = $('#rdStage');
-    stage.className = 'rd-stage pdf';
+    stage.className = 'rd-stage pdf' + (this.paged ? ' pdf-uma' : '');
+    this.modo = this.paged ? 'uma' : 'rolar';
     stage.replaceChildren(h('div', { class: 'pdf-scroll', id: 'pdfScroll' }, h('div', { class: 'pdf-pages', id: 'pdfPages' })));
     stageInput(stage, this);
     const bOcr = $('#rdBocr'); if (bOcr) bOcr.hidden = false;
@@ -204,10 +207,7 @@ const PdfEngine = {
       h('button', { type: 'button', title: 'Aumentar', 'aria-label': 'Aumentar', onclick: () => this.setZoom(this.zoom * 1.2) }, ico('zoom-in'))));
 
     const sc = $('#pdfScroll');
-    this.io = new IntersectionObserver(es => es.forEach(en => {
-      const n = +en.target.dataset.n;
-      if (en.isIntersecting) this.want(n); else this.drop(n);
-    }), { root: sc, rootMargin: '120% 0px' });
+    this.observa();
     this.build();
     let t;
     sc.addEventListener('scroll', () => { selbar.hide(); clearTimeout(t); t = setTimeout(() => this.track(), 120); }, { passive: true });
@@ -218,12 +218,27 @@ const PdfEngine = {
   },
   close(){
     if (this.lendoLivro) this.lendoLivro.parar = true;
+    clearTimeout(this.rt); clearTimeout(this.tt);
     this.io && this.io.disconnect();
     this.ro && this.ro.disconnect();
     try { this.doc && this.doc.destroy(); } catch (e) {}
     this.doc = null; this.live = new Map();
   },
-  cssW(){ const w = $('#rdStage').clientWidth; return Math.round(Math.min(w - (w > 700 ? 48 : 12), 980) * this.zoom); },
+  /* só as páginas perto da tela são desenhadas: perto em altura na rolagem, em largura na página única */
+  observa(){
+    const sc = $('#pdfScroll');
+    this.io && this.io.disconnect();
+    this.io = new IntersectionObserver(es => es.forEach(en => {
+      const n = +en.target.dataset.n;
+      if (en.isIntersecting) this.want(n); else this.drop(n);
+    }), { root: sc, rootMargin: this.paged ? '0px 120%' : '120% 0px' });
+  },
+  cssW(){
+    const st = $('#rdStage'), w = st.clientWidth;
+    /* página única: cabe inteira na tela (altura e largura) */
+    if (this.paged) return Math.round(Math.max(120, Math.min(w - (w > 700 ? 64 : 14), (st.clientHeight - 30) / (this.ratio || 1.414))) * this.zoom);
+    return Math.round(Math.min(w - (w > 700 ? 48 : 12), 980) * this.zoom);
+  },
   build(){
     const box = $('#pdfPages');
     const W = this.cssW();
@@ -249,6 +264,8 @@ const PdfEngine = {
      mudou (a barra de endereço do celular aparecendo e sumindo), nada se
      refaz. Antes, tudo era apagado e redesenhado: a página piscava. */
   relayout(){
+    if (!this.doc || !$('#rdStage') || !$('#pdfScroll')) return;     // livro já fechado
+    if (this.modo !== (this.paged ? 'uma' : 'rolar')) return this.mudaModo();
     const W = this.cssW();
     if (!this.n || W === this.W) return;
     const sc = $('#pdfScroll'), cur = this.cur || 1, pgCur = this.pageEl(cur);
@@ -264,7 +281,8 @@ const PdfEngine = {
         this.queue = this.queue.then(() => this.live.get(n) === 'wait' ? this.render(n) : null).catch(() => {});
       }
     }
-    if (pgCur && sc) sc.scrollTop = pgCur.offsetTop + y * pgCur.offsetHeight;
+    if (this.paged) this.scrollTo(cur);
+    else if (pgCur && sc) sc.scrollTop = pgCur.offsetTop + y * pgCur.offsetHeight;
   },
 
   want(n){
@@ -499,26 +517,61 @@ const PdfEngine = {
     trFollow();
   },
 
+  /* trocar entre rolagem e página única: refaz as páginas no lugar certo */
+  mudaModo(){
+    const cur = this.cur || 1;
+    this.modo = this.paged ? 'uma' : 'rolar';
+    $('#rdStage').classList.toggle('pdf-uma', this.paged);
+    const pp = $('#pdfPages'); if (pp && !this.paged) pp.style.paddingInline = '';
+    this.observa(); this.build();
+    requestAnimationFrame(() => this.scrollTo(cur));
+  },
   track(){
     const sc = $('#pdfScroll');
     if (!sc) return;
-    const mid = sc.scrollTop + sc.clientHeight * .35;
     let n = 1;
-    for (const pg of sc.querySelectorAll('.pdf-pg')){ if (pg.offsetTop <= mid) n = +pg.dataset.n; else break; }
+    if (this.paged){
+      const mid = sc.scrollLeft + sc.clientWidth / 2;
+      for (const pg of sc.querySelectorAll('.pdf-pg')){ if (pg.offsetLeft <= mid) n = +pg.dataset.n; else break; }
+    } else {
+      const mid = sc.scrollTop + sc.clientHeight * .35;
+      for (const pg of sc.querySelectorAll('.pdf-pg')){ if (pg.offsetTop <= mid) n = +pg.dataset.n; else break; }
+    }
+    if (this.paged && this.cur !== n){ this.pageEl(this.cur)?.classList.remove('atual'); }
     this.cur = n;
     const pg = this.pageEl(n);
-    const y = pg ? Math.max(0, (sc.scrollTop - pg.offsetTop) / pg.offsetHeight) : 0;
+    if (this.paged && pg) pg.classList.add('atual');
+    const y = pg && !this.paged ? Math.max(0, (sc.scrollTop - pg.offsetTop) / pg.offsetHeight) : 0;
     const t = this.tocAt(n);
     $('#rdChap').textContent = t ? t.l : '';
     savePos({ page: n, y: +y.toFixed(3) }, this.n > 1 ? (n - 1) / (this.n - 1) : 1, `p. ${n} de ${this.n}`);
     this.estadoOcr();
     trFollow();
   },
-  scrollTo(n, y = 0){
+  scrollTo(n, y = 0, suave){
     const pg = this.pageEl(Math.max(1, Math.min(this.n, n)));
     if (!pg) return;
-    $('#pdfScroll').scrollTop = pg.offsetTop + (y || 0) * pg.offsetHeight - (y ? 40 : 8);
+    const sc = $('#pdfScroll');
+    if (this.paged){
+      /* página única: a página fica centrada; "Deslizar" anima, o resto pula */
+      sc.style.paddingInline = '';
+      const pp = $('#pdfPages'); if (pp) pp.style.paddingInline = Math.round(sc.clientWidth / 2) + 'px';
+      sc.scrollTo({ left: pg.offsetLeft - (sc.clientWidth - pg.offsetWidth) / 2, top: 0, behavior: suave ? 'smooth' : 'auto' });
+      if (suave){ this.pageEl(this.cur)?.classList.remove('atual'); this.cur = +pg.dataset.n; pg.classList.add('atual'); clearTimeout(this.tt); this.tt = setTimeout(() => this.track(), 420); return; }
+      this.track();
+      return;
+    }
+    sc.scrollTop = pg.offsetTop + (y || 0) * pg.offsetHeight - (y ? 40 : 8);
     this.track();
+  },
+  /* virar na página única, com a passagem escolhida (Aa) */
+  vira(d){
+    const n = (this.cur || 1) + d;
+    if (n < 1 || n > this.n) return;
+    if (!this.paged) return this.scrollTo(n);
+    selbar.hide();
+    flash();
+    return passagem() === 'deslizar' ? this.scrollTo(n, 0, true) : esmaecendo(() => this.scrollTo(n));
   },
   tocAt(n){ let last = null; for (const t of this.b.toc || []) if (t.p <= n) last = t; return last; },
   tocActive(){ const t = this.tocAt(this.cur || 1); return t ? this.b.toc.indexOf(t) : -1; },
@@ -526,7 +579,7 @@ const PdfEngine = {
   gotoPct(p){ this.scrollTo(1 + Math.round(p * (this.n - 1))); },
   gotoHl(x){ this.scrollTo(x.page, Math.max(0, (x.y || 0) - .05)); setTimeout(() => this.blink(x.id), 600); },
   blink(id){ document.querySelectorAll(`.hl-layer [data-h="${id}"]`).forEach(m => { m.classList.remove('blink'); void m.offsetWidth; m.classList.add('blink'); }); },
-  next(){ this.scrollTo((this.cur || 1) + 1); }, prev(){ this.scrollTo((this.cur || 1) - 1); }, link(){},
+  next(){ return this.vira(1); }, prev(){ return this.vira(-1); }, link(){},
   /* Texto da página atual (para traduzir), em pedaços de frases */
   visibleBlocks(){
     const paras = this.paras[this.cur || 1];
