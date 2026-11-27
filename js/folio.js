@@ -355,7 +355,7 @@ aside[epub|type~="endnote"],aside[epub|type~="footnote"],aside[epub|type~="note"
       return a && antes(a.startContainer, a.startOffset, r.endContainer, r.endOffset) && antes(r.startContainer, r.startOffset, a.endContainer, a.endOffset);
     });
     const sel = r.cloneRange();
-    selbar.show(this.telaRect(r, doc), selActions({ text, overlaps, erase: () => this.erase(i, doc, sel, overlaps),
+    selbar.show(this.telaRect(r, doc), selActions({ text, overlaps, ctx: contextoDe(r.commonAncestorContainer), erase: () => this.erase(i, doc, sel, overlaps),
       make: (color, style) => {
         const x = newHl({ cfi: this.view.getCFI(i, sel), i, f: this.fracDe(i, sel, doc), chap: this.capDe(i, sel), text, color, style });
         this.repaint(); return x;

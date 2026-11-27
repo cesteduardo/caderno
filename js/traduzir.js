@@ -115,6 +115,18 @@ async function trLocal(texts, from, to){
   } catch (e) { return null; }
 }
 
+/* Claude (js/claude.mjs): só se escolhido em Aa → Tradução, com a chave
+   de quem usa. Recebe o contexto (parágrafo em volta, livro, autor). */
+let claudeP = null;
+const claudeLib = () => (claudeP ||= import(new URL('js/claude.mjs', document.baseURI).href).catch(e => { claudeP = null; throw e; }));
+const usaClaude = () => RS.trMotor === 'claude';
+async function trClaude(texts, from, to, ctx){
+  const m = await claudeLib();
+  if (!m.chave()) throw new Error('Falta a chave da API do Claude em Aa → Tradução.');
+  const b = typeof RD !== 'undefined' && RD.book;
+  return m.traduz(texts, from, to, { livro: b && b.title, autor: b && b.author, ...(ctx || {}) });
+}
+
 /* LibreTranslate (código aberto, AGPL), no servidor que você indicar */
 async function trLibre(texts, from, to){
   const base = String(RS.trLibre || '').replace(/\/+$/, '');
@@ -172,18 +184,23 @@ async function trMyMemory(texts, from, to){
 }
 
 /* translateMany(['…', '…'], 'pt-BR') → { out, from, via } */
-async function translateMany(texts, to = RS.trTo || 'pt-BR', hint){
+async function translateMany(texts, to = RS.trTo || 'pt-BR', hint, ctx){
   texts = texts.map(t => String(t || ''));
   const joined = texts.join(' ').slice(0, 4000);
   const from = hint || await detectLang(joined);
   if (from && baseLang(from) === baseLang(to)) return { out: texts, from, via: 'mesma' };
   const miss = [], idx = [];
-  const out = texts.map((t, i) => { const c = TR.cache.get(to + '|' + t); if (c != null) return c; miss.push(t); idx.push(i); return null; });
+  const motor = usaClaude() ? 'c|' : '';
+  const out = texts.map((t, i) => { const c = TR.cache.get(motor + to + '|' + t); if (c != null) return c; miss.push(t); idx.push(i); return null; });
   let via = 'memória', det = from;
   if (miss.length){
-    let got = await trDevice(miss, from, to);
-    via = 'no aparelho (Chrome)';
-    if (!got){ got = await trLocal(miss, from, to); via = 'no aparelho (Bergamot)'; }
+    let got = null, aviso = '';
+    if (usaClaude()){
+      try { got = await trClaude(miss, from, baseLang(to), ctx); via = 'Claude'; }
+      catch (e) { aviso = ' (o Claude falhou: ' + (e.status === 401 ? 'chave inválida' : e.status === 429 ? 'limite de uso' : e.message || e) + ')'; }
+    }
+    if (!got){ got = await trDevice(miss, from, to); via = 'no aparelho (Chrome)' + aviso; }
+    if (!got){ got = await trLocal(miss, from, to); via = 'no aparelho (Bergamot)' + aviso; }
     if (!got){
       const online = trOnlineVia();
       if (!online) throw new Error(`Nenhum tradutor no aparelho cobre ${trLangName(from)} → ${trLangName(to)}. Para este par, ligue a tradução online em Aa → Tradução.`);
@@ -194,7 +211,7 @@ async function translateMany(texts, to = RS.trTo || 'pt-BR', hint){
       }
       else { got = await trMyMemory(miss, from, to); via = 'MyMemory'; }
     }
-    got.forEach((t, j) => { out[idx[j]] = t; TR.cache.set(to + '|' + miss[j], t); });
+    got.forEach((t, j) => { out[idx[j]] = t; TR.cache.set(motor + to + '|' + miss[j], t); });
   }
   return { out, from: det, via };
 }
@@ -204,7 +221,7 @@ function trOnlineVia(){
   if (RS.trVia === undefined) return RS.trOnline === false ? '' : 'mymemory';
   return RS.trVia || '';
 }
-async function translateOne(text, to){ const r = await translateMany([text], to); return { text: r.out[0], from: r.from, via: r.via }; }
+async function translateOne(text, to, ctx){ const r = await translateMany([text], to, undefined, ctx); return { text: r.out[0], from: r.from, via: r.via }; }
 
 /* Ler em voz alta (voz do sistema), para treinar a pronúncia */
 function speak(text, lang){
@@ -255,7 +272,7 @@ function translateCard(text, opts = {}){
     cab.addEventListener('pointerup', soltar, { once: true });
     cab.addEventListener('pointercancel', soltar, { once: true });
   });
-  translateOne(text, to).then(r => {
+  translateOne(text, to, opts.ctx).then(r => {
     if (!body.isConnected) return;
     body.querySelector('.trc-lang').textContent = r.via === 'mesma' ? `Já está em ${trLangName(to)}` : `${trLangName(r.from)} → ${trLangName(to)} · ${r.via}`;
     body.querySelector('.trc-out').textContent = r.text;

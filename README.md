@@ -66,6 +66,10 @@ estão.
     par de idiomas baixado uma vez. O idioma sai do franc (MIT). Online só para o
     que nenhum modelo local cobre (latim, japonês, chinês), e só se escolhido em
     Aa → Tradução: MyMemory, um servidor LibreTranslate seu ou o Google.
+    Para prosa literária, Aa → Tradução → **Motor: Claude**, com a sua chave da API
+    (fica só no aparelho): o trecho vai com o parágrafo em volta e o título do
+    livro, e o Claude resolve quem fala, gênero e a quem pertence o quê
+    (`js/claude.mjs`, SDK oficial em `vendor/`).
   - **Moldura do leitor**: Sumário, Marcações e Buscar (Ctrl+F) abrem numa barra
     lateral que empurra o texto em vez de cobri-lo, e ela continua aberta quando
     você pula para um trecho (marcar, conferir e seguir lendo sem fechar nada). A
@@ -75,6 +79,10 @@ estão.
     com os temas em amostras. No celular, lateral e Aa viram folhas que sobem de
     baixo e fecham no Voltar. Esc fecha o que estiver aberto.
   - Temas (Papel, Sépia, Noite, E-ink, Sol), fichamento e nota do livro.
+- **OCR** (PDF escaneado): a página é lida numa imagem própria a ~300 DPI, com
+  contraste esticado; os parágrafos são refeitos pela posição das palavras; copiar
+  e traduzir mantêm os espaços e juntam a palavra partida no fim da linha. Aa →
+  "Ler de novo esta página" refaz uma página lida antes.
 - **Aulas**: grava pelo microfone ou pelo áudio de uma aba, transcreve no próprio aparelho
   (Whisper via transformers.js) e monta a ficha: resumo, pontos-chave, autores, obras,
   conceitos e perguntas de revisão.

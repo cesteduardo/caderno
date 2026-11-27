@@ -394,6 +394,22 @@ function aaAbrir(refazer){
   }
   rdLayout();
 }
+/* Chave do Claude: só neste aparelho, nunca na sincronização */
+function aaClaude(){
+  const lib = () => import(new URL('js/claude.mjs', document.baseURI).href);
+  const inp = h('input', { type: 'password', placeholder: 'sk-ant-…', autocomplete: 'off', 'aria-label': 'Chave da API do Claude' });
+  const st = h('span', { class: 'muted small', text: '…' });
+  lib().then(m => { const k = m.chave(); inp.value = k; st.textContent = k ? 'chave guardada neste aparelho' : 'sem chave'; });
+  return h('div', { class: 'form aa-libre' },
+    inp,
+    h('div', { class: 'aa-row' }, st,
+      h('button', { type: 'button', class: 'btn ghost small', text: 'Guardar e testar', onclick: async () => {
+        const m = await lib(); m.guardaChave(inp.value); st.textContent = 'testando…';
+        try { const t = await m.testa(); st.textContent = 'funcionando: “Bom dia.” → “' + t + '”'; }
+        catch (e) { st.textContent = e.status === 401 ? 'chave inválida' : 'não deu: ' + (e.message || e); }
+      } })),
+    h('p', { class: 'muted small aa-tip', text: 'Tradução literária com contexto: o Claude (Opus 5.5) recebe o trecho com o parágrafo em volta e o título do livro, e resolve quem fala, gênero e a quem pertence o quê. O trecho sai do aparelho para a Anthropic e cada tradução custa uns centavos na sua conta da API (console.anthropic.com). A chave fica só neste navegador. Sem internet, ou se falhar, cai para o tradutor no aparelho.' }));
+}
 /* clicar fora do Aa fecha (sem virar a página por engano) */
 document.addEventListener('pointerdown', e => {
   if (!RD.aa || estreito()) return;
@@ -507,7 +523,7 @@ function panelTr(anterior){
   (async () => {
     if (!blocks.length){ out.replaceChildren(h('p', { class: 'muted pad', text: 'Não achei texto nesta página. Se for um PDF escaneado, ele não tem texto para traduzir.' })); return; }
     try {
-      const r = await translateMany(blocks, to);
+      const r = await translateMany(blocks, to, undefined, {});
       out.classList.remove('atualizando');
       out.replaceChildren(
         h('p', { class: 'muted small pad-x', text: r.via === 'mesma' ? `O texto já está em ${trLangName(to)}.` : `${trLangName(r.from)} → ${trLangName(to)} · ${r.via}` }),
@@ -593,10 +609,14 @@ function panelAa(){
         [['por+eng', 'Português e inglês'], ['por', 'Português'], ['eng', 'Inglês'], ['spa', 'Espanhol'], ['fra', 'Francês'], ['ita', 'Italiano'], ['deu', 'Alemão'], ['lat', 'Latim']]
           .map(([c, n]) => h('option', { value: c, selected: c === (RS.ocrLang || 'por+eng'), text: n })))) : null,
     pdf ? h('p', { class: 'muted small aa-tip', text: 'O OCR lê a imagem da página aqui no aparelho, sem enviar para ninguém, e guarda o resultado: cada página é lida uma vez. Na primeira vez baixa o leitor e o idioma (alguns MB).' }) : null,
+    pdf ? h('button', { type: 'button', class: 'btn ghost small', text: 'Ler de novo esta página', title: 'Apaga o OCR guardado desta página e lê outra vez, em alta resolução', onclick: () => { popLayer(); RD.eng.relerOcr(); } }) : null,
     h('h3', { text: 'Tradução' }),
     h('div', { class: 'aa-row' }, h('span', { text: 'Para' }),
       h('select', { 'aria-label': 'Traduzir para', onchange: e => { RS.trTo = e.target.value; saveRS(); } }, TR_LANGS.map(([c, n]) => h('option', { value: c, selected: c === RS.trTo, text: n })))),
     h('p', { class: 'muted small aa-tip', text: 'No aparelho, com o Bergamot (o tradutor local do Firefox): português, inglês, espanhol, francês, italiano, alemão, russo e outros. Cada par baixa uma vez (20 a 30 MB) e depois funciona sem internet; o texto não sai do aparelho.' + ('Translator' in self ? ' Este Chrome também traduz sozinho e entra primeiro quando já tem o par.' : '') }),
+    h('h3', { text: 'Motor' }),
+    seg([['local', 'No aparelho'], ['claude', 'Claude']], RS.trMotor === 'claude' ? 'claude' : 'local', v => { RS.trMotor = v; }),
+    RS.trMotor === 'claude' ? aaClaude() : null,
     h('div', { class: 'aa-row' }, h('span', { text: 'Modelos guardados' }), h('span', { class: 'muted', id: 'aaModelos', text: '…' }),
       h('button', { type: 'button', class: 'btn ghost small', text: 'Apagar', onclick: async () => { const m = await import(new URL('js/bergamot.mjs', document.baseURI).href); await m.esquece(); bergP = null; toast('Modelos de tradução apagados. Baixam de novo quando precisar.'); panelSwap('aa'); } })),
     h('h3', { text: 'Online, para o que o aparelho não cobre' }),
@@ -625,7 +645,7 @@ function selActions(base){
     { br: 1 },
     { label: 'Nota', onclick: () => { const x = mk(PEN.color); done(); editNote('', v => { x.note = v; putI('hl', x); RD.eng && RD.eng.repaint(); }); } },
     { label: 'Cartão', onclick: () => { const x = mk(PEN.color); done(); cardFromHl(x); } },
-    { label: 'Traduzir', onclick: () => translateCard(base.text, { rect: selbar.rect, save: tr => { const x = mk(PEN.color); x.tr = tr; putI('hl', x); RD.eng && RD.eng.repaint(); getSelection().removeAllRanges(); RD.eng && RD.eng.deselect && RD.eng.deselect(); } }) },
+    { label: 'Traduzir', onclick: () => translateCard(base.text, { rect: selbar.rect, ctx: base.ctx ? { contexto: base.ctx } : null, save: tr => { const x = mk(PEN.color); x.tr = tr; putI('hl', x); RD.eng && RD.eng.repaint(); getSelection().removeAllRanges(); RD.eng && RD.eng.deselect && RD.eng.deselect(); } }) },
     { label: 'Copiar', onclick: () => { navigator.clipboard?.writeText(base.text); selbar.hide(); toast('Copiado.'); } },
     base.overlaps && base.overlaps.length ? { label: 'Remover', cls: 'danger', title: 'Remover as marcações deste trecho', onclick: () => { done(); base.erase(); } } : null,
   ];
@@ -642,6 +662,15 @@ function hlActions(x){
     { label: 'Copiar', onclick: () => { navigator.clipboard?.writeText(x.text); selbar.hide(); toast('Copiado.'); } },
     { label: 'Remover', cls: 'danger', onclick: () => { selbar.hide(); removeHls([x]); } },
   ];
+}
+/* Contexto de um trecho para o tradutor: o bloco onde ele está e os
+   vizinhos (parágrafo anterior e seguinte), até uns 2.500 caracteres */
+function contextoDe(no){
+  let el = no && (no.nodeType === 1 ? no : no.parentElement);
+  el = el && el.closest('p,li,blockquote,dd,dt,h1,h2,h3,h4,figcaption,td,div');
+  if (!el) return '';
+  const txt = e => (e && e.textContent || '').replace(/\s+/g, ' ').trim();
+  return [txt(el.previousElementSibling), txt(el), txt(el.nextElementSibling)].filter(Boolean).join('\n\n').slice(0, 2500);
 }
 function newHl(fields){
   return putI('hl', { id: uid() + uid(), book: RD.book.id, created: Date.now(), note: '', style: PEN.style, ...fields });
@@ -981,7 +1010,7 @@ const FlowEngine = {
     const a = pre.toString().length, b = a + r.toString().length;
     const rects = r.getClientRects(), last = rects[rects.length - 1] || r.getBoundingClientRect();
     const overlaps = hlOf(this.b.id).filter(x => x.s === this.sec && x.a < b && x.b > a);
-    selbar.show(last, selActions({ text, overlaps, erase: () => this.erase(a, b),
+    selbar.show(last, selActions({ text, overlaps, ctx: contextoDe(r.commonAncestorContainer), erase: () => this.erase(a, b),
       make: (color, style) => { const x = newHl({ s: this.sec, a, b, text, color, style }); this.repaint(); return x; } }));
   },
   /* Apaga as marcações só no trecho [a, b): o que sobra dos lados fica */

@@ -64,10 +64,53 @@ function ocrTrabalhador(){
   if (ocrMotor) return ocrMotor;
   ocrMotor = (async () => {
     if (!self.Tesseract) await new Promise((ok, erro) => { const sc = document.createElement('script'); sc.src = OCR_JS; sc.onload = ok; sc.onerror = () => erro(new Error('sem internet para baixar o leitor de OCR')); document.head.append(sc); });
-    return Tesseract.createWorker(RS.ocrLang || 'por+eng');
+    const w = await Tesseract.createWorker(RS.ocrLang || 'por+eng');
+    /* mantém o espaço entre palavras como está na página (sem colar nem dobrar) */
+    try { await w.setParameters({ preserve_interword_spaces: '1' }); } catch (e) {}
+    return w;
   })();
   ocrMotor.catch(() => { ocrMotor = null; });
   return ocrMotor;
+}
+
+/* ---------- OCR: linhas e parágrafos a partir das palavras ----------
+   Cada palavra é [texto, x, y, largura, altura] em fração da página.
+   Linhas: a palavra seguinte desce ou volta para a esquerda. Parágrafo:
+   vão entre linhas bem maior que o normal da página, ou linha anterior
+   curta terminando em ponto, ou recuo depois de ponto. Hífen no fim da
+   linha junta a palavra. Os parágrafos do próprio Tesseract partiam no
+   meio das frases, o que estragava cópia e tradução. */
+function linhasOcr(P){
+  const linhas = [];
+  let cur = null;
+  P.forEach((p, i) => {
+    const ant = P[i - 1];
+    if (!cur || !ant || p[2] > ant[2] + ant[4] * .6 || p[1] + .001 < ant[1]){ cur = { idx: [], x0: p[1], x1: p[1] + p[3], top: p[2], h: p[4] }; linhas.push(cur); }
+    cur.idx.push(i); cur.x1 = Math.max(cur.x1, p[1] + p[3]); cur.h = Math.max(cur.h, p[4]);
+  });
+  const gaps = linhas.slice(1).map((l, i) => l.top - linhas[i].top).filter(g => g > 0).sort((a, b) => a - b);
+  const med = gaps.length ? gaps[gaps.length >> 1] : .03;
+  const larg = linhas.map(l => l.x1 - l.x0).sort((a, b) => a - b), cheia = larg.length ? larg[Math.floor(larg.length * .8)] : 1;
+  const esq = linhas.map(l => l.x0).sort((a, b) => a - b)[Math.floor(linhas.length * .2)] || 0;
+  linhas.forEach((l, i) => {
+    const a = linhas[i - 1];
+    if (!a){ l.novoPar = true; return; }
+    const fimFrase = /[.!?:»”"…)]$/.test(P[a.idx[a.idx.length - 1]][0]);
+    l.novoPar = (l.top - a.top) > med * 1.45 || (fimFrase && (a.x1 - a.x0) < cheia * .82) || (fimFrase && l.x0 > esq + .02);
+  });
+  return linhas;
+}
+function paragrafosOcr(P){
+  const out = [];
+  let par = '';
+  for (const l of linhasOcr(P)){
+    if (l.novoPar && par){ out.push(par); par = ''; }
+    const t = l.idx.map(i => P[i][0]).join(' ');
+    if (/[A-Za-zÀ-ÿ]-$/.test(par) && /^[a-zà-ÿ]/.test(t)) par = par.slice(0, -1) + t;
+    else par += (par ? ' ' : '') + t;
+  }
+  if (par) out.push(par);
+  return out;
 }
 
 const PdfEngine = {
@@ -206,20 +249,48 @@ const PdfEngine = {
       h('b', { text: 'Reconhecer o texto' }), h('span', { text: 'Página escaneada: o OCR deixa selecionar, buscar e traduzir' })));
     if (!this.avisouOcr){ this.avisouOcr = 1; toast('Este PDF é escaneado. Toque em “Reconhecer o texto” na página, ou ligue o OCR automático em Aa.'); }
   },
-  async ocr(n, cv){
+  /* Imagem própria para o OCR, a uns 300 DPI e em tons de cinza com
+     contraste esticado: a da tela no celular tem uns 90 DPI, pouco para o
+     Tesseract (é aí que "rn" vira "m" e palavras somem). */
+  async imagemOcr(n){
+    const page = await this.doc.getPage(n);
+    const v1 = page.getViewport({ scale: 1 });
+    const escala = Math.min(300 / 72, 3400 / Math.max(v1.width, v1.height));
+    const vp = page.getViewport({ scale: escala });
+    const cv = document.createElement('canvas');
+    cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    page.cleanup();
+    const img = ctx.getImageData(0, 0, cv.width, cv.height), d = img.data;
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < d.length; i += 4){ const g = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000 | 0; d[i] = g; hist[g]++; }
+    /* estica o contraste entre os 1% mais escuros e os 1% mais claros (papel amarelado, tinta apagada) */
+    const tot = cv.width * cv.height; let acc = 0, lo = 0, hi = 255;
+    for (let v = 0; v < 256; v++){ acc += hist[v]; if (acc > tot * .01){ lo = v; break; } }
+    acc = 0; for (let v = 255; v >= 0; v--){ acc += hist[v]; if (acc > tot * .01){ hi = v; break; } }
+    const k = 255 / Math.max(1, hi - lo);
+    for (let i = 0; i < d.length; i += 4){ const g = Math.max(0, Math.min(255, (d[i] - lo) * k)) | 0; d[i] = d[i + 1] = d[i + 2] = g; }
+    ctx.putImageData(img, 0, 0);
+    return cv;
+  },
+  async ocr(n, cvTela){
     const pg = this.pageEl(n);
-    if (!pg || !cv || pg.classList.contains('lendo')) return;
+    if (!pg || pg.classList.contains('lendo')) return;
     pg.classList.add('lendo');
     pg.querySelector('.ocr-bt')?.remove();
     const aviso = h('div', { class: 'ocr-lendo', text: 'Lendo a página…' });
     pg.append(aviso);
     try {
       const w = await ocrTrabalhador();
+      let cv = cvTela;
+      try { cv = await this.imagemOcr(n); } catch (e) { if (!cv) throw e; }
       const { data } = await w.recognize(cv);
       const W = cv.width, H = cv.height;
       const palavras = (data.words || []).filter(p => p.text && p.text.trim() && p.confidence > 35)
         .map(p => [p.text, +(p.bbox.x0 / W).toFixed(4), +(p.bbox.y0 / H).toFixed(4), +((p.bbox.x1 - p.bbox.x0) / W).toFixed(4), +((p.bbox.y1 - p.bbox.y0) / H).toFixed(4)]);
-      const paras = (data.paragraphs || []).map(q => q.text.replace(/-\n(?=[a-zà-ÿ])/g, '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const paras = paragrafosOcr(palavras);
       const salvo = { palavras, paras, texto: paras.join(' ') };
       await DB.set('ocr:' + this.b.id + ':' + n, salvo);
       this.camadaOcr(n, salvo);
@@ -227,25 +298,58 @@ const PdfEngine = {
     } catch (e) {
       toast('Não deu para reconhecer: ' + (e.message || e));
       pg.classList.remove('lendo');
-      this.semTexto(n, cv);
+      this.semTexto(n, cvTela);
     } finally { aviso.remove(); pg.classList.remove('lendo'); }
+  },
+  /* Aa → "Ler de novo esta página": apaga o OCR guardado e lê outra vez
+     (vale para páginas lidas antes da imagem em alta resolução) */
+  async relerOcr(){
+    const n = this.cur || 1, pg = this.pageEl(n);
+    if (!pg) return;
+    await DB.del('ocr:' + this.b.id + ':' + n);
+    delete this.texts[n]; delete this.paras[n];
+    pg.querySelector('.ocr-layer')?.remove();
+    pg.classList.remove('com-ocr');
+    this.ocr(n, pg.querySelector('canvas'));
   },
   /* as palavras lidas viram uma camada de texto invisível, do tamanho de cada uma */
   camadaOcr(n, salvo){
     const pg = this.pageEl(n);
     if (!pg) return;
-    this.texts[n] = salvo.texto || '';
-    this.paras[n] = salvo.paras || [];
+    /* parágrafos refeitos das palavras (vale também para OCR guardado antes) */
+    this.paras[n] = salvo.palavras && salvo.palavras.length ? paragrafosOcr(salvo.palavras) : (salvo.paras || []);
+    this.texts[n] = this.paras[n].join(' ') || salvo.texto || '';
     pg.classList.add('com-ocr');
     pg.querySelector('.textLayer')?.remove();
     const tl = h('div', { class: 'textLayer ocr-layer' });
     const H = pg.offsetHeight;
-    for (const [t, x, y, w, hh] of salvo.palavras){
-      const sp = h('span', { text: t, style: { left: x * 100 + '%', top: y * 100 + '%', width: w * 100 + '%', height: hh * 100 + '%', fontSize: Math.max(6, hh * H * .92) + 'px' } });
-      tl.append(sp, document.createTextNode(' '));
-    }
+    /* O espaço entre as palavras vai num <span> próprio (posicionado como as
+       palavras): um espaço solto entre elementos posicionados é descartado
+       pelo Chrome ao copiar, e o texto colava ("Mantenhocomigoo…"). Fim de
+       linha vira quebra; palavra partida com hífen no fim da linha volta a
+       ser uma só na cópia. */
+    const P = salvo.palavras;
+    const inicioPar = new Set(), inicioLinha = new Set();
+    for (const l of linhasOcr(P)){ inicioLinha.add(l.idx[0]); if (l.novoPar) inicioPar.add(l.idx[0]); }
+    P.forEach(([t, x, y, w, hh], i) => {
+      const prox = P[i + 1];
+      const novaLinha = prox && inicioLinha.has(i + 1);
+      const hifen = novaLinha && /[A-Za-zÀ-ÿ]-$/.test(t) && /^[a-zà-ÿ]/.test(prox[0]);
+      const fs = Math.max(6, hh * H * .92) + 'px';
+      tl.append(h('span', { text: hifen ? t.slice(0, -1) : t, style: { left: x * 100 + '%', top: y * 100 + '%', width: w * 100 + '%', height: hh * 100 + '%', fontSize: fs } }));
+      if (!prox) return;
+      /* vão grande entre linhas = parágrafo novo */
+      const paragrafo = inicioPar.has(i + 1);
+      tl.append(h('span', { class: 'ocr-esp', text: hifen ? '' : paragrafo ? '\n\n' : ' ', style: { left: (x + w) * 100 + '%', top: y * 100 + '%', width: '0', height: hh * 100 + '%', fontSize: fs } }));
+    });
+    /* como no pdf.js: enquanto arrasta, um fundo invisível segura a
+       seleção dentro da camada (sem ele, passar por um vão entre palavras
+       selecionava até o fim da página) */
+    const fim = h('div', { class: 'endOfContent' });
+    tl.append(fim);
+    tl.addEventListener('pointerdown', () => { tl.classList.add('selecting'); addEventListener('pointerup', () => tl.classList.remove('selecting'), { once: true }); });
     pg.append(tl);
-    requestAnimationFrame(() => tl.querySelectorAll('span').forEach(sp => {
+    requestAnimationFrame(() => tl.querySelectorAll('span:not(.ocr-esp)').forEach(sp => {
       const k = sp.offsetWidth / Math.max(1, sp.scrollWidth);
       if (k < .98 || k > 1.02) sp.style.transform = `scaleX(${k.toFixed(3)})`;
     }));
@@ -327,7 +431,9 @@ const PdfEngine = {
     const all = r.getClientRects(), last = all[all.length - 1] || r.getBoundingClientRect();
     const meets = (p, q) => p[0] < q[0] + q[2] && q[0] < p[0] + p[2] && p[1] < q[1] + q[3] && q[1] < p[1] + p[3];
     const overlaps = hlOf(this.b.id).filter(x => x.page === n && x.rects.some(q => rects.some(p => meets(p, q))));
-    selbar.show(last, selActions({ text, overlaps, erase: () => removeHls(overlaps),
+    /* contexto para o tradutor: os parágrafos da página (do PDF ou do OCR) */
+    const ctx = (this.paras[n] || []).join('\n\n').slice(0, 4000);
+    selbar.show(last, selActions({ text, overlaps, ctx, erase: () => removeHls(overlaps),
       make: (color, style) => { const x = newHl({ page: n, rects, y: rects[0][1], text, color, style }); this.paintPage(n); return x; } }));
   },
 
