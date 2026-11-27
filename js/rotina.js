@@ -370,6 +370,7 @@ function renderToday(){
   const st = paintTodayStats();
 
   renderTrack();
+  if (typeof renderAgenda === 'function') renderAgenda();
   const list = $('#todayList');
   list.replaceChildren();
   if (!state.routine.length) list.append(boasVindas());

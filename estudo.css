@@ -868,3 +868,16 @@ body[data-rdtheme="noite"] .toast button{color:#111}
 .boas-vindas p{max-width:62ch;color:var(--r2)}
 .boas-vindas .row-btns{margin-top:6px}
 .plan-novo{display:flex;justify-content:flex-start;margin-top:var(--gap)}
+
+/* ---------- agenda do dia (horários fixos) ---------- */
+.agenda{margin-top:0;margin-bottom:var(--gap)}
+.agenda[hidden]{display:none}
+.ag-lista{list-style:none;display:grid;gap:2px}
+.ag-item{display:grid;grid-template-columns:minmax(120px,max-content) 1fr auto;align-items:center;gap:16px;min-height:var(--ctl);padding:0 12px;border-radius:10px}
+.ag-hora{font-size:15px;font-weight:500;color:var(--r2);font-variant-numeric:tabular-nums}
+.ag-nome{font-size:16px;font-weight:500;letter-spacing:-.01em}
+.ag-item.passou .ag-hora,.ag-item.passou .ag-nome{color:var(--r3)}
+.ag-item.agora{background:color-mix(in srgb,var(--acento) 9%,transparent)}
+.ag-item.agora .ag-hora,.ag-item.agora .ag-agora{color:var(--acento)}
+.ag-agora{font-size:13px;font-weight:600}
+@media (max-width:560px){.ag-item{grid-template-columns:104px 1fr auto;gap:10px;padding:0 8px}}

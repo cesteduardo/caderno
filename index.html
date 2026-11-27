@@ -69,6 +69,8 @@ try { const t = localStorage.getItem('caderno-tema'); if (t === 'claro' || t ===
       </section>
     </header>
 
+    <section class="card agenda" id="agenda" aria-label="Agenda do dia" hidden></section>
+
     <div class="today-study" id="studyToday"></div>
 
     <section class="track" id="track" hidden></section>
@@ -271,6 +273,7 @@ try { const t = localStorage.getItem('caderno-tema'); if (t === 'claro' || t ===
 <script src="vendor/jszip.min.js" defer></script>
 <script src="vendor/pdf.min.js" defer></script>
 <script src="js/rotina.js" defer></script>
+<script src="js/agenda.js" defer></script>
 <script src="js/base.js" defer></script>
 <script src="js/formatos.js" defer></script>
 <script src="js/leitor.js" defer></script>

@@ -27,6 +27,11 @@ código: token do GitHub, senhas e chaves nunca entram no repositório. O convit
 "Seu Caderno começa vazio" e as áreas genéricas (`AREAS_PADRAO`) ficam como
 estão.
 
+- **Agenda** (no topo do Hoje): os horários fixos do dia, de `js/agenda.js`
+  (`AGENDA`; `state.perfil.agenda` substitui, se existir). Manhã igual todos os
+  dias; de segunda a sexta entram a saída, a caminhada e o Trabalho (10h30 às
+  21h30). O bloco da hora atual fica em azul com "Agora" e os que já passaram
+  ficam apagados; o destaque anda sozinho a cada minuto.
 - **Hoje**: a data como título, os dias numa navegação compacta (‹ Hoje ›) e o
   progresso do dia numa barra larga com os números ao lado (minutos feitos,
   restantes e tarefas). Tarefas do dia, diário (abre também no Escritor) e
