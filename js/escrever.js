@@ -295,7 +295,7 @@ function paintWrPanel(){
       tags.length ? h('h3', { text: 'Etiquetas' }) : null,
       tags.length ? h('div', { class: 'wp-tags' }, tags.map(t => h('button', { class: 'chip', type: 'button', text: t, onclick: () => CadernoPonte.etiqueta(t) }))) : null,
       ...srcs.map(s => {
-        const list = s.k === 'livro' ? hlOf(s.x.id).sort((a, b) => s.x.type === 'PDF' ? a.page - b.page : (a.s - b.s) || (a.a - b.a)) : live('hl').filter(x => x.lesson === s.x.id).sort((a, b) => a.ms - b.ms);
+        const list = s.k === 'livro' ? hlOf(s.x.id).sort(hlOrdem(s.x)) : live('hl').filter(x => x.lesson === s.x.id).sort((a, b) => a.ms - b.ms);
         const name = s.k === 'livro' ? s.x.title : s.x.name;
         return h('section', { class: 'wp-src' },
           h('h3', {}, (s.k === 'livro' ? 'Marcações de ' : 'Marcações da aula ') + clip(name, 40) + ` · ${list.length}`),

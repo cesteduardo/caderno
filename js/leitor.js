@@ -1,12 +1,13 @@
 /* =====================================================================
    Ler: biblioteca e leitor
    ---------------------------------------------------------------------
-   EPUB e TXT: página que se ajusta à tela (colunas CSS, sem rolagem).
-   A posição é guardada por caractere: muda a letra, a página muda,
-   mas o lugar no texto continua o mesmo. Destaques também são
-   guardados por caractere (seção + início + fim).
-   O PDF tem o seu motor em js/pdf.js; a moldura (barras, painel,
-   ajustes, seleção) é a mesma.
+   Três motores, a mesma moldura (barras, lateral, Aa, seleção):
+   · EPUB, MOBI/AZW3, FB2 e CBZ: foliate-js (js/folio.js), com o arquivo
+     original guardado; posição e marcações em EPUB CFI.
+   · PDF: js/pdf.js, sobre o pdf.js 5.
+   · TXT, livros importados antes do foliate e os do INK: o motor antigo
+     (FlowEngine, aqui embaixo), que trabalha com o texto convertido;
+     posição e marcações por caractere (seção + início + fim).
    ===================================================================== */
 'use strict';
 
@@ -208,9 +209,17 @@ async function openBook(id){
   document.body.classList.add('reading');
   $('#rdTitle').textContent = b.title;
   pushLayer(closeReader);
-  RD.eng = b.type === 'PDF' ? PdfEngine : FlowEngine;
+  /* PDF no motor de PDF; EPUB, MOBI, FB2 e CBZ com arquivo guardado no
+     foliate (js/folio.js); o resto (TXT, livros antigos e os do INK) no
+     leitor antigo, que trabalha com o texto já convertido. */
+  const temArq = b.eng === 'folio' && !!(await DB.get('arq:' + b.id));
+  RD.eng = b.type === 'PDF' ? PdfEngine : temArq ? FolioEngine : FlowEngine;
   try { await RD.eng.open(b); }
   catch (e) { toast('Não consegui abrir: ' + (e.message || e)); popLayer(); return; }
+  if (RD.eng === FlowEngine && b.type === 'EPUB' && !b.avisoNovo){
+    b.avisoNovo = 1; putI('books', b);
+    setTimeout(() => toast('Este livro está no leitor antigo. Adicione o mesmo arquivo EPUB de novo para abrir no leitor novo: posição e marcações vêm junto.', 'Escolher arquivo', () => $('#bookFile').click()), 900);
+  }
   if (RS.awake) wantAwake(true);
   showChrome(true);
   if (RS.lado && RS.lado !== 'busca' && !estreito()) lado(RS.lado, true);
@@ -368,6 +377,9 @@ function aaAbrir(refazer){
   if (RD.aa && !refazer){ popLayer(); return; }
   const st = p.querySelector('.aa')?.scrollTop || 0;
   p.replaceChildren(panelAa());
+  const mod = p.querySelector('#aaModelos');
+  if (mod) import(new URL('js/bergamot.mjs', document.baseURI).href).then(m => m.guardado())
+    .then(n => { mod.textContent = n ? (n / 1048576).toFixed(n > 1e8 ? 0 : 1).replace('.', ',') + ' MB' : 'nenhum'; }).catch(() => { mod.textContent = '—'; });
   const novo = !RD.aa;
   RD.aa = true; p.hidden = false;
   p.querySelector('.aa').scrollTop = st;
@@ -418,7 +430,7 @@ function arrastavel(el, alca, aoSoltar){
 }
 
 function panelToc(){
-  const toc = RD.book.toc || [];
+  const toc = (RD.eng && RD.eng.toc) || RD.book.toc || [];
   if (!toc.length) return h('p', { class: 'muted pad', text: 'Este arquivo não traz sumário.' });
   const act = RD.eng.tocActive();
   return h('ol', { class: 'rp-list toc' }, toc.map((t, i) => h('li', { class: (i === act ? 'on ' : '') + 'd' + (t.d || 0) },
@@ -428,7 +440,7 @@ function panelToc(){
 let hlFilter = '';
 function panelHl(){
   const b = RD.book;
-  const all = hlOf(b.id).sort((x, y) => b.type === 'PDF' ? (x.page - y.page) || (x.y || 0) - (y.y || 0) : (x.s - y.s) || (x.a - y.a));
+  const all = hlOf(b.id).sort(hlOrdem(b));
   const list = hlFilter ? all.filter(x => x.color === hlFilter) : all;
   const notes = live('notes').filter(n => n.src && n.src.t === 'livro' && n.src.id === b.id).sort((x, y) => (y.u || 0) - (x.u || 0));
   const count = c => all.filter(x => x.color === c).length;
@@ -455,13 +467,20 @@ function panelHl(){
         h('button', { type: 'button', class: 'danger', text: 'Remover', onclick: () => removeHls([x]) }))))) :
       h('p', { class: 'muted pad', text: all.length ? 'Nenhuma marcação nesta cor.' : 'Selecione um trecho do texto para marcar. No celular: toque e segure numa palavra e arraste as alças.' }));
 }
+/* Ordem das marcações no livro: página no PDF; posição (0 a 1) no
+   foliate; seção e caractere no leitor antigo */
+function hlOrdem(b){
+  return (x, y) => b.type === 'PDF' ? (x.page - y.page) || (x.y || 0) - (y.y || 0)
+    : (x.f != null && y.f != null) ? x.f - y.f
+    : ((x.s ?? 1e9) - (y.s ?? 1e9)) || ((x.a || 0) - (y.a || 0)) || ((x.f ?? 0) - (y.f ?? 0));
+}
 /* Remover várias de uma vez: da cor escolhida, do capítulo ou do livro */
 function clearMarks(b, shown){
   const all = hlOf(b.id);
   const opts = [];
   if (hlFilter) opts.push([`As ${shown.length} em ${hlColorName(hlFilter).toLowerCase()}`, shown]);
   if (b.type !== 'PDF' && RD.eng && RD.eng.sec != null){
-    const here = all.filter(x => x.s === RD.eng.sec);
+    const here = all.filter(x => RD.eng.noCapitulo ? RD.eng.noCapitulo(x) : x.s === RD.eng.sec);
     if (here.length) opts.push([`As ${here.length} deste capítulo`, here]);
   } else if (b.type === 'PDF' && RD.eng.cur){
     const here = all.filter(x => x.page === RD.eng.cur);
@@ -551,7 +570,7 @@ function panelAa(){
       h('span', { id: 'aaTam', text: RS.size + ' px' }),
       h('button', { type: 'button', class: 'aa-maior', 'aria-label': 'Letra maior', text: 'A', onclick: () => { RS.size = Math.min(34, RS.size + 1); saveRS(); applyRS(); RD.eng.relayout(); $('#aaTam').textContent = RS.size + ' px'; } })),
     pdf ? null : h('h3', { text: 'Letra' }),
-    pdf ? null : seg([['serif', 'Serifa'], ['sans', 'Inter']], RS.font, v => { RS.font = v; }),
+    pdf ? null : seg(RD.eng === FolioEngine ? [['livro', 'Do livro'], ['serif', 'Serifa'], ['sans', 'Inter']] : [['serif', 'Serifa'], ['sans', 'Inter']], RD.eng !== FolioEngine && RS.font === 'livro' ? 'serif' : RS.font, v => { RS.font = v; }),
     pdf ? null : h('h3', { text: 'Entrelinha' }),
     pdf ? null : seg([[1.4, 'Justa'], [1.6, 'Normal'], [1.85, 'Folgada']], RS.lh, v => { RS.lh = v; }),
     pdf ? null : h('h3', { text: 'Margens' }),
@@ -575,8 +594,15 @@ function panelAa(){
     h('h3', { text: 'Tradução' }),
     h('div', { class: 'aa-row' }, h('span', { text: 'Para' }),
       h('select', { 'aria-label': 'Traduzir para', onchange: e => { RS.trTo = e.target.value; saveRS(); } }, TR_LANGS.map(([c, n]) => h('option', { value: c, selected: c === RS.trTo, text: n })))),
-    seg([[true, 'Online quando precisar'], [false, 'Só no aparelho']], RS.trOnline, v => { RS.trOnline = v; }),
-    h('p', { class: 'muted small aa-tip', text: ('Translator' in self ? 'Este navegador traduz no aparelho: o par de idiomas baixa uma vez e funciona sem internet. ' : 'Este navegador não traduz no aparelho. ') + 'Online, o trecho vai para o Google Tradutor.' }),
+    h('p', { class: 'muted small aa-tip', text: 'No aparelho, com o Bergamot (o tradutor local do Firefox): português, inglês, espanhol, francês, italiano, alemão, russo e outros. Cada par baixa uma vez (20 a 30 MB) e depois funciona sem internet; o texto não sai do aparelho.' + ('Translator' in self ? ' Este Chrome também traduz sozinho e entra primeiro quando já tem o par.' : '') }),
+    h('div', { class: 'aa-row' }, h('span', { text: 'Modelos guardados' }), h('span', { class: 'muted', id: 'aaModelos', text: '…' }),
+      h('button', { type: 'button', class: 'btn ghost small', text: 'Apagar', onclick: async () => { const m = await import(new URL('js/bergamot.mjs', document.baseURI).href); await m.esquece(); bergP = null; toast('Modelos de tradução apagados. Baixam de novo quando precisar.'); panelSwap('aa'); } })),
+    h('h3', { text: 'Online, para o que o aparelho não cobre' }),
+    seg([['', 'Não'], ['mymemory', 'MyMemory'], ['libre', 'LibreTranslate'], ['google', 'Google']], trOnlineVia(), v => { RS.trVia = v; }),
+    trOnlineVia() === 'libre' ? h('div', { class: 'form aa-libre' },
+      h('input', { type: 'text', value: RS.trLibre || '', placeholder: 'https://seu-servidor-libretranslate', 'aria-label': 'Endereço do LibreTranslate', onchange: e => { RS.trLibre = e.target.value.trim(); saveRS(); } }),
+      h('input', { type: 'text', value: RS.trLibreKey || '', placeholder: 'Chave (se o servidor pedir)', 'aria-label': 'Chave do LibreTranslate', onchange: e => { RS.trLibreKey = e.target.value.trim(); saveRS(); } })) : null,
+    h('p', { class: 'muted small aa-tip', text: 'Só entra quando nenhum modelo local cobre o par (latim, japonês, chinês) e o trecho sai do aparelho. MyMemory é gratuito e limitado; LibreTranslate é código aberto, no servidor que você indicar; o Google usa um endereço não oficial, que pode parar sem aviso.' }),
     h('h3', { text: 'O que cada cor quer dizer' }),
     h('div', { class: 'hl-names' }, HL_COLORS.map(c => h('label', { class: 'hl-name' }, h('i', { class: 'dot-' + c.id }),
       h('input', { type: 'text', value: ((E.prefs && E.prefs.hlNames) || {})[c.id] || '', placeholder: c.name, maxlength: 28, 'aria-label': 'Nome para ' + c.name,
@@ -589,7 +615,7 @@ function panelAa(){
    embaixo nota, cartão, traduzir, copiar e, se o trecho já tem
    marcações, Remover. */
 function selActions(base){
-  const done = () => { selbar.hide(); getSelection().removeAllRanges(); };
+  const done = () => { selbar.hide(); getSelection().removeAllRanges(); RD.eng && RD.eng.deselect && RD.eng.deselect(); };
   const mk = c => { PEN.color = c; savePen(); const x = base.make(c, PEN.style); setTimeout(() => rdRefresh('hl'), 0); return x; };
   return [
     ...colorDots(null, c => { mk(c); done(); }),
@@ -597,7 +623,7 @@ function selActions(base){
     { br: 1 },
     { label: 'Nota', onclick: () => { const x = mk(PEN.color); done(); editNote('', v => { x.note = v; putI('hl', x); RD.eng && RD.eng.repaint(); }); } },
     { label: 'Cartão', onclick: () => { const x = mk(PEN.color); done(); cardFromHl(x); } },
-    { label: 'Traduzir', onclick: () => translateCard(base.text, { rect: selbar.rect, save: tr => { const x = mk(PEN.color); x.tr = tr; putI('hl', x); RD.eng && RD.eng.repaint(); getSelection().removeAllRanges(); } }) },
+    { label: 'Traduzir', onclick: () => translateCard(base.text, { rect: selbar.rect, save: tr => { const x = mk(PEN.color); x.tr = tr; putI('hl', x); RD.eng && RD.eng.repaint(); getSelection().removeAllRanges(); RD.eng && RD.eng.deselect && RD.eng.deselect(); } }) },
     { label: 'Copiar', onclick: () => { navigator.clipboard?.writeText(base.text); selbar.hide(); toast('Copiado.'); } },
     base.overlaps && base.overlaps.length ? { label: 'Remover', cls: 'danger', title: 'Remover as marcações deste trecho', onclick: () => { done(); base.erase(); } } : null,
   ];
@@ -628,11 +654,12 @@ function bookNote(){
   newNote(`# Notas: ${b.title}\n\n[[${b.title}]]${b.author ? ' · ' + b.author : ''}\n\n`, { t: 'livro', id: b.id, label: b.title });
 }
 function fichamento(b){
-  const list = hlOf(b.id).sort((x, y) => b.type === 'PDF' ? x.page - y.page : (x.s - y.s) || (x.a - y.a));
+  const list = hlOf(b.id).sort(hlOrdem(b));
   let md = `# Fichamento: ${b.title}\n\n[[${b.title}]]${b.author ? ' · ' + b.author : ''} #fichamento\n\n`;
   let chap = null;
   for (const x of list){
-    if (b.type !== 'PDF' && b.toc){ let t = null; for (const c of b.toc) if (c.s < x.s || (c.s === x.s && c.c <= x.a)) t = c; if (t && t !== chap){ chap = t; md += `## ${t.l}\n\n`; } }
+    if (x.chap){ if (x.chap !== chap){ chap = x.chap; md += `## ${x.chap}\n\n`; } }
+    else if (b.type !== 'PDF' && b.toc && x.s != null){ let t = null; for (const c of b.toc) if (c.s < x.s || (c.s === x.s && c.c <= x.a)) t = c; if (t && t.l !== chap){ chap = t.l; md += `## ${t.l}\n\n`; } }
     md += hlMd(x) + '\n';
   }
   newNote(md, { t: 'livro', id: b.id, label: b.title });
@@ -685,14 +712,15 @@ function stageInput(stage, eng){
     if (x < .28) eng.prev(); else if (x > .72) eng.next(); else toggleChrome();
   });
 }
-document.addEventListener('keydown', e => {
-  if (!RD.eng || !$('#modal').hidden || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+function rdTecla(e){
+  if (!RD.eng || !$('#modal').hidden || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f'){ e.preventDefault(); lado('busca', RD.lado === 'busca'); setTimeout(() => $('#rdLado input[type=search]')?.focus(), 30); return; }
   if (e.key === 'Escape'){ if (RD.aa || RD.folha) popLayer(); else if (RD.lado) ladoFechar(); else if (RD.tr) trFechar(); return; }
   if (rdSobreposto()) return;
   if (['ArrowRight', 'PageDown', ' '].includes(e.key) && (RD.eng.paged || (RD.eng.scroll && e.key !== 'ArrowRight'))){ e.preventDefault(); RD.eng.next(); }
   else if (['ArrowLeft', 'PageUp'].includes(e.key) && (RD.eng.paged || (RD.eng.scroll && e.key !== 'ArrowLeft'))){ e.preventDefault(); RD.eng.prev(); }
-});
+}
+document.addEventListener('keydown', rdTecla);
 let selT;
 document.addEventListener('selectionchange', () => {
   if (!RD.eng) return;
@@ -728,6 +756,7 @@ const FlowEngine = {
     this.ro = new ResizeObserver(() => { clearTimeout(this.rt); this.rt = setTimeout(() => this.relayout(), 150); });
     this.ro.observe(stage);
     const p = b.pos || { s: 0, c: 0 };
+    if (p.cfi && b.pct > 0){ await this.load(0, 0); this.gotoPct(b.pct); return; }   // posição veio do leitor novo, noutro aparelho
     await this.load(Math.min(p.s || 0, this.c.sections.length - 1), p.c || 0);
   },
   close(){ this.ro && this.ro.disconnect(); for (const u of Object.values(this.urls || {})) URL.revokeObjectURL(u); this.urls = {}; },
@@ -898,7 +927,7 @@ const FlowEngine = {
     this.goto(s, g - this.before[s]);
   },
   gotoToc(t){ this.goto(t.s, t.c); },
-  async gotoHl(x){ await this.goto(x.s, x.a); this.blink(x.id); },
+  async gotoHl(x){ if (x.s == null){ if (x.f != null) this.gotoPct(x.f); return; } await this.goto(x.s, x.a); this.blink(x.id); },
   blink(id){ $('#rdSec').querySelectorAll(`[data-h="${id}"]`).forEach(m => { m.classList.remove('blink'); void m.offsetWidth; m.classList.add('blink'); }); },
   link(href, a){
     const pos = this.c.anchors[href] || this.c.anchors[href.split('#')[0]];

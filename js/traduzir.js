@@ -1,13 +1,21 @@
 /* =====================================================================
    Traduzir
    ---------------------------------------------------------------------
-   1. No aparelho: o tradutor embutido do Chrome (Translator API), que
-      baixa o par de idiomas uma vez e depois funciona sem internet.
-   2. Online, se permitido nos Ajustes: o Google Tradutor (o trecho
-      sai do aparelho) e, se ele falhar, o MyMemory.
-   O idioma de origem é adivinhado pelas palavras mais comuns; o online
-   também detecta sozinho. Traduções ficam em memória enquanto o app
-   está aberto, para não pedir duas vezes a mesma coisa.
+   Na ordem:
+   1. No aparelho, com o tradutor do Chrome (Translator API), quando o
+      navegador tem e o par já está baixado: é o mais rápido.
+   2. No aparelho, com o Bergamot (js/bergamot.mjs), o motor das
+      traduções locais do Firefox: qualquer navegador, sem internet
+      depois do primeiro download do par (uns 20 a 30 MB, uma vez).
+      Cobre português, inglês, espanhol, francês, italiano, alemão,
+      russo e outros; pares sem o inglês passam por ele.
+   3. Online, só se permitido em Aa → Tradução, para o que nenhum modelo
+      local cobre (latim, japonês, chinês): MyMemory, um servidor
+      LibreTranslate seu, ou o Google Tradutor (endereço não oficial,
+      que pode parar a qualquer momento; por isso não é o padrão).
+   O idioma de origem sai do franc (n-gramas, MIT), com uma lista de
+   palavras frequentes para o latim, que o franc não conhece. As
+   traduções ficam em memória enquanto o app está aberto.
    ===================================================================== */
 'use strict';
 
@@ -41,6 +49,22 @@ function guessLang(text){
 }
 const baseLang = c => String(c || '').split('-')[0].toLowerCase();
 
+/* franc: devolve ISO 639-3; aqui viram os códigos curtos do app */
+const FRANC_PARA = { por: 'pt', eng: 'en', spa: 'es', fra: 'fr', ita: 'it', deu: 'de', rus: 'ru', ukr: 'uk', ces: 'cs', bul: 'bg', est: 'et', nld: 'nl', pol: 'pl', jpn: 'ja', cmn: 'zh' };
+let francP = null;
+const francLib = () => (francP ||= import(new URL('vendor/franc.min.mjs', document.baseURI).href).catch(e => { francP = null; throw e; }));
+async function detectLang(text){
+  const t = String(text || '').slice(0, 2000);
+  const pal = guessLang(t);
+  if (pal === 'la') return 'la';            // o franc não tem latim
+  try {
+    const { franc } = await francLib();
+    const r = franc(t, { minLength: 8, only: Object.keys(FRANC_PARA) });
+    if (r && r !== 'und') return FRANC_PARA[r];
+  } catch (e) {}
+  return pal;
+}
+
 /* No aparelho (Chrome 138+). Só usa o par que já está baixado; se o
    par ainda não existe no aparelho, começa a baixar em segundo plano e
    desta vez vai online. Devolve null se não der. */
@@ -71,7 +95,39 @@ async function trDevice(texts, from, to){
   } catch (e) { return null; }
 }
 
-/* Google (o mesmo endereço da extensão do Chrome): vários trechos por pedido */
+/* Bergamot, no aparelho. Devolve null se o par não existir ou o modelo
+   não puder baixar agora (sem internet na primeira vez). */
+let bergP = null;
+const berg = () => (bergP ||= import(new URL('js/bergamot.mjs', document.baseURI).href).then(m => {
+  let mostrou = 0;
+  m.aoBaixar((tipo) => {
+    if (tipo === 'baixando' && !mostrou++) toast('Baixando o tradutor deste par de idiomas. É uma vez só; depois funciona sem internet.');
+  });
+  return m;
+}).catch(e => { bergP = null; throw e; }));
+async function trLocal(texts, from, to){
+  if (!from || RS.trLocal === false) return null;
+  const a = baseLang(from), b = baseLang(to);
+  try {
+    const m = await berg();
+    if (!await m.cobre(a, b)) return null;
+    return await m.traduz(texts, a, b);
+  } catch (e) { return null; }
+}
+
+/* LibreTranslate (código aberto, AGPL), no servidor que você indicar */
+async function trLibre(texts, from, to){
+  const base = String(RS.trLibre || '').replace(/\/+$/, '');
+  if (!base) throw new Error('sem servidor LibreTranslate');
+  const r = await fetch(base + '/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: texts, source: from ? baseLang(from) : 'auto', target: baseLang(to), format: 'text', api_key: RS.trLibreKey || undefined }) });
+  if (!r.ok) throw new Error('LibreTranslate ' + r.status);
+  const d = await r.json();
+  const out = Array.isArray(d.translatedText) ? d.translatedText : [d.translatedText];
+  return { out, detected: d.detectedLanguage && (Array.isArray(d.detectedLanguage) ? d.detectedLanguage[0] : d.detectedLanguage).language };
+}
+
+/* Google (endereço não oficial, o da extensão do Chrome): só se escolhido */
 async function trGoogle(texts, from, to){
   const out = new Array(texts.length);
   let detected = null;
@@ -119,22 +175,34 @@ async function trMyMemory(texts, from, to){
 async function translateMany(texts, to = RS.trTo || 'pt-BR', hint){
   texts = texts.map(t => String(t || ''));
   const joined = texts.join(' ').slice(0, 4000);
-  const from = hint || guessLang(joined);
+  const from = hint || await detectLang(joined);
   if (from && baseLang(from) === baseLang(to)) return { out: texts, from, via: 'mesma' };
   const miss = [], idx = [];
   const out = texts.map((t, i) => { const c = TR.cache.get(to + '|' + t); if (c != null) return c; miss.push(t); idx.push(i); return null; });
   let via = 'memória', det = from;
   if (miss.length){
     let got = await trDevice(miss, from, to);
-    via = 'no aparelho';
+    via = 'no aparelho (Chrome)';
+    if (!got){ got = await trLocal(miss, from, to); via = 'no aparelho (Bergamot)'; }
     if (!got){
-      if (!RS.trOnline) throw new Error('Este navegador não traduz sem internet. Ligue a tradução online nos Ajustes (Aa).');
-      try { const g = await trGoogle(miss, null, to); got = g.out; det = g.detected || from; via = 'Google Tradutor'; }
-      catch (e) { got = await trMyMemory(miss, from, to); via = 'MyMemory'; }
+      const online = trOnlineVia();
+      if (!online) throw new Error(`Nenhum tradutor no aparelho cobre ${trLangName(from)} → ${trLangName(to)}. Para este par, ligue a tradução online em Aa → Tradução.`);
+      if (online === 'libre'){ const g = await trLibre(miss, from, to); got = g.out; det = g.detected || from; via = 'LibreTranslate'; }
+      else if (online === 'google'){
+        try { const g = await trGoogle(miss, null, to); got = g.out; det = g.detected || from; via = 'Google Tradutor'; }
+        catch (e) { got = await trMyMemory(miss, from, to); via = 'MyMemory'; }
+      }
+      else { got = await trMyMemory(miss, from, to); via = 'MyMemory'; }
     }
     got.forEach((t, j) => { out[idx[j]] = t; TR.cache.set(to + '|' + miss[j], t); });
   }
   return { out, from: det, via };
+}
+/* Online: 'mymemory' (padrão), 'libre', 'google' ou desligado. Quem
+   tinha "online quando precisar" ligado no tradutor antigo fica no MyMemory. */
+function trOnlineVia(){
+  if (RS.trVia === undefined) return RS.trOnline === false ? '' : 'mymemory';
+  return RS.trVia || '';
 }
 async function translateOne(text, to){ const r = await translateMany([text], to); return { text: r.out[0], from: r.from, via: r.via }; }
 

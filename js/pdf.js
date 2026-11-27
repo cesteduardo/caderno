@@ -77,7 +77,7 @@ const PdfEngine = {
     const lib = await pdfLib();
     const file = await DB.get('arq:' + b.id);
     if (!file) throw new Error('arquivo não encontrado');
-    this.doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+    this.doc = await lib.getDocument(pdfOpcoes(new Uint8Array(await file.arrayBuffer()))).promise;
     this.n = this.doc.numPages;
     if (b.pages !== this.n){ b.pages = this.n; putI('books', b); }
     this.zoom = b.zoom || 1;
@@ -174,7 +174,10 @@ const PdfEngine = {
     pg.querySelectorAll('canvas,.textLayer,.hl-layer').forEach(x => x.remove());
     const hl = h('div', { class: 'hl-layer' });
     const tl = h('div', { class: 'textLayer' });
-    tl.style.setProperty('--scale-factor', scale);
+    /* camada de texto do pdf.js 5: o tamanho de cada pedaço sai de
+       --total-scale-factor, então ela acompanha o zoom sem refazer */
+    tl.style.setProperty('--total-scale-factor', scale);
+    tl.style.setProperty('--scale-round-x', '1px'); tl.style.setProperty('--scale-round-y', '1px');
     pg.append(cv, hl, tl);
     this.live.set(n, 'on');
     this.paintPage(n);
@@ -184,7 +187,7 @@ const PdfEngine = {
       const tx = textoDaPagina(tc);
       temTexto = tx.texto.length > 20;
       if (temTexto){ this.texts[n] ||= tx.texto; this.paras[n] ||= tx.paras; }
-      if (this.live.get(n) === 'on' && temTexto) await pdfjsLib.renderTextLayer({ textContentSource: tc, container: tl, viewport: vp, textDivs: [] }).promise;
+      if (this.live.get(n) === 'on' && temTexto) await new pdfjsLib.TextLayer({ textContentSource: tc, container: tl, viewport: vp }).render();
     } catch (e) {}
     page.cleanup();
     if (!temTexto && this.live.get(n) === 'on') this.semTexto(n, cv);
@@ -341,14 +344,35 @@ const PdfEngine = {
         catch (e) { this.texts[n] = ''; }
       }
       const txt = this.texts[n], low = norm(txt);
-      let i = low.indexOf(nq);
+      let i = low.indexOf(nq), nth = 0;
       while (i > -1){
-        if (emit({ page: n, pre: '…' + txt.slice(Math.max(0, i - 50), i), mid: txt.slice(i, i + q.length), post: txt.slice(i + q.length, i + q.length + 70) + '…', label: 'p. ' + n }) === false) return;
+        if (emit({ page: n, q, nth: nth++, pre: '…' + txt.slice(Math.max(0, i - 50), i), mid: txt.slice(i, i + q.length), post: txt.slice(i + q.length, i + q.length + 70) + '…', label: 'p. ' + n }) === false) return;
         i = low.indexOf(nq, i + nq.length);
       }
     }
   },
-  gotoHit(hit){ this.scrollTo(hit.page); },
+  /* pula para a página e marca o trecho achado na camada de texto (por
+     uns segundos), como no leitor de PDF do Firefox */
+  async gotoHit(hit){
+    this.scrollTo(hit.page);
+    let tl = null;
+    for (let k = 0; k < 30 && !(tl = this.pageEl(hit.page)?.querySelector('.textLayer:not(:empty)')); k++) await new Promise(r => setTimeout(r, 100));
+    if (!tl || !hit.q) return;
+    tl.querySelectorAll('mark.hit').forEach(m => m.replaceWith(...m.childNodes));
+    const txt = tl.textContent, alvo = norm(hit.q).replace(/\s+/g, ' ');
+    /* procura sem acento e sem diferença de espaço, guardando de onde veio cada letra */
+    let plano = '', mapa = [];
+    for (let i = 0; i < txt.length; i++){ const c = norm(txt[i]); for (const ch of c){ if (/\s/.test(ch) && plano.endsWith(' ')) continue; plano += /\s/.test(ch) ? ' ' : ch; mapa.push(i); } }
+    let k = plano.indexOf(alvo);
+    for (let j = 0; j < (hit.nth || 0) && k > -1; j++){ const k2 = plano.indexOf(alvo, k + alvo.length); if (k2 < 0) break; k = k2; }   // a ocorrência escolhida, não a primeira
+    if (k < 0) return;
+    const ms = wrapOffsets(tl, mapa[k], mapa[k + alvo.length - 1] + 1, () => h('mark', { class: 'hit' }));
+    if (ms[0]){
+      const sc = $('#pdfScroll'), r = ms[0].getBoundingClientRect(), b = sc.getBoundingClientRect();
+      if (r.top < b.top + 40 || r.bottom > b.bottom - 40) sc.scrollTop += r.top - b.top - sc.clientHeight * .35;
+    }
+    setTimeout(() => tl.querySelectorAll('mark.hit').forEach(m => m.replaceWith(...m.childNodes)), 3200);
+  },
 };
 
 /* Junta retângulos da mesma linha (o pdf.js quebra a linha em vários pedaços) */

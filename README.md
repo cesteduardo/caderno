@@ -43,7 +43,14 @@ estão.
   branco, com volume), sino entre as etapas e tela cheia. Na tela de foco:
   pausar (Espaço), +5 min, pular etapa, silenciar, encerrar e minimizar (Esc);
   minimizado, o tempo aparece no título da aba. Os minutos ficam no dia.
-- **Ler**: EPUB, PDF e TXT.
+- **Ler**: EPUB, MOBI/AZW3, FB2, CBZ, PDF e TXT.
+  - **Motor**: os livros abrem no [foliate-js](https://github.com/johnfactotum/foliate-js)
+    (MIT), o motor do Foliate (`js/folio.js`): o livro aparece como a editora o fez
+    (capitulares, versaletes, epígrafes, recuos), com os seus ajustes por cima; notas
+    de rodapé abrem numa janela; posição e marcações usam EPUB CFI. Livros
+    importados antes dele seguem no leitor antigo até o arquivo ser adicionado de
+    novo, e então posição e marcações migram sozinhas (reencontradas pelo texto).
+    PDF no pdf.js 5 (Mozilla); TXT no leitor antigo.
   - Uma página por vez é o padrão. Em Aa → Página dá para escolher **duas lado a
     lado** (só em tela larga) ou **rolagem** contínua, e a largura da linha.
   - Marcações em 6 cores e 4 estilos (marca-texto, sublinhado, ondulado, tachado).
@@ -53,9 +60,12 @@ estão.
     ou do livro). Toda remoção tem **Desfazer**.
   - As cores podem ganhar sentido (Aa → “O que cada cor quer dizer”).
   - **Traduzir**: o trecho selecionado (com Ouvir, Copiar, Guardar na marcação e
-    Cartão) ou a página inteira (aba Traduzir). Usa o tradutor do próprio Chrome
-    quando o aparelho tem; senão, online (Google Tradutor, com o MyMemory de
-    reserva). Dá para proibir o online em Aa → Tradução.
+    Cartão) ou a página inteira (aba Traduzir). No aparelho, sem mandar o texto
+    para ninguém: o tradutor do Chrome, quando existe, e o **Bergamot** (MPL 2.0,
+    o motor local do Firefox, `js/bergamot.mjs`) em qualquer navegador, com cada
+    par de idiomas baixado uma vez. O idioma sai do franc (MIT). Online só para o
+    que nenhum modelo local cobre (latim, japonês, chinês), e só se escolhido em
+    Aa → Tradução: MyMemory, um servidor LibreTranslate seu ou o Google.
   - **Moldura do leitor**: Sumário, Marcações e Buscar (Ctrl+F) abrem numa barra
     lateral que empurra o texto em vez de cobri-lo, e ela continua aberta quando
     você pula para um trecho (marcar, conferir e seguir lendo sem fechar nada). A

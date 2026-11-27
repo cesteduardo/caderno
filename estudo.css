@@ -245,8 +245,11 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .reader.com-tr .rd-stage{right:var(--tr-w)}
 .rd-stage.flow{touch-action:pan-y}
 /* enquanto o texto se repagina (lateral ou tradução abrindo), ele some num instante */
-.rd-stage :is(.rd-page,.pdf-scroll){transition:opacity .16s ease}
-.rd-stage.refaz :is(.rd-page,.pdf-scroll){opacity:0;transition:none}
+.rd-stage :is(.rd-page,.pdf-scroll,.folio-view){transition:opacity .16s ease}
+/* foliate: o paginador ocupa o palco todo; a barra de cima e a de baixo ficam fora */
+.folio-view{display:block;position:absolute;inset:0;width:100%;height:100%}
+.aa-libre{display:grid;gap:7px;margin:4px 0 2px}
+.rd-stage.refaz :is(.rd-page,.pdf-scroll,.folio-view){opacity:0;transition:none}
 .tr-page{transition:opacity .2s}
 .tr-page.atualizando{opacity:.45}
 .rd-page{position:absolute;top:25px;bottom:21px;left:var(--rd-mx);right:var(--rd-mx);overflow:hidden}
@@ -431,7 +434,9 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .textLayer :is(span,br){color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0% 0%}
 .textLayer span.markedContent{top:0;height:0}
 .textLayer .endOfContent{display:block;position:absolute;inset:100% 0 0;z-index:-1;cursor:default;user-select:none}
-.textLayer .endOfContent.active{top:0}
+.textLayer .endOfContent.active,.textLayer.selecting .endOfContent{top:0}
+.textLayer .markedContent span:not(.markedContent),.textLayer>:not(.markedContent){z-index:1}
+.textLayer mark.hit{color:transparent;background:rgba(255,190,0,.45);border-radius:2px}
 .textLayer ::selection{background:rgba(0,90,255,.3);color:transparent}
 
 /* =====================================================================

@@ -21,7 +21,9 @@ async function sniff(file){
   const s = String.fromCharCode(...b);
   if (s.startsWith('%PDF')) return 'PDF';
   if (b[0] === 0x50 && b[1] === 0x4b) return 'ZIP';
-  if (s.startsWith('BOOKMOBI') || /\.(mobi|azw3?|kfx)$/i.test(file.name)) return 'MOBI';
+  if (/\.kfx$/i.test(file.name)) return 'KFX';
+  if (/\.(mobi|azw3?|prc)$/i.test(file.name)) return 'MOBI';
+  if (/\.(fb2|fbz)$/i.test(file.name) || /\.fb2\.zip$/i.test(file.name)) return 'FB2';
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   if (ext === 'pdf') return 'PDF';
   if (ext === 'epub') return 'ZIP';
@@ -339,17 +341,28 @@ async function parseTxt(file){
 }
 
 /* ---------- PDF: só lê capa, título e páginas ---------- */
+/* pdf.js 5 (Mozilla, Apache 2.0), na versão "legacy", que cobre também
+   navegadores um pouco mais velhos. Vem como módulo e só carrega quando
+   um PDF abre. As fontes padrão, os mapas de caracteres (CJK) e o
+   decodificador de JPEG 2000 ficam em vendor/pdfjs e só baixam se o PDF
+   precisar deles. */
 let pdfReady = null;
+const PDFJS = new URL('vendor/pdfjs/', document.baseURI).href;
 function pdfLib(){
-  return pdfReady ||= libReady('O leitor de PDF', () => typeof pdfjsLib !== 'undefined').then(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
-    return pdfjsLib;
+  pdfReady ||= import(PDFJS + 'pdf.min.mjs').then(lib => {
+    lib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.mjs';
+    self.pdfjsLib = lib;
+    return lib;
   });
+  pdfReady.catch(() => { pdfReady = null; });
+  return pdfReady;
 }
+/* opções comuns de abertura */
+const pdfOpcoes = data => ({ data, isEvalSupported: false, standardFontDataUrl: PDFJS + 'standard_fonts/', cMapUrl: PDFJS + 'cmaps/', cMapPacked: true, wasmUrl: PDFJS + 'wasm/' });
 async function parsePdf(file){
   const lib = await pdfLib();
   let pdf;
-  try { pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise; }
+  try { pdf = await lib.getDocument(pdfOpcoes(new Uint8Array(await file.arrayBuffer()))).promise; }
   catch (e) {
     if (e && e.name === 'PasswordException') throw new Error('o PDF tem senha.');
     throw new Error('o PDF parece corrompido (' + (e && e.message || 'erro') + ').');
@@ -389,12 +402,23 @@ async function pdfOutline(pdf){
 /* ---------- importação ---------- */
 async function importBook(file, onStep){
   const kind = await sniff(file);
-  if (kind === 'MOBI') throw new Error('MOBI/AZW (Kindle) não abre aqui. Converta para EPUB no Calibre.');
+  if (kind === 'KFX') throw new Error('KFX (Kindle novo) não abre aqui. Converta para EPUB ou AZW3 no Calibre.');
   if (kind === 'DOC') throw new Error('documento do Word: salve como PDF ou EPUB.');
   const id = await fingerprint(file);
   let r;
+  /* EPUB, MOBI/AZW3, FB2 e CBZ: o arquivo fica como veio e abre no
+     foliate (js/folio.js). Se o foliate não conseguir ler, o EPUB ainda
+     tenta o conversor antigo. */
+  let folio = false;
   if (kind === 'PDF') r = await parsePdf(file);
-  else if (kind === 'ZIP') r = await parseEpub(file, onStep);
+  else if (kind === 'ZIP' || kind === 'MOBI' || kind === 'FB2'){
+    try { r = await folioInfo(file); folio = true; }
+    catch (e) {
+      console.warn('foliate não leu', e);
+      if (kind !== 'ZIP') throw new Error('não consegui ler este ' + (kind === 'MOBI' ? 'MOBI/AZW3' : 'FB2') + '.');
+      r = await parseEpub(file, onStep);
+    }
+  }
   else {
     const head = new Uint8Array(await file.slice(0, 2000).arrayBuffer());
     if (head.some(b => b === 0)) throw new Error('formato não reconhecido. Use EPUB, PDF ou TXT.');
@@ -407,12 +431,13 @@ async function importBook(file, onStep){
     title: (old && old.title) || r.title || file.name.replace(/\.[^.]+$/, ''),
     author: (old && old.author) || r.author || '',
     cover: r.cover || (old && old.cover) || null,
-    toc: r.toc, chars: r.chars || 0, pages: r.pages || 0,
+    toc: folio && old && old.eng !== 'folio' && old.toc ? old.toc : r.toc, chars: r.chars || (old && old.chars) || 0, pages: r.pages || 0,
     added: (old && old.added) || Date.now(), last: (old && old.last) || 0,
     pos: (old && old.pos) || null, pct: (old && old.pct) || 0,
     file: file.name, size: file.size,
   };
-  if (r.type === 'PDF') await DB.set('arq:' + id, file);
+  if (folio){ book.eng = 'folio'; if (r.lang) book.lang = r.lang; }
+  if (r.type === 'PDF' || folio) await DB.set('arq:' + id, file);
   else await DB.set('cont:' + id, r.content);
   putI('books', book);
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}

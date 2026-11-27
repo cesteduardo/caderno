@@ -178,7 +178,7 @@ function freeNote(n){ if (n && n.id) openNote(n.id); else newNote(''); }
 const hlMd = x => `> ${x.text.replace(/\n+/g, ' ')}` + (x.page ? ` (p. ${x.page})` : x.lesson ? ` (${fmtClock(x.ms || 0)})` : '') + (x.tr ? `\n>\n> *${x.tr.replace(/\n+/g, ' ')}*` : '') + (x.note ? `\n\n${x.note}` : '') + '\n';
 function marksMdOf(kind, it){
   if (kind === 'livro'){
-    const b = it, list = hlOf(b.id).sort((x, y) => b.type === 'PDF' ? x.page - y.page : (x.s - y.s) || (x.a - y.a));
+    const b = it, list = hlOf(b.id).sort(hlOrdem(b));
     return list.length ? `# ${b.title}\n\n` + (b.author ? `Autor: [[${b.author}]]\n\n` : '') + list.map(hlMd).join('\n') : '';
   }
   const l = it, list = live('hl').filter(x => x.lesson === l.id).sort((a, b) => a.ms - b.ms);
