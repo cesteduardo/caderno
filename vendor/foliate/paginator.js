@@ -499,6 +499,7 @@ export class Paginator extends HTMLElement {
             grid-column: 2 / 5;
             grid-row: 2;
             overflow: hidden;
+            position: relative;
         }
         :host([flow="scrolled"]) #container {
             grid-column: 1 / -1;
@@ -657,9 +658,18 @@ export class Paginator extends HTMLElement {
         })
     }
     #createView() {
+        // [Caderno] a página que sai fica na tela, congelada por cima, até a
+        // que entra estar desenhada e no lugar (ver #display): sem o quadro
+        // vazio entre um capítulo e outro
+        this.#dropOld()
         if (this.#view) {
-            this.#view.destroy()
-            this.#container.removeChild(this.#view.element)
+            // sai do fluxo mas fica no mesmo ponto (mover um iframe de lugar
+            // o recarregaria); como continua dentro do contêiner, a rolagem
+            // não muda até a página nova ser posicionada
+            Object.assign(this.#view.element.style, {
+                position: 'absolute', left: '0', top: '0', zIndex: '1', pointerEvents: 'none',
+            })
+            this.#old = this.#view
         }
         this.#view = new View({
             container: this,
@@ -667,6 +677,14 @@ export class Paginator extends HTMLElement {
         })
         this.#container.append(this.#view.element)
         return this.#view
+    }
+    #old
+    #dropOld() {
+        const old = this.#old
+        if (!old) return
+        this.#old = null
+        old.destroy()
+        old.element.remove()
     }
     #replaceBackground(background, columnCount) {
         const doc = this.#view?.document
@@ -839,13 +857,14 @@ export class Paginator extends HTMLElement {
             Math.max(min, Math.min(max, (start + end) / 2
                 + (isNaN(d) ? 0 : d))) / size)
 
-        this.#scrollToPage(page, 'snap').then(() => {
-            const dir = page <= 0 ? -1 : page >= pages - 1 ? 1 : null
-            if (dir) return this.#goTo({
-                index: this.#adjacentIndex(dir),
-                anchor: dir < 0 ? () => 1 : () => 0,
-            })
-        })
+        const dir = page <= 0 ? -1 : page >= pages - 1 ? 1 : null
+        // [Caderno] arrastou para além do capítulo: o próximo entra direto,
+        // sem terminar o deslize até a página vazia
+        if (dir && this.#adjacentIndex(dir) != null) {
+            this.#goTo({ index: this.#adjacentIndex(dir), anchor: dir < 0 ? () => 1 : () => 0 })
+            return
+        }
+        this.#scrollToPage(page, 'snap')
     }
     #onTouchStart(e) {
         const touch = e.changedTouches[0]
@@ -1031,6 +1050,9 @@ export class Paginator extends HTMLElement {
         }
         await this.scrollToAnchor((typeof anchor === 'function'
             ? anchor(this.#view.document) : anchor) ?? 0, select)
+        // [Caderno] a página nova já está no lugar: sai a antiga, no mesmo
+        // passo (antes de a tela ser redesenhada)
+        this.#dropOld()
         if (hasFocus) this.focusView()
     }
     #canGoToIndex(index) {
@@ -1068,6 +1090,7 @@ export class Paginator extends HTMLElement {
         }
         if (this.atStart) return
         const page = this.page - 1
+        if (page <= 0) return true   // [Caderno] idem, para trás
         return this.#scrollToPage(page, 'page', true).then(() => page <= 0)
     }
     #scrollNext(distance) {
@@ -1080,6 +1103,9 @@ export class Paginator extends HTMLElement {
         if (this.atEnd) return
         const page = this.page + 1
         const pages = this.pages
+        // [Caderno] da última página do capítulo vai direto para o próximo,
+        // sem deslizar até a página vazia que separa os dois
+        if (page >= pages - 1) return true
         return this.#scrollToPage(page, 'page', true).then(() => page >= pages - 1)
     }
     get atStart() {
@@ -1156,6 +1182,7 @@ export class Paginator extends HTMLElement {
     }
     destroy() {
         this.#observer.unobserve(this)
+        this.#dropOld()
         this.#view.destroy()
         this.#view = null
         this.sections[this.#index]?.unload?.()

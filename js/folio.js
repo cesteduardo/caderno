@@ -129,7 +129,7 @@ const FolioEngine = {
     const stage = $('#rdStage');
     stage.className = 'rd-stage folio';
     const view = document.createElement('foliate-view');
-    view.className = 'folio-view';
+    view.className = 'folio-view chegando';   // surge suave na primeira página, em vez de piscar
     stage.replaceChildren(view);
     this.view = view;
     this.desenhadas = new Map();
@@ -140,7 +140,7 @@ const FolioEngine = {
     this.toc = folioToc(this.book.toc);
     view.addEventListener('load', e => this.onLoad(e.detail));
     view.addEventListener('relocate', e => this.onRelocate(e.detail));
-    view.addEventListener('create-overlay', e => this.pintaSecao(e.detail.index));
+    view.addEventListener('create-overlay', e => this.pintaSecao(e.detail.index, true));
     view.addEventListener('draw-annotation', e => this.desenha(e.detail));
     view.addEventListener('link', e => this.onLink(e));
     this.ajusta();
@@ -164,15 +164,18 @@ const FolioEngine = {
     if (!r) return;
     const cols = RS.layout === 'dupla' ? 2 : 1;
     const medida = Math.round(RS.size * ({ s: 28, m: 35, l: 44 }[RS.measure] || 35));
-    r.setAttribute('flow', this.scroll ? 'scrolled' : 'paginated');
-    r.setAttribute('max-column-count', String(cols));
-    r.setAttribute('max-inline-size', (cols > 1 ? Math.round(RS.size * 31) : medida) + 'px');
-    r.setAttribute('gap', { s: '4%', m: '7%', l: '12%' }[RS.margin] || '7%');
-    r.setAttribute('margin', estreito() ? '26px' : '38px');
-    if (RS.theme === 'eink') r.removeAttribute('animated'); else r.setAttribute('animated', '');
-    r.setStyles(this.css());
+    /* cada atributo que muda refaz a página inteira: só mexe no que mudou */
+    const põe = (k, v) => { if (r.getAttribute(k) !== v) r.setAttribute(k, v); };
+    põe('flow', this.scroll ? 'scrolled' : 'paginated');
+    põe('max-column-count', String(cols));
+    põe('max-inline-size', (cols > 1 ? Math.round(RS.size * 31) : medida) + 'px');
+    põe('gap', { s: '4%', m: '7%', l: '12%' }[RS.margin] || '7%');
+    põe('margin', estreito() ? '26px' : '38px');
+    if (RS.theme === 'eink' || RS.anim === false) r.removeAttribute('animated'); else if (!r.hasAttribute('animated')) r.setAttribute('animated', '');
+    const css = this.css();
+    if (css !== this.cssAtual){ this.cssAtual = css; r.setStyles(css); }
   },
-  relayout(){ this.ajusta(); setTimeout(() => this.repaint(), 120); },
+  relayout(){ this.ajusta(); clearTimeout(this.rpT); this.rpT = setTimeout(() => this.repaint(), 160); },
   css(){
     const cs = getComputedStyle(RD.el), v = (k, d) => cs.getPropertyValue(k).trim() || d;
     const bg = v('--rd-bg', '#fff'), ink = v('--rd-ink', '#151515'), mute = v('--rd-mute', '#8a8a87');
@@ -186,9 +189,9 @@ const FolioEngine = {
     const inter = n => `url("${new URL('fonts/Inter-' + n + '.woff2', document.baseURI).href}") format("woff2")`;
     return `
 @namespace epub "http://www.idpf.org/2007/ops";
-@font-face{font-family:"Inter";src:${inter('Regular')};font-weight:400;font-display:swap}
-@font-face{font-family:"Inter";src:${inter('Medium')};font-weight:500;font-display:swap}
-@font-face{font-family:"Inter";src:${inter('SemiBold')};font-weight:600 800;font-display:swap}
+@font-face{font-family:"Inter";src:${inter('Regular')};font-weight:400;font-display:fallback}
+@font-face{font-family:"Inter";src:${inter('Medium')};font-weight:500;font-display:fallback}
+@font-face{font-family:"Inter";src:${inter('SemiBold')};font-weight:600 800;font-display:fallback}
 html{--theme-bg-color:${bg};color-scheme:${escuro ? 'dark' : 'light'};color:${ink};background:${bg} !important;font-size:${RS.size + (RS.theme === 'sol' ? 1 : 0)}px !important;
   -webkit-text-size-adjust:none;text-size-adjust:none;
   --overlayer-highlight-opacity:${escuro ? .3 : .42};--overlayer-highlight-blend-mode:${escuro ? 'screen' : 'multiply'}}
@@ -211,6 +214,7 @@ aside[epub|type~="endnote"],aside[epub|type~="footnote"],aside[epub|type~="note"
     doc.addEventListener('click', e => this.onClick(e, doc, index));
   },
   onRelocate(d){
+    if (!this.loc && this.view) requestAnimationFrame(() => this.view && this.view.classList.remove('chegando'));
     this.loc = d;
     const t = d.time || {};
     const fmtT = m => m < 90 ? Math.max(1, Math.round(m)) + ' min' : Math.round(m / 60) + ' h';
@@ -286,17 +290,23 @@ aside[epub|type~="endnote"],aside[epub|type~="footnote"],aside[epub|type~="note"
   porCfi(cfi){ return hlOf(this.b.id).find(x => x.cfi === cfi) || null; },
   daSecao(i){ return hlOf(this.b.id).filter(x => x.cfi && this.idx(x) === i); },
   faixa(x, doc){ try { return this.view.resolveCFI(x.cfi).anchor(doc); } catch (e) { return null; } },
-  pintaSecao(i){
-    const feitas = new Set();
-    for (const x of this.daSecao(i)){ feitas.add(x.cfi); this.view.addAnnotation({ value: x.cfi, x }).catch(() => {}); }
-    this.desenhadas.set(i, feitas);
-  },
-  repaint(){
-    if (!this.view || !this.view.renderer) return;
-    for (const { index } of this.view.renderer.getContents()){
-      for (const v of this.desenhadas.get(index) || []) this.view.deleteAnnotation({ value: v }).catch(() => {});
-      this.pintaSecao(index);
+  /* Cada marcação desenhada guarda uma assinatura (cor, estilo, nota,
+     tradução, tema). Redesenhar só mexe no que mudou: marcar um trecho
+     novo não faz as outras piscarem. */
+  assina(x){ return [x.color, x.style, !!x.note, !!x.tr, RD.el.dataset.theme].join('|'); },
+  pintaSecao(i, tudo){
+    const antes = tudo ? new Map() : (this.desenhadas.get(i) || new Map()), agora = new Map();
+    for (const x of this.daSecao(i)){
+      const a = this.assina(x);
+      agora.set(x.cfi, a);
+      if (antes.get(x.cfi) !== a) this.view.addAnnotation({ value: x.cfi, x }).catch(() => {});
     }
+    for (const v of antes.keys()) if (!agora.has(v)) this.view.deleteAnnotation({ value: v }).catch(() => {});
+    this.desenhadas.set(i, agora);
+  },
+  repaint(tudo){
+    if (!this.view || !this.view.renderer) return;
+    for (const { index } of this.view.renderer.getContents()) this.pintaSecao(index, tudo === true);
   },
   desenha({ draw, annotation }){
     const x = annotation.x;

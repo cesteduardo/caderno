@@ -580,6 +580,8 @@ function panelAa(){
     pdf ? null : h('h3', { text: 'Página' }),
     pdf ? null : seg([['pagina', 'Uma página'], ['dupla', 'Duas lado a lado'], ['rolar', 'Rolagem']], RS.layout, v => { RS.layout = v; }),
     pdf ? null : RS.layout === 'dupla' ? h('p', { class: 'muted small aa-tip', text: 'Duas páginas só aparecem em tela larga (a partir de uns 900 px). No celular continua uma.' }) : null,
+    RD.eng === FolioEngine && RS.layout !== 'rolar' ? h('h3', { text: 'Virar a página' }) : null,
+    RD.eng === FolioEngine && RS.layout !== 'rolar' ? seg([[true, 'Deslizando'], [false, 'Direto']], RS.anim !== false, v => { RS.anim = v; }) : null,
     pdf || RS.layout === 'dupla' ? null : h('h3', { text: 'Largura da linha' }),
     pdf || RS.layout === 'dupla' ? null : seg([['s', 'Estreita'], ['m', 'Média'], ['l', 'Larga']], RS.measure, v => { RS.measure = v; }),
     h('h3', { text: 'Tela' }),

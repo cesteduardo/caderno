@@ -247,7 +247,8 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 /* enquanto o texto se repagina (lateral ou tradução abrindo), ele some num instante */
 .rd-stage :is(.rd-page,.pdf-scroll,.folio-view){transition:opacity .16s ease}
 /* foliate: o paginador ocupa o palco todo; a barra de cima e a de baixo ficam fora */
-.folio-view{display:block;position:absolute;inset:0;width:100%;height:100%}
+.folio-view{display:block;position:absolute;inset:0;width:100%;height:100%;transition:opacity .22s var(--ease)}
+.folio-view.chegando{opacity:0;transition:none}
 .aa-libre{display:grid;gap:7px;margin:4px 0 2px}
 .rd-stage.refaz :is(.rd-page,.pdf-scroll,.folio-view){opacity:0;transition:none}
 .tr-page{transition:opacity .2s}
