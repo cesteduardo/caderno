@@ -163,6 +163,7 @@ function buildReader(){
         /* OCR: só nos PDFs; o ícone acende quando a página na tela é escaneada e ainda não foi lida */
         h('button', { class: 'rd-ferr', type: 'button', id: 'rdBocr', hidden: true, title: 'Reconhecer o texto (OCR)', 'aria-label': 'OCR', onclick: () => RD.eng && RD.eng.menuOcr && RD.eng.menuOcr() }, ico('scan-text'), h('span', { class: 'rot', text: 'OCR' })),
         rdFerr('rdBtr', 'languages', 'Traduzir', 'Traduzir a página', () => traducao()),
+        rdFerr('rdBcheia', 'maximize', 'Tela cheia', 'Tela cheia: esconde as barras (Esc para sair)', () => telaCheia(true)),
         h('button', { class: 'rd-ferr rd-aa-btn', type: 'button', id: 'rdBaa', title: 'Ajustes de leitura', 'aria-label': 'Ajustes de leitura', onclick: () => aaAbrir() }, h('span', { class: 'ico-aa', text: 'Aa' })))),
     h('aside', { class: 'rd-lado', id: 'rdLado', hidden: true, 'aria-label': 'Barra lateral' }),
     h('div', { class: 'rd-stage', id: 'rdStage' }),
@@ -172,7 +173,8 @@ function buildReader(){
       h('span', { id: 'rdPos' })),
     h('div', { class: 'rd-aa', id: 'rdAa', hidden: true, role: 'dialog', 'aria-label': 'Ajustes de leitura' }),
     h('div', { class: 'rd-veu', id: 'rdVeu', hidden: true, 'aria-hidden': 'true', onclick: () => popLayer() }),
-    h('div', { class: 'rd-flash', id: 'rdFlash' }));
+    h('div', { class: 'rd-flash', id: 'rdFlash' }),
+    h('button', { class: 'rd-sair-cheia', type: 'button', id: 'rdSairCheia', hidden: true, onclick: () => telaCheia(false) }, ico('minimize-2'), h('span', { text: 'Sair da tela cheia' })));
   $('#rdRange').addEventListener('change', e => RD.eng.gotoPct(e.target.value / 1000));
   $('#rdRange').addEventListener('input', e => { $('#rdPos').textContent = Math.round(e.target.value / 10) + '%'; });
   RD.lado = ''; RD.tr = false; RD.aa = false; RD.folha = '';
@@ -228,6 +230,7 @@ async function openBook(id){
 }
 function closeReader(){
   try { RD.eng && RD.eng.close(); } catch (e) {}
+  if (RD.el.classList.contains('cheia')) telaCheia(false);
   if (RD.book){ RD.book.last = Date.now(); putI('books', RD.book); }
   RD.el.hidden = true; RD.el.replaceChildren(); RD.el.classList.remove('dividido', 'com-lado', 'com-tr');
   delete document.body.dataset.rdtheme;
@@ -244,7 +247,31 @@ function showChrome(on){
   RD.el.classList.toggle('bare', !on);
   clearTimeout(RD.chromeTimer);
 }
-const toggleChrome = () => showChrome(RD.el.classList.contains('bare'));
+/* As barras ficam fixas: não somem ao virar a página nem ao tocar no
+   texto. Só a Tela cheia as esconde (e pede a tela cheia do navegador);
+   sai com Esc, com o Voltar/gesto do aparelho ou pelo botão que aparece
+   ao tocar no meio da página. */
+function telaCheia(on){
+  if (!RD.el) return;
+  const ja = RD.el.classList.contains('cheia');
+  if (on === ja) return;
+  if (on){ selbar.hide(); if (RD.aa || RD.folha) popLayer(); if (RD.lado) ladoFechar(); if (RD.tr) trFechar(); }
+  RD.el.classList.toggle('cheia', on);
+  showChrome(!on);
+  try {
+    if (on && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+    if (!on && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  } catch (e) {}
+  if (on) mostraSair(2600); else { const b = $('#rdSairCheia'); if (b) b.hidden = true; }
+}
+function mostraSair(ms = 3000){
+  const b = $('#rdSairCheia'); if (!b) return;
+  b.hidden = false; clearTimeout(mostraSair.t);
+  mostraSair.t = setTimeout(() => { b.hidden = true; }, ms);
+}
+/* toque no meio da página: na tela cheia, mostra o botão de sair; fora dela, nada */
+const toggleChrome = () => { if (RD.el && RD.el.classList.contains('cheia')) mostraSair(); };
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && RD.el && RD.el.classList.contains('cheia')) telaCheia(false); });
 
 function savePos(pos, pct, label){
   const b = RD.book;
@@ -749,7 +776,7 @@ function stageInput(stage, eng){
 function rdTecla(e){
   if (!RD.eng || !$('#modal').hidden || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f'){ e.preventDefault(); lado('busca', RD.lado === 'busca'); setTimeout(() => $('#rdLado input[type=search]')?.focus(), 30); return; }
-  if (e.key === 'Escape'){ if (RD.aa || RD.folha) popLayer(); else if (RD.lado) ladoFechar(); else if (RD.tr) trFechar(); return; }
+  if (e.key === 'Escape'){ if (RD.el.classList.contains('cheia')) telaCheia(false); else if (RD.aa || RD.folha) popLayer(); else if (RD.lado) ladoFechar(); else if (RD.tr) trFechar(); return; }
   if (rdSobreposto()) return;
   if (['ArrowRight', 'PageDown', ' '].includes(e.key) && (RD.eng.paged || (RD.eng.scroll && e.key !== 'ArrowRight'))){ e.preventDefault(); RD.eng.next(); }
   else if (['ArrowLeft', 'PageUp'].includes(e.key) && (RD.eng.paged || (RD.eng.scroll && e.key !== 'ArrowLeft'))){ e.preventDefault(); RD.eng.prev(); }
@@ -940,8 +967,8 @@ const FlowEngine = {
   async next(){
     selbar.hide();
     if (this.scroll){ const pg = $('#rdPage'); if (pg.scrollTop + pg.clientHeight >= pg.scrollHeight - 4) await this.nextSec(); else pg.scrollBy({ top: pg.clientHeight * .9 }); return; }
-    if (this.page < this.pages - 1){ this.page++; this.draw(); showChrome(false); }
-    else if (this.sec < this.c.sections.length - 1){ await this.load(this.sec + 1, 0); showChrome(false); }
+    if (this.page < this.pages - 1){ this.page++; this.draw(); }
+    else if (this.sec < this.c.sections.length - 1){ await this.load(this.sec + 1, 0); }
     else toast('Fim do livro.');
   },
   async prev(){

@@ -214,6 +214,10 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
 .rd-bot{bottom:0;height:calc(var(--rd-base) + env(safe-area-inset-bottom));padding:0 21px env(safe-area-inset-bottom);display:flex;align-items:center;gap:16px;box-shadow:0 -1px 0 var(--rd-line)}
 .reader.bare .rd-top{opacity:0;transform:translateY(-7px);pointer-events:none}
 .reader.bare .rd-bot{opacity:0;transform:translateY(7px);pointer-events:none}
+/* Tela cheia: sem barras, o texto ocupa a tela toda */
+.reader.cheia .rd-stage{top:env(safe-area-inset-top);bottom:env(safe-area-inset-bottom)}
+.rd-sair-cheia{position:fixed;z-index:9;top:calc(11px + env(safe-area-inset-top));right:11px;display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;font-size:14px;font-weight:500;color:var(--rd-ink);background:var(--rd-mat);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:var(--rd-sombra);animation:aa-desce .2s var(--ease) both}
+.rd-sair-cheia svg.ic{width:17px;height:17px}
 .rd-esq{justify-self:start;display:flex;align-items:center;gap:2px;min-width:0}
 .rd-dir{justify-self:end;display:flex;align-items:center;gap:2px}
 .rd-sep{width:1px;height:21px;margin:0 7px;background:var(--rd-line)}
@@ -358,6 +362,10 @@ mark.hit{background:rgba(255,140,0,.45);border-radius:2px}
   .rd-sep{display:none}
   .rd-dir{gap:0}
   .rd-title{max-width:38vw}
+  /* celular: voltar, título (o que sobrar) e as ferramentas; nada se sobrepõe */
+  .rd-top{grid-template-columns:auto minmax(0,1fr) auto;gap:4px;padding-left:4px;padding-right:4px}
+  .rd-title{max-width:none;justify-items:start;text-align:left}
+  .rd-dir .rd-ferr{min-width:34px;padding:0 6px}
 }
 @keyframes folha-sobe{from{transform:translateY(46px);opacity:0}}
 

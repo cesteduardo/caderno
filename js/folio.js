@@ -249,7 +249,7 @@ aside[epub|type~="endnote"],aside[epub|type~="footnote"],aside[epub|type~="note"
   },
 
   /* ---------- navegação ---------- */
-  async next(){ selbar.hide(); await this.view.next(); if (this.paged) showChrome(false); },
+  async next(){ selbar.hide(); await this.view.next(); },
   async prev(){ selbar.hide(); await this.view.prev(); },
   gotoPct(p){ return this.view.goToFraction(p); },
   gotoToc(t){ return t.href ? this.view.goTo(t.href) : this.gotoPct(t.f || 0); },
