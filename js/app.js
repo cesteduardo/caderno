@@ -326,6 +326,8 @@ $('#diaryOpen').addEventListener('click', () => {
 /* ---------- Início ---------- */
 (async () => {
   await loadE();
+  /* sem sincronização, os ajustes pessoais da rotina valem já (com ela, depois de mesclar com o Gist) */
+  if (!sync.token && typeof ajustesPessoais === 'function' && ajustesPessoais(state)) saveLocal();
   afterRemoteMerge = () => { if (currentView === 'aula' && LIVE.l) return; refreshView(); };
   const [v, a] = location.hash.slice(1).split('/');
   go(VIEWS[v] ? v : 'hoje', a && decodeURIComponent(a));

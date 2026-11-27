@@ -27,10 +27,11 @@ código: token do GitHub, senhas e chaves nunca entram no repositório. O convit
 "Seu Caderno começa vazio" e as áreas genéricas (`AREAS_PADRAO`) ficam como
 estão.
 
-- **Agenda** (no topo do Hoje): os horários fixos do dia, de `js/agenda.js`
-  (`AGENDA`; `state.perfil.agenda` substitui, se existir). Manhã igual todos os
-  dias; de segunda a sexta entram a saída, a caminhada e o Trabalho (10h30 às
-  21h30). O bloco da hora atual fica em azul com "Agora" e os que já passaram
+- **Agenda** (no topo do Hoje): os horários das tarefas da rotina (editáveis em
+  Rotina → Editar rotina), mais os marcos que não são tarefa (Acordar, 5h30). Sem
+  nenhuma tarefa com horário, vale `state.perfil.agenda` ou a lista `AGENDA` de
+  `js/agenda.js`. Manhã igual todos os dias; de segunda a sexta entram a saída, a
+  caminhada e o Trabalho (10h30 às 21h30). O bloco da hora atual fica em azul com "Agora" e os que já passaram
   ficam apagados; o destaque anda sozinho a cada minuto.
 - **Hoje**: a data como título, os dias numa navegação compacta (‹ Hoje ›) e o
   progresso do dia numa barra larga com os números ao lado (minutos feitos,
@@ -105,9 +106,11 @@ estão.
   - Exporta um .zip pronto para o Obsidian (Notas/, Diário/, Marcações/).
 - **Rotina**: semana, planos, recursos e progresso. Cada tarefa tem duração e,
   se quiser, **horário** de início (campo de relógio no Editar rotina; apague
-  para tirar). As que têm horário abrem o Hoje numa **Agenda** na ordem do
-  relógio (5h40 às 6h05…) e aparecem assim também na Semana; as sem horário
-  seguem agrupadas por área.
+  para tirar). Com horário, a tarefa entra na **Agenda** do Hoje e mostra a hora
+  na lista (5h40 às 6h05…), na ordem do relógio, também na Semana.
+  **Ajustes pessoais** (`js/ajustes.js`): mudanças de rotina pedidas pelo dono
+  vêm no código e rodam uma vez, no primeiro aparelho que abrir o app (depois de
+  mesclar com o Gist); a sincronização leva o resultado aos outros.
 
 Funciona offline (service worker). Dados ficam no aparelho; a sincronização entre PC e
 celular usa um Gist secreto (token em Rotina → Progresso). Os arquivos dos livros e o

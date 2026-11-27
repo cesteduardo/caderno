@@ -389,8 +389,10 @@ function renderToday(){
   // grupos na ordem do dia: manhã, depois o que não tem período, depois noite
   const rank = t => ({ manha: 0, noite: 2 })[t.when] ?? 1;
   const groupRank = id => Math.min(...st.tasks.filter(t => t.area === id).map(rank));
-  const areas = listaAreas().filter(a => st.tasks.some(t => t.area === a.id && atMin(t.at) == null))
-                     .sort((a, b) => groupRank(a.id) - groupRank(b.id) || listaAreas().indexOf(a) - listaAreas().indexOf(b));
+  /* grupos na ordem do relógio: vale a primeira tarefa com horário de cada área (sem horário, vão depois) */
+  const primeiraHora = id => Math.min(1e4, ...st.tasks.filter(t => t.area === id).map(t => atMin(t.at) ?? 1e4));
+  const areas = listaAreas().filter(a => st.tasks.some(t => t.area === a.id))
+                     .sort((a, b) => primeiraHora(a.id) - primeiraHora(b.id) || groupRank(a.id) - groupRank(b.id) || listaAreas().indexOf(a) - listaAreas().indexOf(b));
   // uma linha de tarefa (marcar só mexe nesta linha e nos números do topo)
   const taskRow = (t, comHorario) => {
     const isDone = t.id in done;
@@ -412,21 +414,14 @@ function renderToday(){
     return row;
   };
 
-  // o que tem horário vem primeiro, numa agenda na ordem do relógio
-  const comHora = st.tasks.filter(t => atMin(t.at) != null).sort(porHorario);
-  if (comHora.length){
-    list.append(h('section', { class: 'group agenda' },
-      h('header', { class: 'group-head' }, h('span', { class: 'agenda-title', text: 'Agenda' }), h('span', { class: 'group-sum', text: `${fmtAt(atMin(comHora[0].at))} às ${fmtAt(Math.max(...comHora.map(t => atMin(t.at) + t.min)))}` })),
-      comHora.map(t => taskRow(t, true))));
-  }
-
   for (const area of areas){
-    const tasks = st.tasks.filter(t => t.area === area.id && atMin(t.at) == null);
+    /* dentro da área, na ordem do relógio; a hora aparece na frente (a agenda do dia fica no cartão Agenda, js/agenda.js) */
+    const tasks = st.tasks.filter(t => t.area === area.id).sort(porHorario);
     if (!tasks.length) continue;
     const group = h('section', { class: 'group', style: tint(area.id) },
       h('header', { class: 'group-head' }, areaChip(area.id), h('span', { class: 'group-sum', text: tasks.reduce((s, t) => s + t.min, 0) + ' min' })));
 
-    for (const t of tasks) group.append(taskRow(t, false));
+    for (const t of tasks) group.append(taskRow(t, atMin(t.at) != null));
     list.append(group);
   }
 
@@ -924,9 +919,12 @@ async function syncNow(){
       try { remote = await pullRemote(); }
       catch (e){ if (e.message !== '404') throw e; sync.gistId = null; await ensureGist(); }
       const r = remote && remote.rotina;
+      const antes = JSON.stringify(state);
       const merged = r ? mergeStates(state, r) : state;
+      /* ajustes pessoais (js/ajustes.js): só depois de mesclar com o Gist */
+      if (typeof ajustesPessoais === 'function') ajustesPessoais(merged);
       const mStr = JSON.stringify(merged);
-      if (mStr !== JSON.stringify(state)){ state = merged; saveLocal(); refreshView(); }
+      if (mStr !== antes){ state = merged; saveLocal(); refreshView(); }
       const files = {};
       if (!r || mStr !== JSON.stringify(r)) files[GIST_FILE] = { content: mStr };
       // estudo (livros, destaques, notas, cartões e aulas) vai num segundo arquivo do mesmo Gist

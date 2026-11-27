@@ -17,7 +17,16 @@ const AGENDA = [
   { hora: '10:30', fim: '21:30', nome: 'Trabalho', dias: UTEIS, desde: '2026-11-27' },
 ];
 
-const agendaBase = () => (state.perfil && Array.isArray(state.perfil.agenda) && state.perfil.agenda.length) ? state.perfil.agenda : AGENDA;
+/* De onde vem a agenda: os horários das tarefas da rotina (editáveis em
+   Rotina → Editar rotina), com os marcos que não são tarefa (Acordar).
+   Sem nenhuma tarefa com horário, vale state.perfil.agenda ou a lista acima. */
+const MARCOS = [{ hora: '05:30', nome: 'Acordar' }];
+const somaHora = (hhmm, min) => { const t = paraMin(hhmm) + (min || 0); return String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+const agendaBase = () => {
+  const comHora = (state.routine || []).filter(t => /^\d{1,2}:\d{2}$/.test(t.at || ''));
+  if (comHora.length) return [...MARCOS, ...comHora.map(t => ({ hora: t.at, fim: somaHora(t.at, t.min), nome: t.name, dias: t.days }))];
+  return (state.perfil && Array.isArray(state.perfil.agenda) && state.perfil.agenda.length) ? state.perfil.agenda : AGENDA;
+};
 const paraMin = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
 const fmtHora = s => { const [h, m] = s.split(':').map(Number); return h + 'h' + (m ? String(m).padStart(2, '0') : ''); };
 
